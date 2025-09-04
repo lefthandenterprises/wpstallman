@@ -64,8 +64,8 @@ PKG="$REPO_ROOT/$OUT/packages"
 NSIS="$REPO_ROOT/$OUT/nsis"
 mkdir -p "$BUILD" "$PKG" "$NSIS"
 
-# ---- Icons (default to hat.svg) ----
-ICON_MASTER="${ICON_MASTER:-$REPO_ROOT/src/WPStallman.Assets/logo/hat.svg}"
+# ---- Icons (default to WPS-1024.png) ----
+ICON_MASTER="${ICON_MASTER:-$REPO_ROOT/src/WPStallman.Assets/logo/WPS-1024.png}"
 REFRESH_ICONS="${REFRESH_ICONS:-1}"
 ICON_BASENAME="${ICON_BASENAME:-WPS}"
 
