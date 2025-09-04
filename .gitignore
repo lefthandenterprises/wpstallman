@@ -77,3 +77,4 @@ node_modules/
 
 /src/WPStallman.Assets/staging/
 
+/build/package/.wine-wpst-smoke/

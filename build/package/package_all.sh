@@ -5,19 +5,24 @@
 # ============================================================
 set -euo pipefail
 
-# ---------- Resolve repo root ----------
-SCRIPT_DIR="$(cd -- "$(dirname "$0")" >/dev/null 2>&1 && pwd -P)"
-# Try git root; otherwise climb up from build/package to repo root
-if git -C "$SCRIPT_DIR" rev-parse --show-toplevel >/dev/null 2>&1; then
-  REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-else
+# ---------- Resolve repo root (robust, POSIX-safe) ----------
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "$REPO_ROOT" ]]; then
   for CAND in "$SCRIPT_DIR/../.." "$SCRIPT_DIR/.." "$SCRIPT_DIR"; do
-    if [[ -d "$CAND/src" ]] || compgen -G "$CAND/*.sln" > /dev/null; then
-      REPO_ROOT="$(cd "$CAND" && pwd -P)"; break
+    if [[ -d "$CAND/src" && -f "$CAND/src/WPStallman.GUI/WPStallman.GUI.csproj" ]]; then
+      REPO_ROOT="$(cd "$CAND" && pwd -P)"
+      break
     fi
   done
-  REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd -P)}"
 fi
+# Last-resort fallback
+if [[ -z "$REPO_ROOT" ]]; then
+  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
+fi
+
+
 
 # ---------- Config ----------
 APP_NAME="${APP_NAME:-W. P. Stallman}"
@@ -26,18 +31,18 @@ VERSION="${VERSION:-1.0.0}"
 OUT="${PUBLISH_DIR:-artifacts}"
 
 # Auto-detect projects
-if [[ -f "$REPO_ROOT/src/src/WPStallman.GUI/WPStallman.GUI.csproj" ]]; then
-  GUI_CSPROJ="$REPO_ROOT/src/src/WPStallman.GUI/WPStallman.GUI.csproj"
-elif [[ -f "$REPO_ROOT/src/WPStallman.GUI/WPStallman.GUI.csproj" ]]; then
+if [[ -f "$REPO_ROOT/src/WPStallman.GUI/WPStallman.GUI.csproj" ]]; then
   GUI_CSPROJ="$REPO_ROOT/src/WPStallman.GUI/WPStallman.GUI.csproj"
+elif [[ -f "$REPO_ROOT/WPStallman.GUI/WPStallman.GUI.csproj" ]]; then
+  GUI_CSPROJ="$REPO_ROOT/WPStallman.GUI/WPStallman.GUI.csproj"
 else
   echo "Cannot find WPStallman.GUI.csproj"; exit 1
 fi
 
-if [[ -f "$REPO_ROOT/src/src/WPStallman.CLI/WPStallman.CLI.csproj" ]]; then
-  CLI_CSPROJ="$REPO_ROOT/src/src/WPStallman.CLI/WPStallman.CLI.csproj"
-elif [[ -f "$REPO_ROOT/src/WPStallman.CLI/WPStallman.CLI.csproj" ]]; then
+if [[ -f "$REPO_ROOT/src/WPStallman.CLI/WPStallman.CLI.csproj" ]]; then
   CLI_CSPROJ="$REPO_ROOT/src/WPStallman.CLI/WPStallman.CLI.csproj"
+elif [[ -f "$REPO_ROOT/WPStallman.CLI/WPStallman.CLI.csproj" ]]; then
+  CLI_CSPROJ="$REPO_ROOT/WPStallman.CLI/WPStallman.CLI.csproj"
 else
   echo "Cannot find WPStallman.CLI.csproj"; exit 1
 fi
@@ -47,6 +52,31 @@ BUILD="$REPO_ROOT/$OUT/build"
 PKG="$REPO_ROOT/$OUT/packages"
 NSIS="$REPO_ROOT/$OUT/nsis"
 mkdir -p "$BUILD" "$PKG" "$NSIS"
+# ---- Icons (default to hat.svg) ----
+ICON_MASTER="${ICON_MASTER:-$REPO_ROOT/src/WPStallman.Assets/logo/hat.svg}"
+REFRESH_ICONS="${REFRESH_ICONS:-1}"
+ICON_BASENAME="${ICON_BASENAME:-WPS}"
+
+refresh_icons() {
+  # Respect toggle (defaults to 1)
+  if [[ "${REFRESH_ICONS:-1}" != "1" ]]; then
+    echo "Icons: refresh disabled (REFRESH_ICONS=0)" >&2
+    return 0
+  fi
+
+  # Require a master icon file
+  if [[ ! -f "$ICON_MASTER" ]]; then
+    echo "Icons: ICON_MASTER not found: $ICON_MASTER - skipping icon refresh" >&2
+    return 0
+  fi
+
+  echo "Icons: generating from $ICON_MASTER" >&2
+  "$REPO_ROOT/tools/dev/iconpack/package_icons_from_master.sh" --master "$ICON_MASTER" || {
+    echo "WARN: icon generation failed" >&2
+  }
+}
+
+
 
 # Packaging assets
 DESKTOP_FILE="${DESKTOP_FILE:-$REPO_ROOT/build/assets/wpstallman.desktop}"
@@ -183,6 +213,10 @@ win_nsis() {
   fi
 
   note "Building Windows NSIS installer"
+  # Copy ICO into GUI publish so installer can reference it (optional)
+  if [[ -f "$REPO_ROOT/artifacts/icons/${ICON_BASENAME}.ico" ]]; then
+    cp -f "$REPO_ROOT/artifacts/icons/${ICON_BASENAME}.ico" "$GUI_PUB_WIN/${ICON_BASENAME}.ico" || true
+  fi
   NSI="$REPO_ROOT/build/package/installer.nsi"
   if [[ ! -f "$NSI" ]]; then
     warn "Missing $NSI; skipping NSIS."
@@ -190,15 +224,7 @@ win_nsis() {
   fi
 
   mkdir -p "$NSIS"
-"$MAKENSIS" \
-  -DVERSION="$VERSION" \
-  -DOUTDIR="$PKG" \
-  -DAPP_NAME="$APP_NAME" \
-  -DAPP_ID="$APP_ID" \
-  -DGUI_PAYLOAD="$GUI_PUB_WIN" \
-  -DCLI_PAYLOAD="$CLI_PUB_WIN" \
-  "$NSI" || warn "NSIS warnings above"
-
+  "$MAKENSIS" -DVERSION="$VERSION" -DOUTDIR="$PKG" "$NSI" || warn "NSIS warnings above"
   note "NSIS: $PKG/WPStallman-$VERSION-setup-win-x64.exe"
 }
 
@@ -215,11 +241,20 @@ linux_deb() {
   rsync -a "$CLI_PUB_LIN/." "$DEB_ROOT/usr/lib/$APP_ID/"
 
   # Ensure default desktop/icon within DEB staging if not provided
-  create_desktop_entry "$DEB_ROOT" "$APP_ID" "$APP_NAME" "/usr/lib/$APP_ID/WPStallman.GUI" "WordPress plugin project manager"
+  create_desktop_entry "$DEB_ROOT" "wpstallman" "$APP_NAME" "/usr/lib/$APP_ID/WPStallman.GUI" "WordPress plugin project manager"
+  # If pre-staged icons exist, prefer them
+  if [[ -d "$REPO_ROOT/artifacts/icons/hicolor" ]]; then
+    mkdir -p "$DEB_ROOT/usr/share/icons"
+    rsync -a "$REPO_ROOT/artifacts/icons/hicolor/" "$DEB_ROOT/usr/share/icons/hicolor/"
+  fi
 
   # Allow explicit desktop/icon override for .deb (kept in standard paths)
   [[ -f "$DESKTOP_FILE" ]] && install -m644 "$DESKTOP_FILE" "$DEB_ROOT/usr/share/applications/$APP_ID.desktop"
   [[ -f "$ICON_PNG"   ]] && install -m644 "$ICON_PNG"     "$DEB_ROOT/usr/share/icons/hicolor/256x256/apps/$APP_ID.png"
+  # Normalize permissions
+  find "$DEB_ROOT" -type d -print0 | xargs -0 chmod 755
+  find "$DEB_ROOT" -type f -print0 | xargs -0 chmod 644
+
 
   cat > "$DEB_ROOT/DEBIAN/control" <<EOF
 Package: wpstallman
@@ -261,7 +296,7 @@ linux_appimage() {
   rsync -a "$CLI_PUB_LIN/." "$APPDIR/usr/lib/$APP_ID/"
 
   # AppRun: prefer provided, else generate simple one
-  local APP_RUN="$REPO_ROOT/build/package/AppRun"
+  local APP_RUN="$REPO_ROOT/packaging/AppRun"
   if [[ -f "$APP_RUN" ]]; then
     install -m755 "$APP_RUN" "$APPDIR/AppRun"
   else
@@ -275,7 +310,12 @@ EOF
   fi
 
   # Ensure default desktop/icon within AppDir (and log fields)
-  create_desktop_entry "$APPDIR" "$APP_ID" "$APP_NAME" "usr/lib/$APP_ID/WPStallman.GUI" "WordPress plugin project manager"
+  create_desktop_entry "$APPDIR" "wpstallman" "$APP_NAME" "usr/lib/$APP_ID/WPStallman.GUI" "WordPress plugin project manager"
+  # If pre-staged icons exist, prefer them in AppDir
+  if [[ -d "$REPO_ROOT/artifacts/icons/hicolor" ]]; then
+    mkdir -p "$APPDIR/usr/share/icons"
+    rsync -a "$REPO_ROOT/artifacts/icons/hicolor/" "$APPDIR/usr/share/icons/hicolor/"
+  fi
 
   "$APPIMAGETOOL" "$APPDIR" "$PKG/WPStallman-$VERSION-x86_64.AppImage"
   note "AppImage: $PKG/WPStallman-$VERSION-x86_64.AppImage"
@@ -309,6 +349,7 @@ mac_bundles() {
 }
 
 # ---------- Run ----------
+refresh_icons
 build_all
 win_nsis
 linux_deb
