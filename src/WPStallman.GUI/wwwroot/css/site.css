@@ -1,0 +1,354 @@
+/* Scrollable JSON preview area */
+.manifest-preview-area {
+  min-height: 250px;
+  max-height: 400px;
+  overflow: auto;
+  font-size: 0.95em;
+  line-height: 1.35;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  margin-bottom: 1em;
+  white-space: pre;
+}
+
+.modal-backdrop {
+  z-index: 2040 !important;
+}
+
+.modal {
+  z-index: 2050 !important;
+}
+
+body {
+  overflow-y: auto !important;
+}
+
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 1050;
+  display: none;
+}
+
+.modal-custom {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-custom .modal-dialog {
+  margin: 0;
+}
+
+.modal-custom .modal-dialog {
+  min-width: 480px;
+  /* Or larger, e.g., 600px */
+  max-width: 80vw;
+  /* Responsive */
+}
+
+/* Smoothly fade the little notice away */
+.modal-notice {
+  transition: opacity 0.6s ease;
+}
+
+.modal-notice.fade-out {
+  opacity: 0;
+}
+
+/* Inline notice fade helper (reused from modal behavior) */
+.fade-out {
+  opacity: 0;
+  transition: opacity .6s linear;
+}
+
+
+/* ---- Donate / About styles ---- */
+.donate-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.donate-table th,
+.donate-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.donate-table thead th {
+  text-align: left;
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.donate-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donate-name {
+  font-weight: 600;
+}
+
+.donate-heading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 12px 0 8px;
+}
+
+.about-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+
+.about-image {
+  width: 160px;
+  height: 160px;
+  border: 1px dashed #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.about-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.manual-pre {
+  white-space: pre-wrap;
+  font-family: monospace;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.cursor-zoom {
+  cursor: zoom-in;
+}
+
+.modal-img-lg {
+  max-height: 80vh;
+  /* keep it on screen */
+  width: auto;
+  /* preserve aspect ratio */
+}
+
+/* Image lightbox (rounded, full-viewport with fade) */
+.img-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .8);
+  display: grid;
+  place-items: center;
+  z-index: 1055;
+  /* above Bootstrap modals/backdrops */
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.img-modal-backdrop.visible {
+  opacity: 1;
+}
+
+.img-modal-content {
+  border-radius: 1rem;
+  /* rounded! */
+  overflow: hidden;
+  /* keep rounded corners crisp */
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, .5);
+}
+
+.img-modal-img {
+  display: block;
+  max-height: 92vh;
+  /* scale to screen height */
+  max-width: 94vw;
+  /* keep within screen width */
+  height: auto;
+  width: auto;
+  object-fit: contain;
+  /* preserve aspect ratio */
+  background: #000;
+  /* subtle letterbox for wide/tall images */
+}
+
+body.img-modal-open {
+  overflow: hidden;
+}
+
+/* prevent background scroll */
+
+
+/* ==== Donate table (final clean) ==== */
+/* ===========================
+   Global helpers / utilities
+   =========================== */
+
+/* keep table rows tidy with Bootstrap tables */
+table td, table th { vertical-align: middle; }
+
+/* small “copied”/inline notices fade */
+.fade-out { opacity: 0; transition: opacity .6s ease; }
+.fade-in  { opacity: 1; transition: opacity .6s ease; }
+
+/* clickable zoom cursor for images */
+.cursor-zoom { cursor: zoom-in; }
+
+/* ===========================
+   Image Lightbox (no chrome)
+   =========================== */
+.img-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.8);
+  display: grid;
+  place-items: center;
+  z-index: 1055;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.img-modal-backdrop.visible { opacity: 1; }
+
+.img-modal-content {
+  border-radius: 1rem;          /* rounded corners */
+  overflow: hidden;
+  box-shadow: 0 1rem 3rem rgba(0,0,0,.5);
+}
+
+.img-modal-img {
+  display: block;
+  max-height: 92vh;             /* scale to screen height */
+  max-width: 94vw;              /* keep within viewport width */
+  height: auto;
+  width: auto;
+  object-fit: contain;
+  background: #000;             /* subtle letterbox for extreme ratios */
+}
+
+body.img-modal-open { overflow: hidden; }
+
+/* ===========================
+   Donate / Wallets table
+   =========================== */
+
+/* Use in HTML: <table class="table wallets-table align-middle"> */
+.wallets-table {
+  table-layout: fixed;           /* predictable column shrinking */
+  width: 100%;
+}
+
+/* Address cell content:
+   If you wrap address in <span class="addr">…</span>, it will truncate with ellipsis.
+   If you just use <code>…</code>, it will soft-wrap via break-all (see below). */
+.donate-address .addr {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Address appearance (using <code>…</code> in the cell) */
+#donate-section .donate-address code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9rem;
+  word-break: break-all;         /* wrap long hashes without blowing layout */
+  white-space: normal;
+  background: #fff;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Actions: keep buttons tidy on one row; works with a fixed-width Actions <col> */
+#donate-section .donate-actions .btn + .btn { margin-left: 6px; }
+
+/* Inline notice next to buttons (“Copied”, errors) */
+#donate-section .donate-actions .small { transition: opacity .6s ease; }
+#donate-section .donate-actions .small.fade-out { opacity: 0; }
+
+/* On the tiniest screens, allow horizontal scroll instead of breaking layout */
+@media (max-width: 576px) {
+  .table-responsive { overflow-x: auto; }
+}
+
+/* begin manual styles */
+
+/* Manual container styles (scoped) */
+.manual-container {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 10px;
+  color: #333;
+}
+
+/* Headings inside manual */
+.manual-container h1,
+.manual-container h2,
+.manual-container h3,
+.manual-container h4 {
+  color: #2c3e50;
+  margin-top: 1.4em;
+}
+
+/* Inline code & blocks */
+.manual-container code,
+.manual-container pre {
+  background: #f4f4f4;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-family: Consolas, monospace;
+}
+
+.manual-container pre {
+  overflow-x: auto;
+  padding: 10px;
+}
+
+/* Lists */
+.manual-container ul,
+.manual-container ol {
+  margin: 0.6em 0 0.6em 1.4em;
+}
+
+/* Horizontal rules */
+.manual-container hr {
+  margin: 2em 0;
+  border: none;
+  border-top: 1px solid #ddd;
+}
+
+/* Optional: make links readable and consistent */
+.manual-container a {
+  color: #0366d6;
+  text-decoration: none;
+}
+.manual-container a:hover {
+  text-decoration: underline;
+}
+
+/* end manual styles */

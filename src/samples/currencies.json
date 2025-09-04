@@ -1,0 +1,211 @@
+{
+  "database": "personalized_epub_design",
+  "generatedAt": "2025-08-08T21:26:59.1644146Z",
+  "defaultPrefix": "wp_",
+  "installerClass": "Sample_Currencies",
+  "includeSeedData": true,
+  "tables": [
+    {
+      "name": "personalized_epub_currencies",
+      "nameOriginal": "wp_personalized_epub_currencies",
+      "fullName": "wp_personalized_epub_currencies",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_code",
+          "type": "varchar(3)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_name",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_symbol",
+          "type": "varchar(10)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "is_default",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "0",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ux_currency_code",
+          "columns": [
+            "currency_code"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uq_currency_code",
+          "columns": [
+            "currency_code"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_currency_name",
+          "columns": [
+            "currency_name"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "ux_currency_code",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "uq_currency_code",
+          "type": "UNIQUE",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    }
+  ],
+  "views": [],
+  "storedProcedures": [
+    {
+      "name": "personalized_epub_currencies_delete",
+      "nameOriginal": "wp_personalized_epub_currencies_delete",
+      "fullName": "wp_personalized_epub_currencies_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_delete`(\n    IN p_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_currencies WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_insert",
+      "nameOriginal": "wp_personalized_epub_currencies_insert",
+      "fullName": "wp_personalized_epub_currencies_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_currency_code",
+          "type": "VARCHAR(10"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_insert`(\n    IN p_currency_code VARCHAR(10),\n    IN p_currency_name VARCHAR(50),\n    IN p_symbol VARCHAR(10),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_currencies (currency_code, currency_name, symbol, is_active,\n         date_created, created_by, date_modified, modified_by)\n    VALUES (p_currency_code, p_currency_name, p_symbol, p_is_active, NOW(), p_user, NOW(), p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_select_single",
+      "nameOriginal": "wp_personalized_epub_currencies_select_single",
+      "fullName": "wp_personalized_epub_currencies_select_single",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_currency_code",
+          "type": "VARCHAR(10"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_select_single`(\n    IN p_currency_code VARCHAR(10)\n)\nBEGIN\n    SELECT id, currency_code, currency_name, symbol, is_active,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_currencies\n    WHERE currency_code = p_currency_code\n    LIMIT 1;\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_update",
+      "nameOriginal": "wp_personalized_epub_currencies_update",
+      "fullName": "wp_personalized_epub_currencies_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_currency_name",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_update`(\n    IN p_id INT,\n    IN p_currency_name VARCHAR(50),\n    IN p_symbol VARCHAR(10),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_currencies\n    SET currency_name=p_currency_name, symbol=p_symbol, is_active=p_is_active,\n        date_modified=NOW(), modified_by=p_user\n    WHERE id=p_id;\nEND"
+    }
+  ],
+  "triggers": []
+}

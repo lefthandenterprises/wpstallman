@@ -1,0 +1,3309 @@
+{
+  "database": "personalized_epub_design",
+  "generatedAt": "2025-08-04T18:41:59.5366142Z",
+  "defaultPrefix": "wp_",
+  "installerClass": "MyPlugin_Installer",
+  "includeSeedData": true,
+  "tables": [
+    {
+      "name": "personalized_epub_book_default_values",
+      "nameOriginal": "wp_personalized_epub_book_default_values",
+      "fullName": "wp_personalized_epub_book_default_values",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_value",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "default_value",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "help_text",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "field_type",
+          "type": "enum('textarea','textinput','checkbox','checkboxlist','dropdown')",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "textinput",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ux_setting_name",
+          "columns": [
+            "setting_name"
+          ],
+          "unique": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "ux_setting_name",
+          "type": "UNIQUE",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_book_default_values_audit",
+      "nameOriginal": "wp_personalized_epub_book_default_values_audit",
+      "fullName": "wp_personalized_epub_book_default_values_audit",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "audit_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_value",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "default_value",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "help_text",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "field_type",
+          "type": "enum('textarea','textinput','checkbox','checkboxlist','dropdown')",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "textinput",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "action",
+          "type": "varchar(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "change_description",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "audit_timestamp",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "audit_id"
+          ],
+          "unique": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_books",
+      "nameOriginal": "wp_personalized_epub_books",
+      "fullName": "wp_personalized_epub_books",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "title",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "author",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "publication_date",
+          "type": "date",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "cover_image_url",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "price",
+          "type": "decimal(10,2)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "0.00",
+          "comment": ""
+        },
+        {
+          "name": "currency_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "download_storage_length",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "30",
+          "comment": ""
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "1",
+          "comment": ""
+        },
+        {
+          "name": "customization_area_width",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "customization_area_height",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "default_line_thickness",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "default_line_color",
+          "type": "varchar(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "autograph_keyword",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "autograph_page_html_path",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uq_books_title_author",
+          "columns": [
+            "title",
+            "author"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_title",
+          "columns": [
+            "title"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_author",
+          "columns": [
+            "author"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_is_active",
+          "columns": [
+            "is_active"
+          ],
+          "unique": false
+        },
+        {
+          "name": "fk_books_currency",
+          "columns": [
+            "currency_row_id"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "uq_books_title_author",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "fk_books_currency",
+          "type": "FOREIGN KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_books_currency",
+          "column": "currency_row_id",
+          "references": {
+            "table": "personalized_epub_currencies",
+            "column": "row_id"
+          },
+          "onDelete": "RESTRICT",
+          "onUpdate": "CASCADE"
+        }
+      ],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_business_info_settings",
+      "nameOriginal": "wp_personalized_epub_business_info_settings",
+      "fullName": "wp_personalized_epub_business_info_settings",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_group",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_value",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "default_value",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "help_text",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "field_type",
+          "type": "enum('textarea','textinput','checkbox','checkboxlist','dropdown')",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "textinput",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uq_setting_name",
+          "columns": [
+            "setting_name"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_setting_group",
+          "columns": [
+            "setting_group"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_setting_name",
+          "columns": [
+            "setting_name"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "uq_setting_name",
+          "type": "UNIQUE",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_business_info_settings_audit",
+      "nameOriginal": "wp_personalized_epub_business_info_settings_audit",
+      "fullName": "wp_personalized_epub_business_info_settings_audit",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "audit_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_group",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_value",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "default_value",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "help_text",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "field_type",
+          "type": "enum('textarea','textinput','checkbox','checkboxlist','dropdown')",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "textinput",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "action",
+          "type": "varchar(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "change_description",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "audit_timestamp",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "audit_id"
+          ],
+          "unique": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_currencies",
+      "nameOriginal": "wp_personalized_epub_currencies",
+      "fullName": "wp_personalized_epub_currencies",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_code",
+          "type": "varchar(3)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_name",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_symbol",
+          "type": "varchar(10)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "is_default",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "0",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ux_currency_code",
+          "columns": [
+            "currency_code"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uq_currency_code",
+          "columns": [
+            "currency_code"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_currency_name",
+          "columns": [
+            "currency_name"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "ux_currency_code",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "uq_currency_code",
+          "type": "UNIQUE",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_currencies_audit",
+      "nameOriginal": "wp_personalized_epub_currencies_audit",
+      "fullName": "wp_personalized_epub_currencies_audit",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "audit_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_code",
+          "type": "varchar(3)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_name",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_symbol",
+          "type": "varchar(10)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "is_default",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "action",
+          "type": "varchar(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "change_description",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "audit_timestamp",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "audit_id"
+          ],
+          "unique": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_order_details",
+      "nameOriginal": "wp_personalized_epub_order_details",
+      "fullName": "wp_personalized_epub_order_details",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "order_master_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "book_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "quantity",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "1",
+          "comment": ""
+        },
+        {
+          "name": "price",
+          "type": "decimal(10,2)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "personalization_request",
+          "type": "text",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "signature_data",
+          "type": "longtext",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "line_color",
+          "type": "varchar(20)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "#000000",
+          "comment": ""
+        },
+        {
+          "name": "line_thickness",
+          "type": "int(11)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "2",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uq_order_details_master_book",
+          "columns": [
+            "order_master_row_id",
+            "book_row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_order_master_row_id",
+          "columns": [
+            "order_master_row_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_book_row_id",
+          "columns": [
+            "book_row_id"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "uq_order_details_master_book",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "signature_data",
+          "type": "CHECK",
+          "columns": []
+        },
+        {
+          "name": "fk_order_details_book",
+          "type": "FOREIGN KEY",
+          "columns": []
+        },
+        {
+          "name": "fk_order_details_master",
+          "type": "FOREIGN KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_order_details_book",
+          "column": "book_row_id",
+          "references": {
+            "table": "personalized_epub_books",
+            "column": "row_id"
+          },
+          "onDelete": "RESTRICT",
+          "onUpdate": "CASCADE"
+        },
+        {
+          "name": "fk_order_details_master",
+          "column": "order_master_row_id",
+          "references": {
+            "table": "personalized_epub_order_master",
+            "column": "row_id"
+          },
+          "onDelete": "CASCADE",
+          "onUpdate": "CASCADE"
+        }
+      ],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_order_master",
+      "nameOriginal": "wp_personalized_epub_order_master",
+      "fullName": "wp_personalized_epub_order_master",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "first_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "last_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "email",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "currency_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "total",
+          "type": "decimal(10,2)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "payment_integration_type_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "status_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "epub_filename",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "is_downloaded",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "0",
+          "comment": ""
+        },
+        {
+          "name": "download_date",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "download_guid",
+          "type": "char(36)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "is_destroyed",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "0",
+          "comment": ""
+        },
+        {
+          "name": "destruction_date",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uq_order_master_order_guid",
+          "columns": [
+            "download_guid"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uq_order_master_download_guid",
+          "columns": [
+            "download_guid"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_email",
+          "columns": [
+            "email"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_status_row_id",
+          "columns": [
+            "status_row_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "fk_order_master_currency",
+          "columns": [
+            "currency_row_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "fk_order_master_payment_integration",
+          "columns": [
+            "payment_integration_type_row_id"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "uq_order_master_order_guid",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "uq_order_master_download_guid",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "fk_order_master_currency",
+          "type": "FOREIGN KEY",
+          "columns": []
+        },
+        {
+          "name": "fk_order_master_payment_integration",
+          "type": "FOREIGN KEY",
+          "columns": []
+        },
+        {
+          "name": "fk_order_master_status",
+          "type": "FOREIGN KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_order_master_currency",
+          "column": "currency_row_id",
+          "references": {
+            "table": "personalized_epub_currencies",
+            "column": "row_id"
+          },
+          "onDelete": "RESTRICT",
+          "onUpdate": "CASCADE"
+        },
+        {
+          "name": "fk_order_master_payment_integration",
+          "column": "payment_integration_type_row_id",
+          "references": {
+            "table": "personalized_epub_payment_integration_types",
+            "column": "row_id"
+          },
+          "onDelete": "RESTRICT",
+          "onUpdate": "CASCADE"
+        },
+        {
+          "name": "fk_order_master_status",
+          "column": "status_row_id",
+          "references": {
+            "table": "personalized_epub_statuses",
+            "column": "row_id"
+          },
+          "onDelete": "RESTRICT",
+          "onUpdate": "CASCADE"
+        }
+      ],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_payment_integration_details",
+      "nameOriginal": "wp_personalized_epub_payment_integration_details",
+      "fullName": "wp_personalized_epub_payment_integration_details",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "order_master_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "payment_integration_type_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "transaction_details",
+          "type": "longtext",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_order_master_row_id",
+          "columns": [
+            "order_master_row_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_payment_integration_type_row_id",
+          "columns": [
+            "payment_integration_type_row_id"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "transaction_details",
+          "type": "CHECK",
+          "columns": []
+        },
+        {
+          "name": "fk_integration_details_order_master",
+          "type": "FOREIGN KEY",
+          "columns": []
+        },
+        {
+          "name": "fk_integration_details_payment_integration",
+          "type": "FOREIGN KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_integration_details_order_master",
+          "column": "order_master_row_id",
+          "references": {
+            "table": "personalized_epub_order_master",
+            "column": "row_id"
+          },
+          "onDelete": "CASCADE",
+          "onUpdate": "CASCADE"
+        },
+        {
+          "name": "fk_integration_details_payment_integration",
+          "column": "payment_integration_type_row_id",
+          "references": {
+            "table": "personalized_epub_payment_integration_types",
+            "column": "row_id"
+          },
+          "onDelete": "RESTRICT",
+          "onUpdate": "CASCADE"
+        }
+      ],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_payment_integration_settings",
+      "nameOriginal": "wp_personalized_epub_payment_integration_settings",
+      "fullName": "wp_personalized_epub_payment_integration_settings",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "integration_type_row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "setting_value",
+          "type": "varchar(255)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "default_value",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "help_text",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "field_type",
+          "type": "enum('textarea','textinput','checkbox','checkboxlist','dropdown')",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "textinput",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uq_payment_integration_setting",
+          "columns": [
+            "integration_type_row_id",
+            "setting_name"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_integration_type_row_id",
+          "columns": [
+            "integration_type_row_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_setting_name",
+          "columns": [
+            "setting_name"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "uq_payment_integration_setting",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "fk_payment_integration_settings_type",
+          "type": "FOREIGN KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_payment_integration_settings_type",
+          "column": "integration_type_row_id",
+          "references": {
+            "table": "personalized_epub_payment_integration_types",
+            "column": "row_id"
+          },
+          "onDelete": "CASCADE",
+          "onUpdate": "CASCADE"
+        }
+      ],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_payment_integration_types",
+      "nameOriginal": "wp_personalized_epub_payment_integration_types",
+      "fullName": "wp_personalized_epub_payment_integration_types",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "integration_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "integration_code",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "description",
+          "type": "varchar(255)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "1",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ux_pers_epub_payinttypes_integration_code",
+          "columns": [
+            "integration_code"
+          ],
+          "unique": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "ux_pers_epub_payinttypes_integration_code",
+          "type": "UNIQUE",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    },
+    {
+      "name": "personalized_epub_statuses",
+      "nameOriginal": "wp_personalized_epub_statuses",
+      "fullName": "wp_personalized_epub_statuses",
+      "comment": "",
+      "rowLimit": 0,
+      "skip": false,
+      "columns": [
+        {
+          "name": "row_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_created",
+          "type": "datetime",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        },
+        {
+          "name": "created_by",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "date_modified",
+          "type": "datetime",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "modified_by",
+          "type": "varchar(50)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "row_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_name",
+          "columns": [
+            "name"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [],
+      "seed": true
+    }
+  ],
+  "views": [
+    {
+      "name": "personalized_epub_books_view",
+      "nameOriginal": "wp_personalized_epub_books_view",
+      "fullName": "wp_personalized_epub_books_view",
+      "definition": "CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `wp_personalized_epub_books_view` AS select `b`.`row_id` AS `book_row_id`,`b`.`title` AS `title`,`b`.`author` AS `author`,`b`.`publication_date` AS `publication_date`,`b`.`description` AS `description`,`b`.`cover_image_url` AS `cover_image_url`,`b`.`price` AS `price`,`b`.`currency_row_id` AS `currency_row_id`,`c`.`currency_code` AS `currency_code`,`c`.`currency_name` AS `currency_name`,`c`.`currency_symbol` AS `currency_symbol`,`b`.`download_storage_length` AS `download_storage_length`,`b`.`is_active` AS `is_active`,`b`.`customization_area_width` AS `customization_area_width`,`b`.`customization_area_height` AS `customization_area_height`,`b`.`default_line_thickness` AS `default_line_thickness`,`b`.`default_line_color` AS `default_line_color`,`b`.`autograph_keyword` AS `autograph_keyword`,`b`.`autograph_page_html_path` AS `autograph_page_html_path`,`b`.`date_created` AS `date_created`,`b`.`created_by` AS `created_by`,`b`.`date_modified` AS `date_modified`,`b`.`modified_by` AS `modified_by` from (`wp_personalized_epub_books` `b` join `wp_personalized_epub_currencies` `c` on(`b`.`currency_row_id` = `c`.`row_id`))"
+    },
+    {
+      "name": "personalized_epub_order_details_view",
+      "nameOriginal": "wp_personalized_epub_order_details_view",
+      "fullName": "wp_personalized_epub_order_details_view",
+      "definition": "CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `wp_personalized_epub_order_details_view` AS select `d`.`row_id` AS `order_details_row_id`,`d`.`order_master_row_id` AS `order_master_row_id`,`o`.`first_name` AS `first_name`,`o`.`last_name` AS `last_name`,`o`.`email` AS `email`,`d`.`book_row_id` AS `book_row_id`,`b`.`title` AS `book_title`,`b`.`author` AS `book_author`,`d`.`quantity` AS `quantity`,`d`.`price` AS `price`,`d`.`personalization_request` AS `personalization_request`,`d`.`signature_data` AS `signature_data`,`d`.`line_color` AS `line_color`,`d`.`line_thickness` AS `line_thickness`,`d`.`date_created` AS `date_created`,`d`.`created_by` AS `created_by`,`d`.`date_modified` AS `date_modified`,`d`.`modified_by` AS `modified_by` from ((`wp_personalized_epub_order_details` `d` join `wp_personalized_epub_order_master` `o` on(`d`.`order_master_row_id` = `o`.`row_id`)) join `wp_personalized_epub_books` `b` on(`d`.`book_row_id` = `b`.`row_id`))"
+    },
+    {
+      "name": "personalized_epub_order_master_view",
+      "nameOriginal": "wp_personalized_epub_order_master_view",
+      "fullName": "wp_personalized_epub_order_master_view",
+      "definition": "CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `wp_personalized_epub_order_master_view` AS select `o`.`row_id` AS `order_master_row_id`,`o`.`first_name` AS `first_name`,`o`.`last_name` AS `last_name`,`o`.`email` AS `email`,`o`.`currency_row_id` AS `currency_row_id`,`c`.`currency_code` AS `currency_code`,`c`.`currency_name` AS `currency_name`,`c`.`currency_symbol` AS `currency_symbol`,`o`.`total` AS `total`,`o`.`payment_integration_type_row_id` AS `payment_integration_type_row_id`,`pit`.`integration_name` AS `payment_integration_name`,`o`.`status_row_id` AS `status_row_id`,`s`.`name` AS `status_name`,`o`.`epub_filename` AS `epub_filename`,`o`.`is_downloaded` AS `is_downloaded`,`o`.`download_date` AS `download_date`,`o`.`download_guid` AS `download_guid`,`o`.`is_destroyed` AS `is_destroyed`,`o`.`destruction_date` AS `destruction_date`,`o`.`date_created` AS `date_created`,`o`.`created_by` AS `created_by`,`o`.`date_modified` AS `date_modified`,`o`.`modified_by` AS `modified_by` from (((`wp_personalized_epub_order_master` `o` join `wp_personalized_epub_currencies` `c` on(`o`.`currency_row_id` = `c`.`row_id`)) join `wp_personalized_epub_payment_integration_types` `pit` on(`o`.`payment_integration_type_row_id` = `pit`.`row_id`)) join `wp_personalized_epub_statuses` `s` on(`o`.`status_row_id` = `s`.`row_id`))"
+    },
+    {
+      "name": "personalized_epub_payment_integration_details_view",
+      "nameOriginal": "wp_personalized_epub_payment_integration_details_view",
+      "fullName": "wp_personalized_epub_payment_integration_details_view",
+      "definition": "CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `wp_personalized_epub_payment_integration_details_view` AS select `d`.`row_id` AS `payment_integration_details_row_id`,`d`.`order_master_row_id` AS `order_master_row_id`,`o`.`first_name` AS `first_name`,`o`.`last_name` AS `last_name`,`o`.`email` AS `email`,`d`.`payment_integration_type_row_id` AS `payment_integration_type_row_id`,`pit`.`integration_name` AS `payment_integration_name`,`d`.`transaction_details` AS `transaction_details`,`d`.`date_created` AS `date_created`,`d`.`created_by` AS `created_by`,`d`.`date_modified` AS `date_modified`,`d`.`modified_by` AS `modified_by` from ((`wp_personalized_epub_payment_integration_details` `d` join `wp_personalized_epub_order_master` `o` on(`d`.`order_master_row_id` = `o`.`row_id`)) join `wp_personalized_epub_payment_integration_types` `pit` on(`d`.`payment_integration_type_row_id` = `pit`.`row_id`))"
+    },
+    {
+      "name": "personalized_epub_payment_integration_settings_view",
+      "nameOriginal": "wp_personalized_epub_payment_integration_settings_view",
+      "fullName": "wp_personalized_epub_payment_integration_settings_view",
+      "definition": "CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `wp_personalized_epub_payment_integration_settings_view` AS select `s`.`row_id` AS `setting_row_id`,`s`.`integration_type_row_id` AS `integration_type_row_id`,`t`.`integration_name` AS `integration_name`,`t`.`description` AS `integration_description`,`s`.`setting_name` AS `setting_name`,`s`.`setting_value` AS `setting_value`,`s`.`default_value` AS `default_value`,`s`.`help_text` AS `help_text`,`s`.`field_type` AS `field_type`,`s`.`date_created` AS `date_created`,`s`.`created_by` AS `created_by`,`s`.`date_modified` AS `date_modified`,`s`.`modified_by` AS `modified_by` from (`wp_personalized_epub_payment_integration_settings` `s` join `wp_personalized_epub_payment_integration_types` `t` on(`s`.`integration_type_row_id` = `t`.`row_id`))"
+    }
+  ],
+  "storedProcedures": [
+    {
+      "name": "personalized_epub_books_delete",
+      "nameOriginal": "wp_personalized_epub_books_delete",
+      "fullName": "wp_personalized_epub_books_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_books_delete`(\n    IN p_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_books WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_books_insert",
+      "nameOriginal": "wp_personalized_epub_books_insert",
+      "fullName": "wp_personalized_epub_books_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_title",
+          "type": "VARCHAR(255"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_books_insert`(\n    IN p_title VARCHAR(255),\n    IN p_author VARCHAR(255),\n    IN p_publication_date DATE,\n    IN p_customization_area_width INT,\n    IN p_customization_area_height INT,\n    IN p_default_line_thickness INT,\n    IN p_default_line_color VARCHAR(20),\n    IN p_autograph_keyword VARCHAR(50),\n    IN p_autograph_page_html_path VARCHAR(255),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_books(title,author,publication_date,customization_area_width,customization_area_height,\n        default_line_thickness,default_line_color,autograph_keyword,autograph_page_html_path,\n        is_active,date_created,created_by,date_modified,modified_by)\n    VALUES(p_title,p_author,p_publication_date,p_customization_area_width,p_customization_area_height,\n        p_default_line_thickness,p_default_line_color,p_autograph_keyword,p_autograph_page_html_path,\n        p_is_active,NOW(),p_user,NOW(),p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_books_select_paginated",
+      "nameOriginal": "wp_personalized_epub_books_select_paginated",
+      "fullName": "wp_personalized_epub_books_select_paginated",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_page",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_page_size",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_search_term",
+          "type": "VARCHAR(255"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_books_select_paginated`(\n    IN p_page INT,\n    IN p_page_size INT,\n    IN p_search_term VARCHAR(255),\n    IN p_is_active TINYINT\n)\nBEGIN\n    DECLARE v_offset INT;\n    SET v_offset = (p_page - 1) * p_page_size;\n\n    SELECT id, title, author, publication_date, customization_area_width, customization_area_height,\n           default_line_thickness, default_line_color, autograph_keyword, autograph_page_html_path,\n           is_active, date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_books\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR title LIKE CONCAT('%',p_search_term,'%') OR author LIKE CONCAT('%',p_search_term,'%'))\n      AND (p_is_active IS NULL OR is_active = p_is_active)\n    ORDER BY title\n    LIMIT v_offset, p_page_size;\n\n    SELECT COUNT(*) AS total_records\n    FROM wp_personalized_epub_books\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR title LIKE CONCAT('%',p_search_term,'%') OR author LIKE CONCAT('%',p_search_term,'%'))\n      AND (p_is_active IS NULL OR is_active = p_is_active);\nEND"
+    },
+    {
+      "name": "personalized_epub_books_select_single",
+      "nameOriginal": "wp_personalized_epub_books_select_single",
+      "fullName": "wp_personalized_epub_books_select_single",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_books_select_single`(\n    IN p_id INT\n)\nBEGIN\n    SELECT id, title, author, publication_date, customization_area_width, customization_area_height,\n           default_line_thickness, default_line_color, autograph_keyword, autograph_page_html_path,\n           is_active, date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_books\n    WHERE id = p_id\n    LIMIT 1;\nEND"
+    },
+    {
+      "name": "personalized_epub_books_update",
+      "nameOriginal": "wp_personalized_epub_books_update",
+      "fullName": "wp_personalized_epub_books_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_title",
+          "type": "VARCHAR(255"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_books_update`(\n    IN p_id INT,\n    IN p_title VARCHAR(255),\n    IN p_author VARCHAR(255),\n    IN p_publication_date DATE,\n    IN p_customization_area_width INT,\n    IN p_customization_area_height INT,\n    IN p_default_line_thickness INT,\n    IN p_default_line_color VARCHAR(20),\n    IN p_autograph_keyword VARCHAR(50),\n    IN p_autograph_page_html_path VARCHAR(255),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_books\n    SET title=p_title,author=p_author,publication_date=p_publication_date,\n        customization_area_width=p_customization_area_width,customization_area_height=p_customization_area_height,\n        default_line_thickness=p_default_line_thickness,default_line_color=p_default_line_color,\n        autograph_keyword=p_autograph_keyword,autograph_page_html_path=p_autograph_page_html_path,\n        is_active=p_is_active,date_modified=NOW(),modified_by=p_user\n    WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_books_upsert",
+      "nameOriginal": "wp_personalized_epub_books_upsert",
+      "fullName": "wp_personalized_epub_books_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_title",
+          "type": "VARCHAR(255"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_books_upsert`(\n    IN p_title VARCHAR(255),\n    IN p_author VARCHAR(255),\n    IN p_publication_date DATE,\n    IN p_customization_area_width INT,\n    IN p_customization_area_height INT,\n    IN p_default_line_thickness INT,\n    IN p_default_line_color VARCHAR(20),\n    IN p_autograph_keyword VARCHAR(50),\n    IN p_autograph_page_html_path VARCHAR(255),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_books(title,author,publication_date,customization_area_width,customization_area_height,\n        default_line_thickness,default_line_color,autograph_keyword,autograph_page_html_path,\n        is_active,date_created,created_by,date_modified,modified_by)\n    VALUES(p_title,p_author,p_publication_date,p_customization_area_width,p_customization_area_height,\n        p_default_line_thickness,p_default_line_color,p_autograph_keyword,p_autograph_page_html_path,\n        p_is_active,NOW(),p_user,NOW(),p_user)\n    ON DUPLICATE KEY UPDATE publication_date=VALUES(publication_date),customization_area_width=VALUES(customization_area_width),\n        customization_area_height=VALUES(customization_area_height),default_line_thickness=VALUES(default_line_thickness),\n        default_line_color=VALUES(default_line_color),autograph_keyword=VALUES(autograph_keyword),\n        autograph_page_html_path=VALUES(autograph_page_html_path),is_active=VALUES(is_active),\n        date_modified=NOW(),modified_by=p_user;\nEND"
+    },
+    {
+      "name": "personalized_epub_book_default_values_delete",
+      "nameOriginal": "wp_personalized_epub_book_default_values_delete",
+      "fullName": "wp_personalized_epub_book_default_values_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_row_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_book_default_values_delete`(\n    IN p_row_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_book_default_values WHERE row_id = p_row_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_book_default_values_insert",
+      "nameOriginal": "wp_personalized_epub_book_default_values_insert",
+      "fullName": "wp_personalized_epub_book_default_values_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_book_default_values_insert`(\n    IN p_setting_name VARCHAR(100),\n    IN p_setting_value VARCHAR(255),\n    IN p_default_value VARCHAR(255),\n    IN p_help_text VARCHAR(255),\n    IN p_field_type ENUM('textarea','textinput','checkbox','checkboxlist','dropdown'),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_book_default_values(setting_name, setting_value, default_value, help_text, field_type,\n        date_created, created_by, date_modified, modified_by)\n    VALUES(p_setting_name, p_setting_value, p_default_value, p_help_text, p_field_type, NOW(), p_user, NOW(), p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_book_default_values_select_paginated",
+      "nameOriginal": "wp_personalized_epub_book_default_values_select_paginated",
+      "fullName": "wp_personalized_epub_book_default_values_select_paginated",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_page",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_page_size",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_search_term",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_book_default_values_select_paginated`(\n    IN p_page INT,\n    IN p_page_size INT,\n    IN p_search_term VARCHAR(100)\n)\nBEGIN\n    DECLARE v_offset INT;\n    SET v_offset = (p_page - 1) * p_page_size;\n\n    SELECT row_id, setting_name, setting_value, default_value, help_text, field_type,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_book_default_values\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR setting_name LIKE CONCAT('%',p_search_term,'%') OR setting_value LIKE CONCAT('%',p_search_term,'%'))\n    ORDER BY setting_name\n    LIMIT v_offset, p_page_size;\n\n    SELECT COUNT(*) AS total_records\n    FROM wp_personalized_epub_book_default_values\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR setting_name LIKE CONCAT('%',p_search_term,'%') OR setting_value LIKE CONCAT('%',p_search_term,'%'));\nEND"
+    },
+    {
+      "name": "personalized_epub_book_default_values_select_single",
+      "nameOriginal": "wp_personalized_epub_book_default_values_select_single",
+      "fullName": "wp_personalized_epub_book_default_values_select_single",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_book_default_values_select_single`(\n    IN p_setting_name VARCHAR(100)\n)\nBEGIN\n    SELECT row_id, setting_name, setting_value, default_value, help_text, field_type,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_book_default_values\n    WHERE setting_name = p_setting_name\n    LIMIT 1;\nEND"
+    },
+    {
+      "name": "personalized_epub_book_default_values_update",
+      "nameOriginal": "wp_personalized_epub_book_default_values_update",
+      "fullName": "wp_personalized_epub_book_default_values_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_setting_value",
+          "type": "VARCHAR(255"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_book_default_values_update`(\n    IN p_row_id INT,\n    IN p_setting_value VARCHAR(255),\n    IN p_default_value VARCHAR(255),\n    IN p_help_text VARCHAR(255),\n    IN p_field_type ENUM('textarea','textinput','checkbox','checkboxlist','dropdown'),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_book_default_values\n    SET setting_value = p_setting_value, default_value = p_default_value, help_text = p_help_text,\n        field_type = p_field_type, date_modified = NOW(), modified_by = p_user\n    WHERE row_id = p_row_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_book_default_values_upsert",
+      "nameOriginal": "wp_personalized_epub_book_default_values_upsert",
+      "fullName": "wp_personalized_epub_book_default_values_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_book_default_values_upsert`(\n    IN p_setting_name VARCHAR(100),\n    IN p_setting_value VARCHAR(255),\n    IN p_default_value VARCHAR(255),\n    IN p_help_text VARCHAR(255),\n    IN p_field_type ENUM('textarea','textinput','checkbox','checkboxlist','dropdown'),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_book_default_values(setting_name, setting_value, default_value, help_text, field_type,\n        date_created, created_by, date_modified, modified_by)\n    VALUES(p_setting_name, p_setting_value, p_default_value, p_help_text, p_field_type, NOW(), p_user, NOW(), p_user)\n    ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), default_value = VALUES(default_value),\n        help_text = VALUES(help_text), field_type = VALUES(field_type), date_modified = NOW(), modified_by = p_user;\nEND"
+    },
+    {
+      "name": "personalized_epub_business_info_settings_delete",
+      "nameOriginal": "wp_personalized_epub_business_info_settings_delete",
+      "fullName": "wp_personalized_epub_business_info_settings_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_business_info_settings_delete`(\n    IN p_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_business_info_settings WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_business_info_settings_insert",
+      "nameOriginal": "wp_personalized_epub_business_info_settings_insert",
+      "fullName": "wp_personalized_epub_business_info_settings_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_business_info_settings_insert`(\n    IN p_setting_name VARCHAR(100),\n    IN p_setting_value TEXT,\n    IN p_setting_group VARCHAR(50),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_business_info_settings(setting_name,setting_value,setting_group,date_created,created_by,date_modified,modified_by)\n    VALUES(p_setting_name,p_setting_value,p_setting_group,NOW(),p_user,NOW(),p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_business_info_settings_select_by_group",
+      "nameOriginal": "wp_personalized_epub_business_info_settings_select_by_group",
+      "fullName": "wp_personalized_epub_business_info_settings_select_by_group",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_setting_group",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_business_info_settings_select_by_group`(\n    IN p_setting_group VARCHAR(50)\n)\nBEGIN\n    SELECT id, setting_name, setting_value, setting_group, date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_business_info_settings\n    WHERE setting_group=p_setting_group\n    ORDER BY setting_name;\nEND"
+    },
+    {
+      "name": "personalized_epub_business_info_settings_select_paginated",
+      "nameOriginal": "wp_personalized_epub_business_info_settings_select_paginated",
+      "fullName": "wp_personalized_epub_business_info_settings_select_paginated",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_page",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_page_size",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_search_term",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_business_info_settings_select_paginated`(\n    IN p_page INT,\n    IN p_page_size INT,\n    IN p_search_term VARCHAR(100),\n    IN p_setting_group VARCHAR(50)\n)\nBEGIN\n    DECLARE v_offset INT;\n    SET v_offset = (p_page - 1) * p_page_size;\n    SELECT id, setting_name, setting_value, setting_group, date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_business_info_settings\n    WHERE (p_search_term IS NULL OR p_search_term='' OR setting_name LIKE CONCAT('%',p_search_term,'%') OR setting_value LIKE CONCAT('%',p_search_term,'%'))\n      AND (p_setting_group IS NULL OR p_setting_group='' OR setting_group=p_setting_group)\n    ORDER BY setting_name\n    LIMIT v_offset, p_page_size;\n    SELECT COUNT(*) AS total_records\n    FROM wp_personalized_epub_business_info_settings\n    WHERE (p_search_term IS NULL OR p_search_term='' OR setting_name LIKE CONCAT('%',p_search_term,'%') OR setting_value LIKE CONCAT('%',p_search_term,'%'))\n      AND (p_setting_group IS NULL OR p_setting_group='' OR setting_group=p_setting_group);\nEND"
+    },
+    {
+      "name": "personalized_epub_business_info_settings_select_single",
+      "nameOriginal": "wp_personalized_epub_business_info_settings_select_single",
+      "fullName": "wp_personalized_epub_business_info_settings_select_single",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_business_info_settings_select_single`(\n    IN p_setting_name VARCHAR(100)\n)\nBEGIN\n    SELECT id, setting_name, setting_value, setting_group, date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_business_info_settings\n    WHERE setting_name=p_setting_name\n    LIMIT 1;\nEND"
+    },
+    {
+      "name": "personalized_epub_business_info_settings_update",
+      "nameOriginal": "wp_personalized_epub_business_info_settings_update",
+      "fullName": "wp_personalized_epub_business_info_settings_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_setting_value",
+          "type": "TEXT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_setting_group",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_business_info_settings_update`(\n    IN p_id INT,\n    IN p_setting_value TEXT,\n    IN p_setting_group VARCHAR(50),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_business_info_settings\n    SET setting_value=p_setting_value,setting_group=p_setting_group,date_modified=NOW(),modified_by=p_user\n    WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_business_info_settings_upsert",
+      "nameOriginal": "wp_personalized_epub_business_info_settings_upsert",
+      "fullName": "wp_personalized_epub_business_info_settings_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_business_info_settings_upsert`(\n    IN p_setting_name VARCHAR(100),\n    IN p_setting_value TEXT,\n    IN p_setting_group VARCHAR(50),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_business_info_settings(setting_name,setting_value,setting_group,date_created,created_by,date_modified,modified_by)\n    VALUES(p_setting_name,p_setting_value,p_setting_group,NOW(),p_user,NOW(),p_user)\n    ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),setting_group=VALUES(setting_group),date_modified=NOW(),modified_by=p_user;\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_delete",
+      "nameOriginal": "wp_personalized_epub_currencies_delete",
+      "fullName": "wp_personalized_epub_currencies_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_delete`(\n    IN p_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_currencies WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_insert",
+      "nameOriginal": "wp_personalized_epub_currencies_insert",
+      "fullName": "wp_personalized_epub_currencies_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_currency_code",
+          "type": "VARCHAR(10"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_insert`(\n    IN p_currency_code VARCHAR(10),\n    IN p_currency_name VARCHAR(50),\n    IN p_symbol VARCHAR(10),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_currencies (currency_code, currency_name, symbol, is_active,\n         date_created, created_by, date_modified, modified_by)\n    VALUES (p_currency_code, p_currency_name, p_symbol, p_is_active, NOW(), p_user, NOW(), p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_select_paginated",
+      "nameOriginal": "wp_personalized_epub_currencies_select_paginated",
+      "fullName": "wp_personalized_epub_currencies_select_paginated",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_page",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_page_size",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_search_term",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_select_paginated`(\n    IN p_page INT,\n    IN p_page_size INT,\n    IN p_search_term VARCHAR(50),\n    IN p_is_active TINYINT\n)\nBEGIN\n    DECLARE v_offset INT;\n    SET v_offset = (p_page - 1) * p_page_size;\n\n    SELECT id, currency_code, currency_name, symbol, is_active,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_currencies\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR currency_code LIKE CONCAT('%',p_search_term,'%') OR currency_name LIKE CONCAT('%',p_search_term,'%'))\n      AND (p_is_active IS NULL OR is_active = p_is_active)\n    ORDER BY currency_name\n    LIMIT v_offset, p_page_size;\n\n    SELECT COUNT(*) AS total_records\n    FROM wp_personalized_epub_currencies\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR currency_code LIKE CONCAT('%',p_search_term,'%') OR currency_name LIKE CONCAT('%',p_search_term,'%'))\n      AND (p_is_active IS NULL OR is_active = p_is_active);\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_select_single",
+      "nameOriginal": "wp_personalized_epub_currencies_select_single",
+      "fullName": "wp_personalized_epub_currencies_select_single",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_currency_code",
+          "type": "VARCHAR(10"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_select_single`(\n    IN p_currency_code VARCHAR(10)\n)\nBEGIN\n    SELECT id, currency_code, currency_name, symbol, is_active,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_currencies\n    WHERE currency_code = p_currency_code\n    LIMIT 1;\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_update",
+      "nameOriginal": "wp_personalized_epub_currencies_update",
+      "fullName": "wp_personalized_epub_currencies_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_currency_name",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_update`(\n    IN p_id INT,\n    IN p_currency_name VARCHAR(50),\n    IN p_symbol VARCHAR(10),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_currencies\n    SET currency_name=p_currency_name, symbol=p_symbol, is_active=p_is_active,\n        date_modified=NOW(), modified_by=p_user\n    WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_currencies_upsert",
+      "nameOriginal": "wp_personalized_epub_currencies_upsert",
+      "fullName": "wp_personalized_epub_currencies_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_currency_code",
+          "type": "VARCHAR(10"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_currencies_upsert`(\n    IN p_currency_code VARCHAR(10),\n    IN p_currency_name VARCHAR(50),\n    IN p_symbol VARCHAR(10),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_currencies (currency_code, currency_name, symbol, is_active,\n         date_created, created_by, date_modified, modified_by)\n    VALUES (p_currency_code, p_currency_name, p_symbol, p_is_active, NOW(), p_user, NOW(), p_user)\n    ON DUPLICATE KEY UPDATE currency_name=VALUES(currency_name), symbol=VALUES(symbol),\n        is_active=VALUES(is_active), date_modified=NOW(), modified_by=p_user;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_details_delete",
+      "nameOriginal": "wp_personalized_epub_order_details_delete",
+      "fullName": "wp_personalized_epub_order_details_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_details_delete`(\n    IN p_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_order_details WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_details_insert",
+      "nameOriginal": "wp_personalized_epub_order_details_insert",
+      "fullName": "wp_personalized_epub_order_details_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_order_master_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_book_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_customization_request_details",
+          "type": "TEXT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_status",
+          "type": "VARCHAR(20"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_details_insert`(\n    IN p_order_master_row_id INT,\n    IN p_book_row_id INT,\n    IN p_customization_request_details TEXT,\n    IN p_status VARCHAR(20),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_order_details(order_master_row_id,book_row_id,customization_request_details,\n        status,date_created,created_by,date_modified,modified_by)\n    VALUES(p_order_master_row_id,p_book_row_id,p_customization_request_details,p_status,NOW(),p_user,NOW(),p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_details_select_by_order",
+      "nameOriginal": "wp_personalized_epub_order_details_select_by_order",
+      "fullName": "wp_personalized_epub_order_details_select_by_order",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_order_master_row_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_details_select_by_order`(\n    IN p_order_master_row_id INT\n)\nBEGIN\n    SELECT od.id, od.order_master_row_id, od.book_row_id,\n           b.title AS book_title, b.author AS book_author,\n           od.customization_request_details, od.download_guid,\n           od.status, od.cancellation_details,\n           od.date_created, od.created_by, od.date_modified, od.modified_by\n    FROM wp_personalized_epub_order_details od\n    LEFT JOIN wp_personalized_epub_books b ON od.book_row_id = b.id\n    WHERE od.order_master_row_id = p_order_master_row_id\n    ORDER BY od.date_created;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_details_update",
+      "nameOriginal": "wp_personalized_epub_order_details_update",
+      "fullName": "wp_personalized_epub_order_details_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_customization_request_details",
+          "type": "TEXT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_download_guid",
+          "type": "CHAR(36"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_details_update`(\n    IN p_id INT,\n    IN p_customization_request_details TEXT,\n    IN p_download_guid CHAR(36),\n    IN p_status VARCHAR(20),\n    IN p_cancellation_details TEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_order_details\n    SET customization_request_details=p_customization_request_details,\n        download_guid=p_download_guid, status=p_status, cancellation_details=p_cancellation_details,\n        date_modified=NOW(), modified_by=p_user\n    WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_details_upsert",
+      "nameOriginal": "wp_personalized_epub_order_details_upsert",
+      "fullName": "wp_personalized_epub_order_details_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_order_master_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_book_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_customization_request_details",
+          "type": "TEXT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_download_guid",
+          "type": "CHAR(36"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_details_upsert`(\n    IN p_order_master_row_id INT,\n    IN p_book_row_id INT,\n    IN p_customization_request_details TEXT,\n    IN p_download_guid CHAR(36),\n    IN p_status VARCHAR(20),\n    IN p_cancellation_details TEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_order_details(order_master_row_id,book_row_id,customization_request_details,\n        download_guid,status,cancellation_details,date_created,created_by,date_modified,modified_by)\n    VALUES(p_order_master_row_id,p_book_row_id,p_customization_request_details,p_download_guid,p_status,p_cancellation_details,NOW(),p_user,NOW(),p_user)\n    ON DUPLICATE KEY UPDATE customization_request_details=VALUES(customization_request_details),\n        download_guid=VALUES(download_guid), status=VALUES(status), cancellation_details=VALUES(cancellation_details),\n        date_modified=NOW(), modified_by=p_user;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_master_delete",
+      "nameOriginal": "wp_personalized_epub_order_master_delete",
+      "fullName": "wp_personalized_epub_order_master_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_master_delete`(\n    IN p_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_order_master WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_master_insert",
+      "nameOriginal": "wp_personalized_epub_order_master_insert",
+      "fullName": "wp_personalized_epub_order_master_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_download_guid",
+          "type": "CHAR(36"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_master_insert`(\n    IN p_download_guid CHAR(36),\n    IN p_customer_name VARCHAR(100),\n    IN p_customer_email VARCHAR(100),\n    IN p_status VARCHAR(20),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_order_master(download_guid,customer_name,customer_email,status,\n        date_created,created_by,date_modified,modified_by)\n    VALUES(p_download_guid,p_customer_name,p_customer_email,p_status,NOW(),p_user,NOW(),p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_master_select_paginated",
+      "nameOriginal": "wp_personalized_epub_order_master_select_paginated",
+      "fullName": "wp_personalized_epub_order_master_select_paginated",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_page",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_page_size",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_search_term",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_master_select_paginated`(\n    IN p_page INT,\n    IN p_page_size INT,\n    IN p_search_term VARCHAR(100),\n    IN p_status VARCHAR(20),\n    IN p_date_from DATETIME,\n    IN p_date_to DATETIME\n)\nBEGIN\n    DECLARE v_offset INT;\n    SET v_offset = (p_page - 1) * p_page_size;\n\n    SELECT id, download_guid, customer_name, customer_email, status, cancellation_details,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_order_master\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR customer_name LIKE CONCAT('%',p_search_term,'%') OR customer_email LIKE CONCAT('%',p_search_term,'%'))\n      AND (p_status IS NULL OR p_status = '' OR status = p_status)\n      AND (p_date_from IS NULL OR date_created >= p_date_from)\n      AND (p_date_to IS NULL OR date_created <= p_date_to)\n    ORDER BY date_created DESC\n    LIMIT v_offset, p_page_size;\n\n    SELECT COUNT(*) AS total_records\n    FROM wp_personalized_epub_order_master\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR customer_name LIKE CONCAT('%',p_search_term,'%') OR customer_email LIKE CONCAT('%',p_search_term,'%'))\n      AND (p_status IS NULL OR p_status = '' OR status = p_status)\n      AND (p_date_from IS NULL OR date_created >= p_date_from)\n      AND (p_date_to IS NULL OR date_created <= p_date_to);\nEND"
+    },
+    {
+      "name": "personalized_epub_order_master_select_single",
+      "nameOriginal": "wp_personalized_epub_order_master_select_single",
+      "fullName": "wp_personalized_epub_order_master_select_single",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_master_select_single`(\n    IN p_id INT\n)\nBEGIN\n    SELECT id, download_guid, customer_name, customer_email, status, cancellation_details,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_order_master\n    WHERE id = p_id\n    LIMIT 1;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_master_update",
+      "nameOriginal": "wp_personalized_epub_order_master_update",
+      "fullName": "wp_personalized_epub_order_master_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_status",
+          "type": "VARCHAR(20"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_master_update`(\n    IN p_id INT,\n    IN p_status VARCHAR(20),\n    IN p_cancellation_details TEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_order_master\n    SET status=p_status, cancellation_details=p_cancellation_details,\n        date_modified=NOW(), modified_by=p_user\n    WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_order_master_upsert",
+      "nameOriginal": "wp_personalized_epub_order_master_upsert",
+      "fullName": "wp_personalized_epub_order_master_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_download_guid",
+          "type": "CHAR(36"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_order_master_upsert`(\n    IN p_download_guid CHAR(36),\n    IN p_customer_name VARCHAR(100),\n    IN p_customer_email VARCHAR(100),\n    IN p_status VARCHAR(20),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_order_master(download_guid,customer_name,customer_email,status,\n        date_created,created_by,date_modified,modified_by)\n    VALUES(p_download_guid,p_customer_name,p_customer_email,p_status,NOW(),p_user,NOW(),p_user)\n    ON DUPLICATE KEY UPDATE customer_name=VALUES(customer_name), customer_email=VALUES(customer_email),\n        status=VALUES(status), date_modified=NOW(), modified_by=p_user;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_details_delete",
+      "nameOriginal": "wp_personalized_epub_payment_integration_details_delete",
+      "fullName": "wp_personalized_epub_payment_integration_details_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_row_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_details_delete`(\n    IN p_row_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_payment_integration_details WHERE row_id = p_row_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_details_insert",
+      "nameOriginal": "wp_personalized_epub_payment_integration_details_insert",
+      "fullName": "wp_personalized_epub_payment_integration_details_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_order_master_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_payment_integration_type_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_transaction_details",
+          "type": "LONGTEXT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_user",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_details_insert`(\n    IN p_order_master_row_id INT,\n    IN p_payment_integration_type_row_id INT,\n    IN p_transaction_details LONGTEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_payment_integration_details(order_master_row_id, payment_integration_type_row_id, transaction_details,\n        date_created, created_by, date_modified, modified_by)\n    VALUES(p_order_master_row_id, p_payment_integration_type_row_id, p_transaction_details, NOW(), p_user, NOW(), p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_details_select_by_order",
+      "nameOriginal": "wp_personalized_epub_payment_integration_details_select_by_order",
+      "fullName": "wp_personalized_epub_payment_integration_details_select_by_order",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_order_master_row_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_details_select_by_order`(\n    IN p_order_master_row_id INT\n)\nBEGIN\n    SELECT d.row_id, d.order_master_row_id, d.payment_integration_type_row_id,\n           t.integration_name, t.integration_code,\n           d.transaction_details, d.date_created, d.created_by, d.date_modified, d.modified_by\n    FROM wp_personalized_epub_payment_integration_details d\n    LEFT JOIN wp_personalized_epub_payment_integration_types t ON d.payment_integration_type_row_id = t.row_id\n    WHERE d.order_master_row_id = p_order_master_row_id\n    ORDER BY d.date_created;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_details_update",
+      "nameOriginal": "wp_personalized_epub_payment_integration_details_update",
+      "fullName": "wp_personalized_epub_payment_integration_details_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_transaction_details",
+          "type": "LONGTEXT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_user",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_details_update`(\n    IN p_row_id INT,\n    IN p_transaction_details LONGTEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_payment_integration_details\n    SET transaction_details = p_transaction_details,\n        date_modified = NOW(), modified_by = p_user\n    WHERE row_id = p_row_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_details_upsert",
+      "nameOriginal": "wp_personalized_epub_payment_integration_details_upsert",
+      "fullName": "wp_personalized_epub_payment_integration_details_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_order_master_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_payment_integration_type_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_transaction_details",
+          "type": "LONGTEXT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_user",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_details_upsert`(\n    IN p_order_master_row_id INT,\n    IN p_payment_integration_type_row_id INT,\n    IN p_transaction_details LONGTEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_payment_integration_details(order_master_row_id, payment_integration_type_row_id, transaction_details,\n        date_created, created_by, date_modified, modified_by)\n    VALUES(p_order_master_row_id, p_payment_integration_type_row_id, p_transaction_details, NOW(), p_user, NOW(), p_user)\n    ON DUPLICATE KEY UPDATE transaction_details = VALUES(transaction_details),\n        date_modified = NOW(), modified_by = p_user;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_types_delete",
+      "nameOriginal": "wp_personalized_epub_payment_integration_types_delete",
+      "fullName": "wp_personalized_epub_payment_integration_types_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_row_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_types_delete`(\n    IN p_row_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_payment_integration_types WHERE row_id=p_row_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_types_insert",
+      "nameOriginal": "wp_personalized_epub_payment_integration_types_insert",
+      "fullName": "wp_personalized_epub_payment_integration_types_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_integration_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_types_insert`(\n    IN p_integration_name VARCHAR(100),\n    IN p_integration_code VARCHAR(50),\n    IN p_description VARCHAR(255),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_payment_integration_types(integration_name, integration_code, description, is_active,\n        date_created, created_by, date_modified, modified_by)\n    VALUES(p_integration_name, p_integration_code, p_description, p_is_active, NOW(), p_user, NOW(), p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_types_select_paginated",
+      "nameOriginal": "wp_personalized_epub_payment_integration_types_select_paginated",
+      "fullName": "wp_personalized_epub_payment_integration_types_select_paginated",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_page",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_page_size",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_search_term",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_types_select_paginated`(\n    IN p_page INT,\n    IN p_page_size INT,\n    IN p_search_term VARCHAR(100)\n)\nBEGIN\n    DECLARE v_offset INT;\n    SET v_offset = (p_page - 1) * p_page_size;\n\n    SELECT row_id, integration_name, integration_code, description, is_active,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_payment_integration_types\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR integration_name LIKE CONCAT('%',p_search_term,'%') OR integration_code LIKE CONCAT('%',p_search_term,'%'))\n    ORDER BY integration_name\n    LIMIT v_offset, p_page_size;\n\n    SELECT COUNT(*) AS total_records\n    FROM wp_personalized_epub_payment_integration_types\n    WHERE (p_search_term IS NULL OR p_search_term = '' OR integration_name LIKE CONCAT('%',p_search_term,'%') OR integration_code LIKE CONCAT('%',p_search_term,'%'));\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_types_select_single",
+      "nameOriginal": "wp_personalized_epub_payment_integration_types_select_single",
+      "fullName": "wp_personalized_epub_payment_integration_types_select_single",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_integration_code",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_types_select_single`(\n    IN p_integration_code VARCHAR(50)\n)\nBEGIN\n    SELECT row_id, integration_name, integration_code, description, is_active,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_payment_integration_types\n    WHERE integration_code = p_integration_code\n    LIMIT 1;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_types_update",
+      "nameOriginal": "wp_personalized_epub_payment_integration_types_update",
+      "fullName": "wp_personalized_epub_payment_integration_types_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_integration_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_types_update`(\n    IN p_row_id INT,\n    IN p_integration_name VARCHAR(100),\n    IN p_description VARCHAR(255),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_payment_integration_types\n    SET integration_name=p_integration_name, description=p_description, is_active=p_is_active,\n        date_modified=NOW(), modified_by=p_user\n    WHERE row_id=p_row_id;\nEND"
+    },
+    {
+      "name": "personalized_epub_payment_integration_types_upsert",
+      "nameOriginal": "wp_personalized_epub_payment_integration_types_upsert",
+      "fullName": "wp_personalized_epub_payment_integration_types_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_integration_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_personalized_epub_payment_integration_types_upsert`(\n    IN p_integration_name VARCHAR(100),\n    IN p_integration_code VARCHAR(50),\n    IN p_description VARCHAR(255),\n    IN p_is_active TINYINT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_payment_integration_types(integration_name, integration_code, description, is_active,\n        date_created, created_by, date_modified, modified_by)\n    VALUES(p_integration_name, p_integration_code, p_description, p_is_active, NOW(), p_user, NOW(), p_user)\n    ON DUPLICATE KEY UPDATE integration_name=VALUES(integration_name), description=VALUES(description), is_active=VALUES(is_active),\n        date_modified=NOW(), modified_by=p_user;\nEND"
+    },
+    {
+      "name": "pe_payment_integ_settings_delete",
+      "nameOriginal": "wp_pe_payment_integ_settings_delete",
+      "fullName": "wp_pe_payment_integ_settings_delete",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_pe_payment_integ_settings_delete`(\n    IN p_id INT\n)\nBEGIN\n    DELETE FROM wp_personalized_epub_payment_integration_settings WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "pe_payment_integ_settings_insert",
+      "nameOriginal": "wp_pe_payment_integ_settings_insert",
+      "fullName": "wp_pe_payment_integ_settings_insert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_integration_type_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_pe_payment_integ_settings_insert`(\n    IN p_integration_type_row_id INT,\n    IN p_setting_name VARCHAR(100),\n    IN p_setting_value TEXT,\n    IN p_default_value TEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_payment_integration_settings(integration_type_row_id,setting_name,setting_value,default_value,\n        date_created,created_by,date_modified,modified_by)\n    VALUES(p_integration_type_row_id,p_setting_name,p_setting_value,p_default_value,NOW(),p_user,NOW(),p_user);\n    SELECT LAST_INSERT_ID() AS new_id;\nEND"
+    },
+    {
+      "name": "pe_payment_integ_settings_revert_defaults",
+      "nameOriginal": "wp_pe_payment_integ_settings_revert_defaults",
+      "fullName": "wp_pe_payment_integ_settings_revert_defaults",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_integration_type_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_user",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_pe_payment_integ_settings_revert_defaults`(\n    IN p_integration_type_row_id INT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_payment_integration_settings\n    SET setting_value=default_value, date_modified=NOW(), modified_by=p_user\n    WHERE integration_type_row_id=p_integration_type_row_id AND setting_value<>default_value;\nEND"
+    },
+    {
+      "name": "pe_payment_integ_settings_revert_single",
+      "nameOriginal": "wp_pe_payment_integ_settings_revert_single",
+      "fullName": "wp_pe_payment_integ_settings_revert_single",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_integration_type_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_pe_payment_integ_settings_revert_single`(\n    IN p_integration_type_row_id INT,\n    IN p_setting_name VARCHAR(100),\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_payment_integration_settings\n    SET setting_value=default_value, date_modified=NOW(), modified_by=p_user\n    WHERE integration_type_row_id=p_integration_type_row_id AND setting_name=p_setting_name AND setting_value<>default_value;\nEND"
+    },
+    {
+      "name": "pe_payment_integ_settings_select_by_integration",
+      "nameOriginal": "wp_pe_payment_integ_settings_select_by_integration",
+      "fullName": "wp_pe_payment_integ_settings_select_by_integration",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_integration_type_row_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_pe_payment_integ_settings_select_by_integration`(\n    IN p_integration_type_row_id INT\n)\nBEGIN\n    SELECT id, integration_type_row_id, setting_name, setting_value, default_value,\n           date_created, created_by, date_modified, modified_by\n    FROM wp_personalized_epub_payment_integration_settings\n    WHERE integration_type_row_id = p_integration_type_row_id\n    ORDER BY setting_name;\nEND"
+    },
+    {
+      "name": "pe_payment_integ_settings_update",
+      "nameOriginal": "wp_pe_payment_integ_settings_update",
+      "fullName": "wp_pe_payment_integ_settings_update",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_setting_value",
+          "type": "TEXT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_user",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_pe_payment_integ_settings_update`(\n    IN p_id INT,\n    IN p_setting_value TEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    UPDATE wp_personalized_epub_payment_integration_settings\n    SET setting_value=p_setting_value, date_modified=NOW(), modified_by=p_user\n    WHERE id=p_id;\nEND"
+    },
+    {
+      "name": "pe_payment_integ_settings_upsert",
+      "nameOriginal": "wp_pe_payment_integ_settings_upsert",
+      "fullName": "wp_pe_payment_integ_settings_upsert",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_integration_type_row_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_setting_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_pe_payment_integ_settings_upsert`(\n    IN p_integration_type_row_id INT,\n    IN p_setting_name VARCHAR(100),\n    IN p_setting_value TEXT,\n    IN p_default_value TEXT,\n    IN p_user VARCHAR(50)\n)\nBEGIN\n    INSERT INTO wp_personalized_epub_payment_integration_settings(integration_type_row_id,setting_name,setting_value,default_value,\n        date_created,created_by,date_modified,modified_by)\n    VALUES(p_integration_type_row_id,p_setting_name,p_setting_value,p_default_value,NOW(),p_user,NOW(),p_user)\n    ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), default_value=VALUES(default_value),\n        date_modified=NOW(), modified_by=p_user;\nEND"
+    }
+  ],
+  "triggers": [
+    {
+      "name": "trg_book_default_values_after_insert",
+      "nameOriginal": "trg_book_default_values_after_insert",
+      "fullName": "trg_book_default_values_after_insert",
+      "event": "AFTER INSERT",
+      "table": "personalized_epub_book_default_values",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_book_default_values_audit\n  (row_id, setting_name, setting_value, default_value, help_text, field_type,\n   action, change_description, date_created, created_by)\n  VALUES\n  (NEW.row_id, NEW.setting_name, NEW.setting_value, NEW.default_value, NEW.help_text,\n   NEW.field_type, 'INSERT', 'Record created', NEW.date_created, NEW.created_by);\nEND"
+    },
+    {
+      "name": "trg_book_default_values_after_update",
+      "nameOriginal": "trg_book_default_values_after_update",
+      "fullName": "trg_book_default_values_after_update",
+      "event": "AFTER UPDATE",
+      "table": "personalized_epub_book_default_values",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_book_default_values_audit\n  (row_id, setting_name, setting_value, default_value, help_text, field_type,\n   action, change_description, date_created, created_by)\n  VALUES\n  (NEW.row_id, NEW.setting_name, NEW.setting_value, NEW.default_value, NEW.help_text,\n   NEW.field_type, 'UPDATE', 'Record updated', NEW.date_created, NEW.modified_by);\nEND"
+    },
+    {
+      "name": "trg_book_default_values_after_delete",
+      "nameOriginal": "trg_book_default_values_after_delete",
+      "fullName": "trg_book_default_values_after_delete",
+      "event": "AFTER DELETE",
+      "table": "personalized_epub_book_default_values",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_book_default_values_audit\n  (row_id, setting_name, setting_value, default_value, help_text, field_type,\n   action, change_description, date_created, created_by)\n  VALUES\n  (OLD.row_id, OLD.setting_name, OLD.setting_value, OLD.default_value, OLD.help_text,\n   OLD.field_type, 'DELETE', 'Record deleted', OLD.date_created, OLD.modified_by);\nEND"
+    },
+    {
+      "name": "trg_books_after_insert",
+      "nameOriginal": "trg_books_after_insert",
+      "fullName": "trg_books_after_insert",
+      "event": "AFTER INSERT",
+      "table": "personalized_epub_books",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_books_audit\n  (book_row_id, title, author, publication_date, description, cover_image_url,\n   price, currency_row_id, download_storage_length, is_active,\n   customization_area_width, customization_area_height, default_line_thickness,\n   default_line_color, autograph_keyword, autograph_page_html_path,\n   action, change_description, created_by)\n  VALUES\n  (NEW.row_id, NEW.title, NEW.author, NEW.publication_date, NEW.description, NEW.cover_image_url,\n   NEW.price, NEW.currency_row_id, NEW.download_storage_length, NEW.is_active,\n   NEW.customization_area_width, NEW.customization_area_height, NEW.default_line_thickness,\n   NEW.default_line_color, NEW.autograph_keyword, NEW.autograph_page_html_path,\n   'INSERT', 'Record created', NEW.created_by);\nEND"
+    },
+    {
+      "name": "trg_books_after_update",
+      "nameOriginal": "trg_books_after_update",
+      "fullName": "trg_books_after_update",
+      "event": "AFTER UPDATE",
+      "table": "personalized_epub_books",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_books_audit\n  (book_row_id, title, author, publication_date, description, cover_image_url,\n   price, currency_row_id, download_storage_length, is_active,\n   customization_area_width, customization_area_height, default_line_thickness,\n   default_line_color, autograph_keyword, autograph_page_html_path,\n   action, change_description, created_by)\n  VALUES\n  (NEW.row_id, NEW.title, NEW.author, NEW.publication_date, NEW.description, NEW.cover_image_url,\n   NEW.price, NEW.currency_row_id, NEW.download_storage_length, NEW.is_active,\n   NEW.customization_area_width, NEW.customization_area_height, NEW.default_line_thickness,\n   NEW.default_line_color, NEW.autograph_keyword, NEW.autograph_page_html_path,\n   'UPDATE', 'Record updated', NEW.modified_by);\nEND"
+    },
+    {
+      "name": "trg_books_after_delete",
+      "nameOriginal": "trg_books_after_delete",
+      "fullName": "trg_books_after_delete",
+      "event": "AFTER DELETE",
+      "table": "personalized_epub_books",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_books_audit\n  (book_row_id, title, author, publication_date, description, cover_image_url,\n   price, currency_row_id, download_storage_length, is_active,\n   customization_area_width, customization_area_height, default_line_thickness,\n   default_line_color, autograph_keyword, autograph_page_html_path,\n   action, change_description, created_by)\n  VALUES\n  (OLD.row_id, OLD.title, OLD.author, OLD.publication_date, OLD.description, OLD.cover_image_url,\n   OLD.price, OLD.currency_row_id, OLD.download_storage_length, OLD.is_active,\n   OLD.customization_area_width, OLD.customization_area_height, OLD.default_line_thickness,\n   OLD.default_line_color, OLD.autograph_keyword, OLD.autograph_page_html_path,\n   'DELETE', 'Record deleted', OLD.modified_by);\nEND"
+    },
+    {
+      "name": "trg_business_info_settings_after_insert",
+      "nameOriginal": "trg_business_info_settings_after_insert",
+      "fullName": "trg_business_info_settings_after_insert",
+      "event": "AFTER INSERT",
+      "table": "personalized_epub_business_info_settings",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_business_info_settings_audit\n  (row_id, setting_group, setting_name, setting_value, default_value, help_text, field_type,\n   date_created, created_by, date_modified, modified_by, action, change_description)\n  VALUES\n  (NEW.row_id, NEW.setting_group, NEW.setting_name, NEW.setting_value, NEW.default_value,\n   NEW.help_text, NEW.field_type, NEW.date_created, NEW.created_by, NEW.date_modified,\n   NEW.modified_by, 'INSERT', 'Record created');\nEND"
+    },
+    {
+      "name": "trg_business_info_settings_after_update",
+      "nameOriginal": "trg_business_info_settings_after_update",
+      "fullName": "trg_business_info_settings_after_update",
+      "event": "AFTER UPDATE",
+      "table": "personalized_epub_business_info_settings",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_business_info_settings_audit\n  (row_id, setting_group, setting_name, setting_value, default_value, help_text, field_type,\n   date_created, created_by, date_modified, modified_by, action, change_description)\n  VALUES\n  (NEW.row_id, NEW.setting_group, NEW.setting_name, NEW.setting_value, NEW.default_value,\n   NEW.help_text, NEW.field_type, NEW.date_created, NEW.created_by, NEW.date_modified,\n   NEW.modified_by, 'UPDATE', 'Record updated');\nEND"
+    },
+    {
+      "name": "trg_business_info_settings_after_delete",
+      "nameOriginal": "trg_business_info_settings_after_delete",
+      "fullName": "trg_business_info_settings_after_delete",
+      "event": "AFTER DELETE",
+      "table": "personalized_epub_business_info_settings",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_business_info_settings_audit\n  (row_id, setting_group, setting_name, setting_value, default_value, help_text, field_type,\n   date_created, created_by, date_modified, modified_by, action, change_description)\n  VALUES\n  (OLD.row_id, OLD.setting_group, OLD.setting_name, OLD.setting_value, OLD.default_value,\n   OLD.help_text, OLD.field_type, OLD.date_created, OLD.created_by, OLD.date_modified,\n   OLD.modified_by, 'DELETE', 'Record deleted');\nEND"
+    },
+    {
+      "name": "trg_order_details_after_insert",
+      "nameOriginal": "trg_order_details_after_insert",
+      "fullName": "trg_order_details_after_insert",
+      "event": "AFTER INSERT",
+      "table": "personalized_epub_order_details",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_order_details_audit\n  (order_details_row_id, order_master_row_id, book_row_id, quantity, price,\n   personalization_request, signature_data, line_color, line_thickness,\n   action, change_description, created_by)\n  VALUES\n  (NEW.row_id, NEW.order_master_row_id, NEW.book_row_id, NEW.quantity, NEW.price,\n   NEW.personalization_request, NEW.signature_data, NEW.line_color, NEW.line_thickness,\n   'INSERT', 'Record created', NEW.created_by);\nEND"
+    },
+    {
+      "name": "trg_order_details_after_update",
+      "nameOriginal": "trg_order_details_after_update",
+      "fullName": "trg_order_details_after_update",
+      "event": "AFTER UPDATE",
+      "table": "personalized_epub_order_details",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_order_details_audit\n  (order_details_row_id, order_master_row_id, book_row_id, quantity, price,\n   personalization_request, signature_data, line_color, line_thickness,\n   action, change_description, created_by)\n  VALUES\n  (NEW.row_id, NEW.order_master_row_id, NEW.book_row_id, NEW.quantity, NEW.price,\n   NEW.personalization_request, NEW.signature_data, NEW.line_color, NEW.line_thickness,\n   'UPDATE', 'Record updated', NEW.modified_by);\nEND"
+    },
+    {
+      "name": "trg_order_details_after_delete",
+      "nameOriginal": "trg_order_details_after_delete",
+      "fullName": "trg_order_details_after_delete",
+      "event": "AFTER DELETE",
+      "table": "personalized_epub_order_details",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_order_details_audit\n  (order_details_row_id, order_master_row_id, book_row_id, quantity, price,\n   personalization_request, signature_data, line_color, line_thickness,\n   action, change_description, created_by)\n  VALUES\n  (OLD.row_id, OLD.order_master_row_id, OLD.book_row_id, OLD.quantity, OLD.price,\n   OLD.personalization_request, OLD.signature_data, OLD.line_color, OLD.line_thickness,\n   'DELETE', 'Record deleted', OLD.modified_by);\nEND"
+    },
+    {
+      "name": "trg_order_master_after_insert",
+      "nameOriginal": "trg_order_master_after_insert",
+      "fullName": "trg_order_master_after_insert",
+      "event": "AFTER INSERT",
+      "table": "personalized_epub_order_master",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_order_master_audit\n  (order_master_row_id, first_name, last_name, email, currency_row_id, total,\n   payment_integration_type_row_id, status_row_id, epub_filename, is_downloaded,\n   download_date, download_guid, is_destroyed, destruction_date,\n   action, change_description, created_by)\n  VALUES\n  (NEW.row_id, NEW.first_name, NEW.last_name, NEW.email, NEW.currency_row_id, NEW.total,\n   NEW.payment_integration_type_row_id, NEW.status_row_id, NEW.epub_filename, NEW.is_downloaded,\n   NEW.download_date, NEW.download_guid, NEW.is_destroyed, NEW.destruction_date,\n   'INSERT', 'Record created', NEW.created_by);\nEND"
+    },
+    {
+      "name": "trg_order_master_after_update",
+      "nameOriginal": "trg_order_master_after_update",
+      "fullName": "trg_order_master_after_update",
+      "event": "AFTER UPDATE",
+      "table": "personalized_epub_order_master",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_order_master_audit\n  (order_master_row_id, first_name, last_name, email, currency_row_id, total,\n   payment_integration_type_row_id, status_row_id, epub_filename, is_downloaded,\n   download_date, download_guid, is_destroyed, destruction_date,\n   action, change_description, created_by)\n  VALUES\n  (NEW.row_id, NEW.first_name, NEW.last_name, NEW.email, NEW.currency_row_id, NEW.total,\n   NEW.payment_integration_type_row_id, NEW.status_row_id, NEW.epub_filename, NEW.is_downloaded,\n   NEW.download_date, NEW.download_guid, NEW.is_destroyed, NEW.destruction_date,\n   'UPDATE', 'Record updated', NEW.modified_by);\nEND"
+    },
+    {
+      "name": "trg_order_master_after_delete",
+      "nameOriginal": "trg_order_master_after_delete",
+      "fullName": "trg_order_master_after_delete",
+      "event": "AFTER DELETE",
+      "table": "personalized_epub_order_master",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_order_master_audit\n  (order_master_row_id, first_name, last_name, email, currency_row_id, total,\n   payment_integration_type_row_id, status_row_id, epub_filename, is_downloaded,\n   download_date, download_guid, is_destroyed, destruction_date,\n   action, change_description, created_by)\n  VALUES\n  (OLD.row_id, OLD.first_name, OLD.last_name, OLD.email, OLD.currency_row_id, OLD.total,\n   OLD.payment_integration_type_row_id, OLD.status_row_id, OLD.epub_filename, OLD.is_downloaded,\n   OLD.download_date, OLD.download_guid, OLD.is_destroyed, OLD.destruction_date,\n   'DELETE', 'Record deleted', OLD.modified_by);\nEND"
+    },
+    {
+      "name": "trg_payment_integration_details_after_insert",
+      "nameOriginal": "trg_payment_integration_details_after_insert",
+      "fullName": "trg_payment_integration_details_after_insert",
+      "event": "AFTER INSERT",
+      "table": "personalized_epub_payment_integration_details",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_payment_integration_details_audit\n  (payment_integration_details_row_id, order_master_row_id, payment_integration_type_row_id,\n   transaction_details, action, change_description, created_by)\n  VALUES\n  (NEW.row_id, NEW.order_master_row_id, NEW.payment_integration_type_row_id,\n   NEW.transaction_details, 'INSERT', 'Record created', NEW.created_by);\nEND"
+    },
+    {
+      "name": "trg_payment_integration_details_after_update",
+      "nameOriginal": "trg_payment_integration_details_after_update",
+      "fullName": "trg_payment_integration_details_after_update",
+      "event": "AFTER UPDATE",
+      "table": "personalized_epub_payment_integration_details",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_payment_integration_details_audit\n  (payment_integration_details_row_id, order_master_row_id, payment_integration_type_row_id,\n   transaction_details, action, change_description, created_by)\n  VALUES\n  (NEW.row_id, NEW.order_master_row_id, NEW.payment_integration_type_row_id,\n   NEW.transaction_details, 'UPDATE', 'Record updated', NEW.modified_by);\nEND"
+    },
+    {
+      "name": "trg_payment_integration_details_after_delete",
+      "nameOriginal": "trg_payment_integration_details_after_delete",
+      "fullName": "trg_payment_integration_details_after_delete",
+      "event": "AFTER DELETE",
+      "table": "personalized_epub_payment_integration_details",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_payment_integration_details_audit\n  (payment_integration_details_row_id, order_master_row_id, payment_integration_type_row_id,\n   transaction_details, action, change_description, created_by)\n  VALUES\n  (OLD.row_id, OLD.order_master_row_id, OLD.payment_integration_type_row_id,\n   OLD.transaction_details, 'DELETE', 'Record deleted', OLD.modified_by);\nEND"
+    },
+    {
+      "name": "trg_payment_integration_settings_after_insert",
+      "nameOriginal": "trg_payment_integration_settings_after_insert",
+      "fullName": "trg_payment_integration_settings_after_insert",
+      "event": "AFTER INSERT",
+      "table": "personalized_epub_payment_integration_settings",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_payment_integration_settings_audit\n  (row_id, integration_type_row_id, setting_name, setting_value, default_value,\n   help_text, field_type, action, change_description, date_created, created_by)\n  VALUES\n  (NEW.row_id, NEW.integration_type_row_id, NEW.setting_name, NEW.setting_value, NEW.default_value,\n   NEW.help_text, NEW.field_type, 'INSERT', 'Record created', NEW.date_created, NEW.created_by);\nEND"
+    },
+    {
+      "name": "trg_payment_integration_settings_after_update",
+      "nameOriginal": "trg_payment_integration_settings_after_update",
+      "fullName": "trg_payment_integration_settings_after_update",
+      "event": "AFTER UPDATE",
+      "table": "personalized_epub_payment_integration_settings",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_payment_integration_settings_audit\n  (row_id, integration_type_row_id, setting_name, setting_value, default_value,\n   help_text, field_type, action, change_description, date_created, created_by)\n  VALUES\n  (NEW.row_id, NEW.integration_type_row_id, NEW.setting_name, NEW.setting_value, NEW.default_value,\n   NEW.help_text, NEW.field_type, 'UPDATE', 'Record updated', NEW.date_created, NEW.modified_by);\nEND"
+    },
+    {
+      "name": "trg_payment_integration_settings_after_delete",
+      "nameOriginal": "trg_payment_integration_settings_after_delete",
+      "fullName": "trg_payment_integration_settings_after_delete",
+      "event": "AFTER DELETE",
+      "table": "personalized_epub_payment_integration_settings",
+      "definition": "BEGIN\n  INSERT INTO wp_personalized_epub_payment_integration_settings_audit\n  (row_id, integration_type_row_id, setting_name, setting_value, default_value,\n   help_text, field_type, action, change_description, date_created, created_by)\n  VALUES\n  (OLD.row_id, OLD.integration_type_row_id, OLD.setting_name, OLD.setting_value, OLD.default_value,\n   OLD.help_text, OLD.field_type, 'DELETE', 'Record deleted', OLD.date_created, OLD.modified_by);\nEND"
+    }
+  ]
+}

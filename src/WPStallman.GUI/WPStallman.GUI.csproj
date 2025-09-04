@@ -1,0 +1,157 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>WPStallman.GUI</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Cross-platform self-contained single-file publishing (no system .NET required) -->
+  <PropertyGroup>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- Photino uses reflection; trimming can break things -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Ship for Linux/Windows/macOS (Intel + Apple Silicon) -->
+    <RuntimeIdentifiers>linux-x64;win-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <!-- Windows: use the .ico and hide the console window -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <OutputType>WinExe</OutputType>
+    <ApplicationIcon>wwwroot\img\WPS.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- Ensure all static assets (including icons) are copied -->
+  <ItemGroup>
+    <Content Update="wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Ensure license is always copied to build and publish -->
+  <ItemGroup>
+  <Content Update="wwwroot\LICENSE.txt">
+    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+  </Content>
+</ItemGroup>
+
+
+  <!-- Make sure macOS .icns and Info.plist are available at publish time -->
+  <ItemGroup>
+    <None Include="wwwroot\img\WPS.icns">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Include="platforms/macos/Info.plist">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GtkSharp" Version="3.24.24.95" />
+    <PackageReference Include="LiteDB" Version="5.0.21" />
+    <PackageReference Include="Photino.NET" Version="3.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WPStallman.Core\WPStallman.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Optional: create a simple .app bundle on macOS after publish -->
+  <Target Name="CreateMacAppBundle" AfterTargets="Publish"
+    Condition="'$(RuntimeIdentifier)' != '' AND
+                     ($([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('osx-')))">
+    <!-- PublishDir ends with 'publish/' -->
+    <PropertyGroup>
+      <MacAppName>WPStallman</MacAppName>
+      <MacAppDir>$(PublishDir)$(MacAppName).app</MacAppDir>
+    </PropertyGroup>
+
+    <!-- Create .app structure -->
+    <MakeDir
+      Directories="$(MacAppDir)/Contents;$(MacAppDir)/Contents/MacOS;$(MacAppDir)/Contents/Resources" />
+
+    <!-- Copy published files into MacOS/ -->
+    <ItemGroup>
+      <_PublishedFiles Include="$(PublishDir)**/*" Exclude="$(MacAppDir)/**" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_PublishedFiles)"
+      DestinationFiles="@(_PublishedFiles->'$(MacAppDir)/Contents/MacOS/%(RecursiveDir)%(Filename)%(Extension)')" />
+
+    <!-- Copy WPS.icns into Resources -->
+    <Copy SourceFiles="$(PublishDir)wwwroot/img/WPS.icns"
+      DestinationFiles="$(MacAppDir)/Contents/Resources/WPS.icns" />
+
+    <!-- Copy Info.plist into Contents -->
+    <Copy SourceFiles="$(PublishDir)Info.plist"
+      DestinationFiles="$(MacAppDir)/Contents/Info.plist" />
+  </Target>
+
+  <!-- Auto‑sync icons from Assets/logo -> wwwroot/img on Build/Publish -->
+  <PropertyGroup>
+    <!-- Adjust if your folder changes -->
+    <IconSourceDir>..\WPStallman.Assets\logo</IconSourceDir>
+    <IconDestDir>wwwroot\img</IconDestDir>
+  </PropertyGroup>
+
+  <Target Name="SyncIcons" BeforeTargets="Build;Publish"
+    Condition="Exists('$(IconSourceDir)')">
+    <ItemGroup>
+      <!-- PNG sizes -->
+      <_IconFiles Include="$(IconSourceDir)\WPS-*.png" />
+      <!-- Windows ICO / macOS ICNS -->
+      <_IconFiles Include="$(IconSourceDir)\WPS.ico" />
+      <_IconFiles Include="$(IconSourceDir)\WPS.icns" />
+    </ItemGroup>
+
+    <Message Text="Syncing icons: @( _IconFiles ) -> $(IconDestDir)" Importance="High" />
+    <MakeDir Directories="$(IconDestDir)" />
+    <Copy SourceFiles="@(_IconFiles)"
+      DestinationFiles="@(_IconFiles->'$(IconDestDir)\%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Put this near the bottom of WPStallman.GUI.csproj -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)'=='osx-x64' OR '$(RuntimeIdentifier)'=='osx-arm64'">
+    <!-- Point to your repo template plist & icon -->
+    <None Include="packaging/macos/Info.plist" Pack="false" CopyToOutputDirectory="Never" />
+    <None Include="packaging/macos/wpstallman.icns" Pack="false" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+  <Target Name="CreateMacAppBundle"
+    AfterTargets="Publish"
+    Condition="'$(RuntimeIdentifier)'=='osx-x64' OR '$(RuntimeIdentifier)'=='osx-arm64'">
+    <PropertyGroup>
+      <AppBundleName>W. P. Stallman.app</AppBundleName>
+      <AppBundleDir>$(PublishDir)$(AppBundleName)/Contents/</AppBundleDir>
+    </PropertyGroup>
+
+    <!-- Create bundle structure -->
+    <MakeDir Directories="$(AppBundleDir)MacOS" />
+    <MakeDir Directories="$(AppBundleDir)Resources" />
+
+    <!-- Copy the published executable into the app bundle -->
+    <Copy SourceFiles="$(PublishDir)$(AssemblyName)"
+      DestinationFiles="$(AppBundleDir)MacOS/$(AssemblyName)"
+      SkipUnchangedFiles="true" />
+
+    <!-- Copy icon if present -->
+    <Copy SourceFiles="packaging/macos/wpstallman.icns"
+      DestinationFiles="$(AppBundleDir)Resources/wpstallman.icns"
+      SkipUnchangedFiles="true"
+      Condition="Exists('packaging/macos/wpstallman.icns')" />
+
+    <!-- Copy Info.plist from your repo into the bundle -->
+    <Copy SourceFiles="packaging/macos/Info.plist"
+      DestinationFiles="$(AppBundleDir)Info.plist"
+      SkipUnchangedFiles="true"
+      Condition="Exists('packaging/macos/Info.plist')" />
+  </Target>
+
+
+</Project>

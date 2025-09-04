@@ -1,0 +1,516 @@
+{
+  "database": "wp_stallman_design",
+  "generatedAt": "2025-08-29T12:29:04.7358593Z",
+  "defaultPrefix": "wp_",
+  "installerClass": "WP_Stallman_Design",
+  "includeSeedData": true,
+  "tables": [
+    {
+      "name": "sample_plugin_roles",
+      "nameOriginal": "wp_sample_plugin_roles",
+      "fullName": "wp_sample_plugin_roles",
+      "comment": "",
+      "rowLimit": 100,
+      "skip": false,
+      "columns": [
+        {
+          "name": "role_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "role_name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "1",
+          "comment": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "role_id"
+          ],
+          "unique": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [
+        {
+          "role_id": 1,
+          "role_name": "Administrator",
+          "is_active": true,
+          "created_at": "2025-08-20T13:54:33"
+        },
+        {
+          "role_id": 2,
+          "role_name": "Editor",
+          "is_active": true,
+          "created_at": "2025-08-20T13:54:33"
+        },
+        {
+          "role_id": 3,
+          "role_name": "Viewer",
+          "is_active": true,
+          "created_at": "2025-08-20T13:54:33"
+        },
+        {
+          "role_id": 4,
+          "role_name": "InactiveRole",
+          "is_active": false,
+          "created_at": "2025-08-20T13:54:33"
+        }
+      ],
+      "seed": true
+    },
+    {
+      "name": "sample_plugin_user_audit",
+      "nameOriginal": "wp_sample_plugin_user_audit",
+      "fullName": "wp_sample_plugin_user_audit",
+      "comment": "",
+      "rowLimit": 100,
+      "skip": false,
+      "columns": [
+        {
+          "name": "audit_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "user_id",
+          "type": "int(11)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "action_type",
+          "type": "varchar(20)",
+          "nullable": true,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "action_timestamp",
+          "type": "timestamp",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "audit_id"
+          ],
+          "unique": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [],
+      "seedData": [
+        {
+          "audit_id": 1,
+          "user_id": 1,
+          "action_type": "INSERT",
+          "action_timestamp": "2025-08-20T13:54:33"
+        },
+        {
+          "audit_id": 2,
+          "user_id": 2,
+          "action_type": "INSERT",
+          "action_timestamp": "2025-08-20T13:54:33"
+        },
+        {
+          "audit_id": 3,
+          "user_id": 3,
+          "action_type": "INSERT",
+          "action_timestamp": "2025-08-20T13:54:33"
+        },
+        {
+          "audit_id": 4,
+          "user_id": 4,
+          "action_type": "INSERT",
+          "action_timestamp": "2025-08-20T13:54:33"
+        },
+        {
+          "audit_id": 5,
+          "user_id": 5,
+          "action_type": "INSERT",
+          "action_timestamp": "2025-08-20T13:54:33"
+        }
+      ],
+      "seed": true
+    },
+    {
+      "name": "sample_plugin_users",
+      "nameOriginal": "wp_sample_plugin_users",
+      "fullName": "wp_sample_plugin_users",
+      "comment": "",
+      "rowLimit": 100,
+      "skip": false,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": true,
+          "primaryKey": true,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "role_id",
+          "type": "int(11)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "username",
+          "type": "varchar(50)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "email",
+          "type": "varchar(100)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "",
+          "comment": ""
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint(1)",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "1",
+          "comment": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": false,
+          "autoIncrement": false,
+          "primaryKey": false,
+          "default": "current_timestamp()",
+          "comment": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            "user_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ux_username",
+          "columns": [
+            "username"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ux_email",
+          "columns": [
+            "email"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_role_id",
+          "columns": [
+            "role_id"
+          ],
+          "unique": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY",
+          "type": "PRIMARY KEY",
+          "columns": []
+        },
+        {
+          "name": "ux_username",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "ux_email",
+          "type": "UNIQUE",
+          "columns": []
+        },
+        {
+          "name": "fk_users_role",
+          "type": "FOREIGN KEY",
+          "columns": []
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_users_role",
+          "column": "role_id",
+          "references": {
+            "table": "sample_plugin_roles",
+            "column": "role_id"
+          },
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "seedData": [
+        {
+          "user_id": 1,
+          "role_id": 1,
+          "username": "admin_user",
+          "email": "admin@example.com",
+          "is_active": true,
+          "created_at": "2025-08-20T13:54:33"
+        },
+        {
+          "user_id": 2,
+          "role_id": 2,
+          "username": "editor_jane",
+          "email": "jane.editor@example.com",
+          "is_active": true,
+          "created_at": "2025-08-20T13:54:33"
+        },
+        {
+          "user_id": 3,
+          "role_id": 2,
+          "username": "editor_john",
+          "email": "john.editor@example.com",
+          "is_active": true,
+          "created_at": "2025-08-20T13:54:33"
+        },
+        {
+          "user_id": 4,
+          "role_id": 3,
+          "username": "viewer_sam",
+          "email": "sam.viewer@example.com",
+          "is_active": true,
+          "created_at": "2025-08-20T13:54:33"
+        },
+        {
+          "user_id": 5,
+          "role_id": 4,
+          "username": "old_inactive_user",
+          "email": "inactive@example.com",
+          "is_active": false,
+          "created_at": "2025-08-20T13:54:33"
+        }
+      ],
+      "seed": true
+    }
+  ],
+  "views": [
+    {
+      "name": "sample_plugin_active_roles",
+      "nameOriginal": "wp_sample_plugin_active_roles",
+      "fullName": "wp_sample_plugin_active_roles",
+      "definition": "CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `wp_sample_plugin_active_roles` AS select `r`.`role_id` AS `role_id`,`r`.`role_name` AS `role_name` from `wp_sample_plugin_roles` `r` where `r`.`is_active` = 1"
+    },
+    {
+      "name": "sample_plugin_active_users",
+      "nameOriginal": "wp_sample_plugin_active_users",
+      "fullName": "wp_sample_plugin_active_users",
+      "definition": "CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `wp_sample_plugin_active_users` AS select `u`.`user_id` AS `user_id`,`u`.`username` AS `username`,`u`.`email` AS `email`,`r`.`role_name` AS `role_name` from (`wp_sample_plugin_users` `u` join `wp_sample_plugin_roles` `r` on(`u`.`role_id` = `r`.`role_id`)) where `u`.`is_active` = 1"
+    }
+  ],
+  "storedProcedures": [
+    {
+      "name": "sample_plugin_create_role",
+      "nameOriginal": "wp_sample_plugin_create_role",
+      "fullName": "wp_sample_plugin_create_role",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_role_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_sample_plugin_create_role`(\n  IN p_role_name VARCHAR(100),\n  IN p_is_active BOOLEAN\n)\nBEGIN\n  INSERT INTO `wp_sample_plugin_roles` (role_name, is_active)\n  VALUES (p_role_name, p_is_active);\nEND"
+    },
+    {
+      "name": "sample_plugin_create_user",
+      "nameOriginal": "wp_sample_plugin_create_user",
+      "fullName": "wp_sample_plugin_create_user",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_role_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_username",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_sample_plugin_create_user`(\n  IN p_role_id INT,\n  IN p_username VARCHAR(50),\n  IN p_email VARCHAR(100),\n  IN p_is_active BOOLEAN\n)\nBEGIN\n  INSERT INTO `wp_sample_plugin_users` (role_id, username, email, is_active)\n  VALUES (p_role_id, p_username, p_email, p_is_active);\nEND"
+    },
+    {
+      "name": "sample_plugin_delete_role",
+      "nameOriginal": "wp_sample_plugin_delete_role",
+      "fullName": "wp_sample_plugin_delete_role",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_role_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_sample_plugin_delete_role`(IN p_role_id INT)\nBEGIN\n  DELETE FROM `wp_sample_plugin_roles` WHERE role_id = p_role_id;\nEND"
+    },
+    {
+      "name": "sample_plugin_delete_user",
+      "nameOriginal": "wp_sample_plugin_delete_user",
+      "fullName": "wp_sample_plugin_delete_user",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_user_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_sample_plugin_delete_user`(IN p_user_id INT)\nBEGIN\n  DELETE FROM `wp_sample_plugin_users` WHERE user_id = p_user_id;\nEND"
+    },
+    {
+      "name": "sample_plugin_get_role",
+      "nameOriginal": "wp_sample_plugin_get_role",
+      "fullName": "wp_sample_plugin_get_role",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_role_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_sample_plugin_get_role`(IN p_role_id INT)\nBEGIN\n  SELECT * FROM `wp_sample_plugin_roles` WHERE role_id = p_role_id;\nEND"
+    },
+    {
+      "name": "sample_plugin_get_user",
+      "nameOriginal": "wp_sample_plugin_get_user",
+      "fullName": "wp_sample_plugin_get_user",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_user_id",
+          "type": "INT"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_sample_plugin_get_user`(IN p_user_id INT)\nBEGIN\n  SELECT * FROM `wp_sample_plugin_users` WHERE user_id = p_user_id;\nEND"
+    },
+    {
+      "name": "sample_plugin_update_role",
+      "nameOriginal": "wp_sample_plugin_update_role",
+      "fullName": "wp_sample_plugin_update_role",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_role_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_role_name",
+          "type": "VARCHAR(100"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_sample_plugin_update_role`(\n  IN p_role_id INT,\n  IN p_role_name VARCHAR(100),\n  IN p_is_active BOOLEAN\n)\nBEGIN\n  UPDATE `wp_sample_plugin_roles`\n  SET role_name = p_role_name,\n      is_active = p_is_active\n  WHERE role_id = p_role_id;\nEND"
+    },
+    {
+      "name": "sample_plugin_update_user",
+      "nameOriginal": "wp_sample_plugin_update_user",
+      "fullName": "wp_sample_plugin_update_user",
+      "parameters": [
+        {
+          "mode": "IN",
+          "name": "p_user_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_role_id",
+          "type": "INT"
+        },
+        {
+          "mode": "IN",
+          "name": "p_username",
+          "type": "VARCHAR(50"
+        }
+      ],
+      "definition": "CREATE DEFINER=`root`@`localhost` PROCEDURE `wp_sample_plugin_update_user`(\n  IN p_user_id INT,\n  IN p_role_id INT,\n  IN p_username VARCHAR(50),\n  IN p_email VARCHAR(100),\n  IN p_is_active BOOLEAN\n)\nBEGIN\n  UPDATE `wp_sample_plugin_users`\n  SET role_id = p_role_id,\n      username = p_username,\n      email = p_email,\n      is_active = p_is_active\n  WHERE user_id = p_user_id;\nEND"
+    }
+  ],
+  "triggers": [
+    {
+      "name": "sample_plugin_after_user_insert",
+      "nameOriginal": "wp_sample_plugin_after_user_insert",
+      "fullName": "wp_sample_plugin_after_user_insert",
+      "event": "AFTER INSERT",
+      "table": "sample_plugin_users",
+      "definition": "BEGIN\n  INSERT INTO `wp_sample_plugin_user_audit` (user_id, action_type)\n  VALUES (NEW.user_id, 'INSERT');\nEND"
+    }
+  ]
+}

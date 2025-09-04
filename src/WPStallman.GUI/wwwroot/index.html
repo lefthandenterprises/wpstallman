@@ -1,0 +1,817 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>W.P. Stallman</title>
+  <link rel="stylesheet" href="css/libs/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/site.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./img/WPS-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./img/WPS-16.png">
+
+</head>
+
+<body>
+  <div class="container" id="app">
+    <header>
+      <h1>W.P. Stallman - Your WP Install Guy</h1>
+    </header>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="mainTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="manifest-tab" data-bs-toggle="tab" data-bs-target="#manifest" type="button"
+          role="tab" aria-controls="manifest" aria-selected="true">
+          Manifest
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="installer-tab" data-bs-toggle="tab" data-bs-target="#installer" type="button"
+          role="tab" aria-controls="installer" aria-selected="false">
+          Installer
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="user-manual-tab" data-bs-toggle="tab" data-bs-target="#user-manual" type="button"
+          role="tab" aria-controls="user-manual" aria-selected="false">
+          User Manual
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab"
+          aria-controls="about" aria-selected="false">
+          About / Donate
+        </button>
+      </li>
+    </ul>
+    <div class="tab-content mt-3" id="mainTabContent">
+
+      <!-- Manifest Tab Panel -->
+      <div class="tab-pane fade show active" id="manifest" role="tabpanel" aria-labelledby="manifest-tab"
+        data-bind="with: manifestVM">
+
+        <!-- Header / Options -->
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Manifest</span>
+            <div class="d-flex align-items-center gap-3">
+              <small class="text-muted" data-bind="text: manifestStatus"></small>
+              <button type="button" class="btn btn-sm btn-success" data-bind="click: introspectDatabase">
+                Generate Manifest
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="alert alert-info py-2 mb-2">
+                  <div class="form-check m-0">
+                    <input class="form-check-input" type="checkbox" id="includeSeedData"
+                      data-bind="checked: includeSeedData">
+                    <label class="form-check-label" for="includeSeedData">
+                      Include seed data
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label class="form-label">Connection String</label>
+                <input type="text" class="form-control" placeholder="server=...;uid=...;pwd=...;database=..."
+                  data-bind="value: connectionString">
+                <div class="form-text">Used to introspect the database and build the manifest.</div>
+              </div>
+
+              <div class="col-6 col-lg-2">
+                <label class="form-label">DB Prefix</label>
+                <input type="text" class="form-control" placeholder="wp_" data-bind="value: dbPrefix">
+              </div>
+
+              <div class="col-12 col-lg-4">
+                <label class="form-label">Installer Class Name</label>
+                <input type="text" class="form-control" placeholder="MyPluginInstaller"
+                  data-bind="value: installerClassName">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selection grids -->
+        <div class="row g-3">
+          <!-- Tables -->
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Tables</span>
+
+                <div class="d-flex align-items-center gap-2">
+                  <!-- Include / Exclude -->
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" data-bind="click: () => includeAll('table')">Include
+                      All</button>
+                    <button class="btn btn-outline-secondary" data-bind="click: () => excludeAll('table')">Exclude
+                      All</button>
+                  </div>
+
+                  <!-- Seed All / None (tables only) -->
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" title="Mark all included tables to be seeded"
+                      data-bind="click: seedAllTables">
+                      Seed All
+                    </button>
+                    <button class="btn btn-outline-secondary" title="Clear seed flag on all tables"
+                      data-bind="click: seedNoneTables">
+                      Seed None
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0 align-middle"
+                    data-bind="visible: entitiesByType['table']().length">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Include</th>
+                        <th>Name</th>
+                        <th style="width: 140px;">Seed</th>
+                      </tr>
+                    </thead>
+                    <tbody data-bind="foreach: entitiesByType['table']">
+                      <tr>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox" data-bind="checked: include">
+                          </div>
+                        </td>
+                        <td><code data-bind="text: raw.name"></code></td>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox"
+                              data-bind="checked: includeSeed, enable: include">
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tbody data-bind="visible: !entitiesByType['table']().length">
+                      <tr>
+                        <td colspan="3" class="text-center text-muted small py-3">No tables found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Views -->
+          <div class="col-12 col-lg-6">
+            <div class="card h-100">
+              <!--               <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Views</span>
+                <div class="form-check m-0">
+                  <input class="form-check-input" type="checkbox" id="selectAllViews"
+                    data-bind="checked: allViewsSelected">
+                  <label class="form-check-label" for="selectAllViews">Select All</label>
+                </div>
+              </div> -->
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Views</span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" data-bind="click: () => includeAll('view')">Include
+                    All</button>
+                  <button class="btn btn-outline-secondary" data-bind="click: () => excludeAll('view')">Exclude
+                    All</button>
+                </div>
+              </div>
+
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0 align-middle"
+                    data-bind="visible: entitiesByType['view']().length">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Include</th>
+                        <th>Name</th>
+                      </tr>
+                    </thead>
+                    <tbody data-bind="foreach: entitiesByType['view']">
+                      <tr>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox" data-bind="checked: include">
+                          </div>
+                        </td>
+                        <td><code data-bind="text: raw.name"></code></td>
+                      </tr>
+                    </tbody>
+                    <tbody data-bind="visible: !entitiesByType['view']().length">
+                      <tr>
+                        <td colspan="2" class="text-center text-muted small py-3">No views found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stored Procedures -->
+          <div class="col-12 col-lg-6">
+            <div class="card h-100">
+              <!--               <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Stored Procedures</span>
+                <div class="form-check m-0">
+                  <input class="form-check-input" type="checkbox" id="selectAllProcs"
+                    data-bind="checked: allStoredProceduresSelected">
+                  <label class="form-check-label" for="selectAllProcs">Select All</label>
+                </div>
+              </div> -->
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Stored Procedures</span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary"
+                    data-bind="click: () => includeAll('stored procedure')">Include All</button>
+                  <button class="btn btn-outline-secondary"
+                    data-bind="click: () => excludeAll('stored procedure')">Exclude All</button>
+                </div>
+              </div>
+
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0 align-middle"
+                    data-bind="visible: entitiesByType['stored procedure']().length">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Include</th>
+                        <th>Name</th>
+                      </tr>
+                    </thead>
+                    <tbody data-bind="foreach: entitiesByType['stored procedure']">
+                      <tr>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox" data-bind="checked: include">
+                          </div>
+                        </td>
+                        <td><code data-bind="text: raw.name"></code></td>
+                      </tr>
+                    </tbody>
+                    <tbody data-bind="visible: !entitiesByType['stored procedure']().length">
+                      <tr>
+                        <td colspan="2" class="text-center text-muted small py-3">No stored procedures found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Triggers -->
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Triggers</span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" data-bind="click: () => includeAll('trigger')">Include
+                    All</button>
+                  <button class="btn btn-outline-secondary" data-bind="click: () => excludeAll('trigger')">Exclude
+                    All</button>
+                </div>
+              </div>
+
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0 align-middle"
+                    data-bind="visible: entitiesByType['trigger']().length">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Include</th>
+                        <th>Name</th>
+                      </tr>
+                    </thead>
+                    <tbody data-bind="foreach: entitiesByType['trigger']">
+                      <tr>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox" data-bind="checked: include">
+                          </div>
+                        </td>
+                        <td><code data-bind="text: raw.name"></code></td>
+                      </tr>
+                    </tbody>
+                    <tbody data-bind="visible: !entitiesByType['trigger']().length">
+                      <tr>
+                        <td colspan="2" class="text-center text-muted small py-3">No triggers found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview & Actions -->
+        <div class="card mt-3">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span class="fw-bold">Manifest Preview</span>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-primary" data-bind="click: saveManifest">
+                Save Manifest…
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-bind="click: copyManifest">
+                Copy to Clipboard
+              </button>
+              <span class="small text-success" aria-live="polite" data-bind="
+        visible: manifestCopied() || manifestCopiedFading(),
+        css: { 'd-inline-block': manifestCopied() || manifestCopiedFading(), 'fade-out': manifestCopiedFading }
+      ">
+                Copied!
+              </span>
+
+
+            </div>
+          </div>
+          <div class="card-body">
+            <pre class="form-control"
+              style="min-height: 220px; max-height: 360px; overflow:auto; white-space: pre-wrap;"
+              data-bind="text: manifestPreview"></pre>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- Installer Tab Panel -->
+      <div id="installer" class="tab-pane fade" role="tabpanel" aria-labelledby="installer-tab"
+        data-bind="with: installerVM">
+
+        <!-- Header / File chooser -->
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Installer</span>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-primary" data-bind="click: chooseManifestFile">
+                <i class="bi bi-folder2-open"></i> Choose Manifest JSON…
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="mb-2 small text-muted">
+              <span class="me-2">Selected file:</span>
+              <span class="fw-semibold" data-bind="text: selectedFilePath() || '— none —'"></span>
+            </div>
+
+            <!-- Options -->
+            <div class="row g-3">
+              <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label">DB Prefix Override</label>
+                <input type="text" class="form-control" placeholder="wp_" data-bind="value: dbPrefixOverride">
+                <div class="form-text">Defaults to manifest’s prefix if not set.</div>
+              </div>
+
+              <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label">Installer Class Name</label>
+                <input type="text" class="form-control" placeholder="MyPluginInstaller"
+                  data-bind="value: classNameOverride">
+              </div>
+
+              <div class="col-12 col-md-6">
+                <div class="form-check mt-2">
+                  <input class="form-check-input" type="checkbox" id="includeInstallerStub"
+                    data-bind="checked: includeInstallerStub">
+                  <label class="form-check-label" for="includeInstallerStub">
+                    Include test stub and main plugin class
+                  </label>
+                </div>
+                <div class="form-check mt-2">
+                  <input class="form-check-input" type="checkbox" id="includeSeedDataOverride"
+                    data-bind="checked: includeSeedDataOverride">
+                  <label class="form-check-label" for="includeSeedDataOverride">
+                    Include seed data globally (per-table can still be toggled)
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selection grids -->
+        <div class="row g-3">
+          <!-- Tables -->
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Tables</span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" data-bind="click: () => includeAll('table')">Include
+                    All</button>
+                  <button class="btn btn-outline-secondary" data-bind="click: () => excludeAll('table')">Exclude
+                    All</button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Include</th>
+                        <th>Name</th>
+                        <th style="width: 140px;">Seed Data</th>
+                      </tr>
+                    </thead>
+                    <tbody data-bind="foreach: tableRows">
+                      <tr>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox" data-bind="checked: included">
+                          </div>
+                        </td>
+                        <td><code data-bind="text: name"></code></td>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox"
+                              data-bind="checked: includeSeed, enable: included">
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tbody data-bind="visible: !tableRows().length">
+                      <tr>
+                        <td colspan="3" class="text-center text-muted small py-3">No tables found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Views -->
+          <div class="col-12 col-lg-6">
+            <div class="card h-100">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Views</span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" data-bind="click: () => includeAll('view')">Include
+                    All</button>
+                  <button class="btn btn-outline-secondary" data-bind="click: () => excludeAll('view')">Exclude
+                    All</button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Include</th>
+                        <th>Name</th>
+                      </tr>
+                    </thead>
+                    <tbody data-bind="foreach: viewRows">
+                      <tr>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox" data-bind="checked: included">
+                          </div>
+                        </td>
+                        <td><code data-bind="text: name"></code></td>
+                      </tr>
+                    </tbody>
+                    <tbody data-bind="visible: !viewRows().length">
+                      <tr>
+                        <td colspan="2" class="text-center text-muted small py-3">No views found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stored Procedures -->
+          <div class="col-12 col-lg-6">
+            <div class="card h-100">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Stored Procedures</span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" data-bind="click: () => includeAll('procedure')">Include
+                    All</button>
+                  <button class="btn btn-outline-secondary" data-bind="click: () => excludeAll('procedure')">Exclude
+                    All</button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Include</th>
+                        <th>Name</th>
+                      </tr>
+                    </thead>
+                    <tbody data-bind="foreach: procRows">
+                      <tr>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox" data-bind="checked: included">
+                          </div>
+                        </td>
+                        <td><code data-bind="text: name"></code></td>
+                      </tr>
+                    </tbody>
+                    <tbody data-bind="visible: !procRows().length">
+                      <tr>
+                        <td colspan="2" class="text-center text-muted small py-3">No stored procedures found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Triggers -->
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Triggers</span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" data-bind="click: () => includeAll('trigger')">Include
+                    All</button>
+                  <button class="btn btn-outline-secondary" data-bind="click: () => excludeAll('trigger')">Exclude
+                    All</button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 70px;">Include</th>
+                        <th>Name</th>
+                      </tr>
+                    </thead>
+                    <tbody data-bind="foreach: triggerRows">
+                      <tr>
+                        <td>
+                          <div class="form-check m-0 d-flex justify-content-center">
+                            <input class="form-check-input" type="checkbox" data-bind="checked: included">
+                          </div>
+                        </td>
+                        <td><code data-bind="text: name"></code></td>
+                      </tr>
+                    </tbody>
+                    <tbody data-bind="visible: !triggerRows().length">
+                      <tr>
+                        <td colspan="2" class="text-center text-muted small py-3">No triggers found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview & Actions -->
+        <div class="card mt-3">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span class="fw-bold">Preview</span>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-success" data-bind="click: generatePreview, enable: manifest">
+                Generate Preview
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bind="click: copyPreviewToClipboard, enable: selectedPreviewFile">
+                Copy to Clipboard
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bind="click: savePreviewToDisk, enable: selectedPreviewFile">
+                Save This File…
+              </button>
+              <button class="btn btn-primary" data-bind="click: createZip, enable: previewFiles().length">
+                Create Zip
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12 col-md-5 col-lg-4">
+                <label class="form-label">File</label>
+                <select class="form-select" data-bind="options: previewFiles,
+                             optionsText: 'fileName',
+                             value: selectedPreviewFile,
+                             optionsCaption: previewFiles().length ? 'Select a file…' : 'No files yet'"></select>
+                <div class="form-text" data-bind="visible: !includeInstallerStub()">
+                  Stub disabled — only the installer class will be generated.
+                </div>
+              </div>
+              <div class="col-12 col-md-7 col-lg-8">
+                <label class="form-label">Contents</label>
+                <pre class="form-control" style="min-height: 280px; white-space: pre-wrap;"
+                  data-bind="text: selectedPreviewFile() ? selectedPreviewFile().content : ''"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- User Manual Tab Panel -->
+      <div class="tab-pane fade" id="user-manual" role="tabpanel" aria-labelledby="user-manual-tab"
+        data-bind="with: aboutVM">
+    
+        <div class="manual-container" data-bind="html: manualHtml"></div>
+        <!--         <div class="card">
+          <div class="card-header"><span class="fw-bold">User Manual</span></div>
+          <div class="card-body">
+            <pre class="manual-pre" data-bind="text: manualText"></pre>
+          </div>
+        </div> -->
+      </div>
+
+      <!-- About / Donate Tab Panel -->
+      <div class="tab-pane fade" id="about" role="tabpanel" aria-labelledby="about-tab" data-bind="with: aboutVM">
+        <h2>About</h2>
+
+        <div class="row g-4 align-items-start">
+          <!-- Image ~1/3 on md+, full width on xs -->
+          <div class="col-12 col-md-4">
+            <img class="img-fluid rounded-3 shadow-sm w-100" role="button" tabindex="0" title="Click to enlarge"
+              data-bind="
+    attr: { src: imageSrc, alt: imageAlt || 'About image' },
+    click: openImageModal,
+    event: { keyup: function(_, e){ if(e.key==='Enter'||e.key===' ') openImageModal(); } }
+  " />
+            <!-- Hidden audio element (preloaded) -->
+            <audio id="founder-audio" preload="auto" data-bind="attr: { src: audioSrc }"></audio>
+
+            <!-- Play button -->
+            <button class="btn btn-primary w-100 mt-3" data-bind="click: playFounderMessage">
+              Our Founder’s Message
+            </button>
+          </div>
+          <!-- Text ~2/3 on md+, full width on xs -->
+          <div class="col-12 col-md-8">
+            <!-- If you have a lead / headline -->
+            <!-- <p class="lead mb-2" data-bind="text: aboutLead"></p> -->
+
+            <!-- Main about copy -->
+
+            <div data-bind="html: aboutHtml"></div>
+            <div>
+              Licensed under <a data-bind="click: openLicenseModal" href="#">The MIT License</a>
+            </div>
+            <div>
+              &copy; 2025 Left Hand Enterprises, LLC. All Rights Reserved.
+            </div>
+
+          </div>
+        </div>
+
+        <h2 class="donate-heading">Donate</h2>
+        <div id="donate-section" data-bind="with: $parent.donateVM">
+          <div class="table-responsive">
+            <table class="table wallets-table align-middle table-striped">
+              <colgroup>
+                <col class="col-symbol"> <!-- Symbol (icon + code) -->
+                <col class="col-name"> <!-- Name -->
+                <col class="col-address"> <!-- Address grows/shrinks -->
+                <col class="col-actions"> <!-- Actions fixed -->
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Name</th>
+                  <th>Address</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody data-bind="foreach: wallets">
+                <tr>
+                  <td class="donate-symbol">
+                    <div class="d-flex align-items-center gap-2">
+                      <img data-bind="attr: { src: iconUrl, alt: name }"
+                        style="width:40px; height:40px; object-fit:cover; border-radius:50%;">
+                      <span class="text-muted small" data-bind="text: symbol"></span>
+                    </div>
+                  </td>
+
+                  <td class="donate-name" data-bind="text: name"></td>
+                  <td class="donate-address">
+                    <span class="addr" data-bind="text: address, attr:{ title: address }"></span>
+                  </td>
+
+                  <td class="donate-actions">
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                      data-bind="click: $parent.openInHost">Open</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                      data-bind="click: $parent.copyAddressInHost">Copy</button>
+
+                    <span class="ms-2 small" data-bind="visible: noticeVisible, text: noticeText,
+                       css: { 'text-success': noticeText() === 'Copied',
+                              'text-danger': noticeText() === 'Copy failed',
+                              'fade-out': noticeFading }"></span>
+                  </td>
+
+
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== Global Modal (single instance) ========== -->
+  <div id="globalModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="globalModalLabel"
+    aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false"
+    data-bind="css: { show: showModal(), 'd-block': showModal() }">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+
+        <div class="modal-header" data-bind="css: { 'bg-danger text-white': modalData().isError === true }">
+          <h5 class="modal-title" id="globalModalLabel" data-bind="text: modalData().title || 'Message'"></h5>
+
+          <!-- Close (×) only if closeable -->
+          <button type="button" class="btn-close" aria-label="Close" data-bind="click: userHideModal,
+                           visible: modalData().closeable !== false"></button>
+        </div>
+
+        <div class="modal-body position-relative">
+
+          <!-- Toast-like notice (prepended visually, not part of message) -->
+          <div class="modal-notice alert py-1 px-2 mb-2 position-sticky top-0" role="status" aria-live="polite"
+            data-bind="
+         visible: modalNoticeVisible,
+         css: {
+           'alert-success': modalNoticeKind() === 'success',
+           'alert-danger': modalNoticeKind() === 'error',
+           'fade-out': modalNoticeFading
+         },
+         text: modalNoticeText
+       ">
+          </div>
+
+          <!-- Scrollable display area -->
+          <div class="border rounded bg-light p-2" style="max-height:40vh; overflow:auto; white-space:pre-wrap;"
+            data-bind="html: modalData().message || ''">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <!-- Copy text -->
+          <button type="button" class="btn btn-outline-secondary" data-bind="click: copyModalMessage,
+                     enable: (modalData().message && modalData().message.length),
+                     visible: modalData().showButton !== false">
+            Copy text
+          </button>
+
+          <!-- OK / Close -->
+          <button type="button" class="btn btn-primary" data-bind="text: modalData().buttonText || 'OK',
+                     click: userHideModal,
+                     visible: modalData().showButton !== false || modalData().isConfirm === false">
+          </button>
+
+          <button type="button" class="btn btn-primary" data-bind="text: modalData().confirmYesText || 'OK',
+                     click: userConfirmModalOk,
+                     visible: modalData().isConfirm === true"></button>
+
+          <button type="button" class="btn btn-primary" data-bind="text: modalData().confirmNoText || 'Cancel',
+                     click: userConfirmModalCancel,
+                     visible: modalData().isConfirm === true">
+          </button>
+        </div>
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Backdrop controlled by KO (only when modal is shown) -->
+  <div class="modal-backdrop fade" data-bind="css: { show: showModal() }, visible: showModal"></div>
+  <!-- ========== /Global Modal ========== -->
+
+
+  <!-- Library includes -->
+  <script src="js/libs/bootstrap.bundle.min.js"></script>
+  <script src="js/libs/knockout.min.js"></script>
+  <script src="js/libs/jszip.min.js"></script>
+  <!-- ViewModels and main app logic -->
+  <script src="js/vm/manifestViewModel.js"></script>
+  <script src="js/vm/installerViewModel.js"></script>
+  <script src="js/vm/aboutViewModel.js"></script>
+  <script src="js/vm/donateViewModel.js"></script>
+
+  <script src="js/app/app.js"></script>
+</body>
+
+</html>

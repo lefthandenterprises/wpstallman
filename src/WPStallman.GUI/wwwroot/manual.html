@@ -1,0 +1,203 @@
+    <p>This manual explains how to use <strong>W.P. Stallman</strong> to generate manifests and installer stubs for your
+          WordPress plugins. The workflow has two main phases: creating the
+          <strong>manifest</strong> and then building the
+          <strong>installer</strong>.
+        </p>
+        <hr />
+        <h2 id="manifest-tab">1. Manifest Tab</h2>
+        <p>The <strong>Manifest</strong> tab is where you connect to your
+          database, select the SQL objects you want to package, and generate the
+          manifest JSON file.</p>
+        <h3 id="connect-to-database">1.1 Connect to database</h3>
+        <ul>
+          <li>
+            <p>Enter your connection string in the <strong>Connection
+                String</strong> box.<br />
+              Example:</p>
+            <pre class="text"><code>server=localhost;uid=root;pwd=;database=wp_stallman_design</code></pre>
+          </li>
+          <li>
+            <p>Specify your <strong>DB Prefix</strong> (default is
+              <code>wp_</code>).
+            </p>
+          </li>
+          <li>
+            <p>Choose an <strong>Installer Class Name</strong>. This is the PHP
+              class that will be generated for your installer.</p>
+          </li>
+        </ul>
+        <h3 id="select-sql-objects-and-seed-data">1.2 Select SQL objects and
+          seed data</h3>
+        <ul>
+          <li>Check or uncheck the boxes next to <strong>Tables</strong>,
+            <strong>Views</strong>, <strong>Stored Procedures</strong>, and
+            <strong>Triggers</strong> to include them in the manifest.<br />
+          </li>
+          <li>Use <strong>Include All / Exclude All</strong> buttons to
+            bulk-select.<br />
+          </li>
+          <li>To control seed data:
+            <ul>
+              <li>Use the <strong>Seed</strong> column to decide per table.</li>
+              <li>Use the <strong>Seed All / Seed None</strong> buttons for bulk
+                control.<br />
+              </li>
+            </ul>
+          </li>
+          <li><em>(See Manifest Tab screenshot for example.)</em></li>
+        </ul>
+        <h3 id="preview-your-manifest">1.3 Preview your manifest</h3>
+        <ul>
+          <li>The <strong>Manifest Preview</strong> panel (bottom of tab) shows
+            the JSON that will be generated.<br />
+          </li>
+          <li>It includes:
+            <ul>
+              <li>Database name<br />
+              </li>
+              <li>Installer class<br />
+              </li>
+              <li>Objects included (with schema info)<br />
+              </li>
+              <li>Seed data flags</li>
+            </ul>
+          </li>
+        </ul>
+        <h3 id="save-or-copy-the-file-to-the-clipboard">1.4 Save or copy the
+          file to the clipboard</h3>
+        <ul>
+          <li>Click <strong>Save Manifest…</strong> to download a
+            <code>.json</code> file.<br />
+          </li>
+          <li>Or use <strong>Copy to Clipboard</strong> to copy the manifest
+            directly for pasting elsewhere.</li>
+        </ul>
+        <hr />
+        <h2 id="installer-tab">2. Installer Tab</h2>
+        <p>The <strong>Installer</strong> tab takes a manifest JSON and
+          generates a WordPress installer class plus test stubs.</p>
+        <h3 id="open-your-json-file">2.1 Open your JSON file</h3>
+        <ul>
+          <li>Click <strong>Choose Manifest JSON…</strong> and select the file
+            generated earlier.<br />
+          </li>
+          <li>Once loaded, you’ll see the included objects listed.</li>
+        </ul>
+        <h3 id="set-your-overrides-for-the-database-and-class-name">2.2 Set your
+          overrides for the database and class name</h3>
+        <ul>
+          <li>Enter a <strong>DB Prefix Override</strong> if you want to change
+            the default <code>wp_</code>.<br />
+          </li>
+          <li>Set a different <strong>Installer Class Name</strong> if
+            needed.<br />
+          </li>
+          <li><em>(Defaults are taken from the manifest.)</em></li>
+        </ul>
+        <h3 id="choose-output-options-for-seed-data-and-test-stub">2.3 Choose
+          output options for seed data and test stub</h3>
+        <ul>
+          <li><strong>Include test stub and main plugin class</strong> – generates
+            a runnable PHP test file.<br />
+          </li>
+          <li><strong>Include seed data globally</strong> – toggles whether seed
+            data is included (can still be controlled per table).</li>
+        </ul>
+        <h3 id="confirm-your-tables-and-seed-data">2.4 Confirm your tables and
+          seed data</h3>
+        <ul>
+          <li>Review the <strong>Tables</strong> list.<br />
+          </li>
+          <li>Verify each table’s inclusion and whether seed data is toggled.</li>
+        </ul>
+        <h3 id="confirm-your-other-sql-objects">2.5 Confirm your other SQL
+          objects</h3>
+        <ul>
+          <li>Review the lists of <strong>Views</strong>, <strong>Stored
+              Procedures</strong>, and <strong>Triggers</strong>.<br />
+          </li>
+          <li>Use <strong>Include All / Exclude All</strong> buttons as
+            needed.</li>
+        </ul>
+        <h3 id="generate-your-preview">2.6 Generate your preview</h3>
+        <ul>
+          <li>
+            <p>Click <strong>Generate Preview</strong> to produce the installer
+              PHP code in the <strong>Preview</strong> panel.<br />
+            </p>
+          </li>
+          <li>
+            <p>Example stub:</p>
+            <div class="sourceCode" id="cb2">
+              <pre
+                class="sourceCode php"><code class="sourceCode php"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">$installer</span> <span class="op">=</span> <span class="kw">new</span> <span class="cn">W</span>P_Stallman_Design(<span class="va">$wpdb</span>)<span class="ot">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="va">$installer</span>-&gt;install()<span class="ot">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">$installer</span>-&gt;populate()<span class="ot">;</span></span></code></pre>
+            </div>
+          </li>
+        </ul>
+        <h3 id="confirm-your-output-and-save-a-zip-with-a-test-stub-included">2.7
+          Confirm your output and save a zip with a test stub included</h3>
+        <ul>
+          <li>Choose the output file type (e.g.,
+            <code>w-p-stallman-design-installer.php</code>).<br />
+          </li>
+          <li>Use <strong>Create Zip</strong> to download a bundle with the
+            installer class and test stub.<br />
+          </li>
+          <li>Or <strong>Copy to Clipboard</strong> / <strong>Save This
+              File…</strong> for individual files.</li>
+        </ul>
+        <hr />
+        <h2 id="testing-your-stub">3. Testing your stub</h2>
+        <p>Once you have the installer stub, you should test it against a
+          WordPress environment.</p>
+        <h3 id="upload-your-test-stub-to-see-if-any-errors-occur">3.1 Upload
+          your test stub to see if any errors occur</h3>
+        <ul>
+          <li>Place the generated PHP files in your WordPress plugin folder.<br />
+          </li>
+          <li>Run the test stub to perform installation and optional
+            seeding.<br />
+          </li>
+          <li>Watch for any SQL or PHP errors.</li>
+        </ul>
+        <h3 id="manually-verify-the-integrity-of-the-database">3.2 Manually
+          verify the integrity of the database</h3>
+        <ul>
+          <li>Check phpMyAdmin or the MySQL CLI to confirm:
+            <ul>
+              <li>Tables are created with expected schema.<br />
+              </li>
+              <li>Views, stored procedures, and triggers are present.<br />
+              </li>
+              <li>Seed data is correctly populated.</li>
+            </ul>
+          </li>
+        </ul>
+        <hr />
+        <h2 id="manifest-file-structure">4. Manifest File Structure</h2>
+        <p>The manifest is a JSON file describing everything needed for your
+          installer. Example elements:</p>
+        <h3 id="database-details">4.1 Database details</h3>
+        <div class="sourceCode" id="cb3">
+          <pre
+            class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;database&quot;:</span> <span class="er">&quot;wp_stallman_design&quot;,</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;generatedAt&quot;:</span> <span class="er">&quot;2025-09-02T21:44:33.6875369Z&quot;,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;defaultPrefix&quot;:</span> <span class="er">&quot;wp_&quot;,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;installerClass&quot;:</span> <span class="er">&quot;WP_Stallman_Design&quot;,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;includeSeedData&quot;:</span> <span class="er">true</span></span></code></pre>
+        </div>
+        <h3 id="sql-objects-etc.">4.2 SQL Objects, etc.</h3>
+        <ul>
+          <li><strong>Tables</strong> – with original name, full name, comments,
+            row limits, and seed data toggle.<br />
+          </li>
+          <li><strong>Views</strong> – list of included views.<br />
+          </li>
+          <li><strong>Stored Procedures</strong> – list of routines to
+            include.<br />
+          </li>
+          <li><strong>Triggers</strong> – list of triggers.</li>
+        </ul>
+        <hr />
