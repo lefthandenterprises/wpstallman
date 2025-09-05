@@ -1,0 +1,34 @@
+<!-- Place this at the repo root: Directory.Build.props -->
+<Project>
+  <!-- Your preferred defaults -->
+  <PropertyGroup>
+    <DefaultFramework_Windows>net8.0-windows</DefaultFramework_Windows>
+    <DefaultFramework_Unix>net8.0</DefaultFramework_Unix>
+  </PropertyGroup>
+
+  <!-- If a project multi-targets (has TargetFrameworks) but TargetFramework is not set,
+       pick a framework based on the RuntimeIdentifier (RID). This runs at evaluation time,
+       so it also covers implicit restore during build/publish. -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='' AND '$(TargetFrameworks)'!=''">
+    <!-- Lowercase RID once for regex checks -->
+    <_ridLower>$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant())</_ridLower>
+
+    <!-- If RID starts with 'win', choose the Windows TFM -->
+    <TargetFramework Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(_ridLower)', '^win'))">
+      $(DefaultFramework_Windows)
+    </TargetFramework>
+
+    <!-- If RID starts with linux/osx/freebsd, choose the Unix TFM -->
+    <TargetFramework Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(_ridLower)', '^(linux|osx|freebsd)'))">
+      $(DefaultFramework_Unix)
+    </TargetFramework>
+
+    <!-- If no RID was provided: fall back to the host OS -->
+    <TargetFramework Condition="'$(_ridLower)'=='' AND '$(OS)'=='Windows_NT'">
+      $(DefaultFramework_Windows)
+    </TargetFramework>
+    <TargetFramework Condition="'$(_ridLower)'=='' AND '$(OS)'!='Windows_NT'">
+      $(DefaultFramework_Unix)
+    </TargetFramework>
+  </PropertyGroup>
+</Project>
