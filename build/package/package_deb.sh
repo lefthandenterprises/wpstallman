@@ -35,6 +35,34 @@ if [ -d "$GUI_DIR" ] && [ -f "$GUI_DIR/WPStallman.GUI.exe" ]; then
 fi
 cp -a "$CLI_DIR/." "$DEBROOT$INSTALL_PREFIX/CLI/"
 
+# Icon detection (same as AppImage)
+ICON_PNG="${ICON_PNG:-}"
+if [ -z "${ICON_PNG}" ]; then
+  if   [ -f "$ROOT/artifacts/icons/WPS-256.png" ]; then ICON_PNG="$ROOT/artifacts/icons/WPS-256.png"
+  elif [ -f "$ROOT/artifacts/icons/hicolor/256x256/apps/wpstallman.png" ]; then ICON_PNG="$ROOT/artifacts/icons/hicolor/256x256/apps/wpstallman.png"
+  fi
+fi
+
+# Desktop + icon
+DESKTOP_DIR="$DEBROOT/usr/share/applications"
+ICON_DIR="$DEBROOT/usr/share/icons/hicolor/256x256/apps"
+mkdir -p "$DESKTOP_DIR" "$ICON_DIR"
+
+cat > "$DESKTOP_DIR/${APP_ID}.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=${APP_NAME}
+Exec=$INSTALL_PREFIX/GUI/WPStallman.GUI
+Icon=${APP_ID}
+Terminal=false
+Categories=Utility;
+EOF
+
+if [ -n "${ICON_PNG}" ] && [ -f "${ICON_PNG}" ]; then
+  install -m 0644 "${ICON_PNG}" "${ICON_DIR}/${APP_ID}.png"
+fi
+
+
 # Desktop entry + icon (optional)
 DESKTOP_DIR="$DEBROOT/usr/share/applications"
 ICON_DIR="$DEBROOT/usr/share/icons/hicolor/256x256/apps"

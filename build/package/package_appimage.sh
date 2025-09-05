@@ -10,16 +10,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Linux GUI publish dir (already built)
 GUI_DIR="${GUI_DIR:-$ROOT/src/WPStallman.GUI/bin/Release/net8.0/linux-x64/publish}"
 
-# Icon input:
-#   1) explicit env ICON_PNG, or
-#   2) artifacts/icons/WPS-256.png (if present), or
-#   3) artifacts/icons/wpstallman.png (your current file)
+# Icon input
 ICON_PNG="${ICON_PNG:-}"
 if [ -z "${ICON_PNG}" ]; then
   if   [ -f "$ROOT/artifacts/icons/WPS-256.png" ]; then ICON_PNG="$ROOT/artifacts/icons/WPS-256.png"
   elif [ -f "$ROOT/artifacts/icons/hicolor/256x256/apps/wpstallman.png" ]; then ICON_PNG="$ROOT/artifacts/icons/hicolor/256x256/apps/wpstallman.png"
   fi
 fi
+[ -n "$ICON_PNG" ] || die "ICON_PNG not set and no fallback icon found."
+[ -f "$ICON_PNG" ] || die "ICON_PNG not found: $ICON_PNG"
+
 
 OUTDIR="$ROOT/artifacts/packages"
 APPDIR="$(mktemp -d)/AppDir"
