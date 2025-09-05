@@ -14,12 +14,16 @@ CLI_DIR="${CLI_DIR:-$ROOT/src/WPStallman.CLI/bin/Release/net8.0/win-x64/publish}
 OUTDIR="${OUTDIR:-$ROOT/artifacts/packages}"
 ICON_ICO="${ICON_ICO:-$ROOT/artifacts/icons/WPS.ico}"
 NSI="${NSI:-$ROOT/build/package/installer.nsi}"
+LICENSE_FILE="${LICENSE_FILE:-$ROOT/build/package/LICENSE.txt}"
+[ -f "$LICENSE_FILE" ] || die "LICENSE_FILE not found: $LICENSE_FILE"
+
 
 note() { printf "\n\033[1;36m==> %s\033[0m\n" "$*"; }
 die()  { printf "\n\033[1;31mERROR:\033[0m %s\n" "$*" >&2; exit 1; }
 
 # --- Sanity checks ---
 command -v makensis >/dev/null || die "makensis not found. Install the 'nsis' package."
+[ -f "$LICENSE_FILE" ] || die "LICENSE_FILE not found: $LICENSE_FILE"
 [ -d "$GUI_DIR" ] || die "GUI_DIR not found: $GUI_DIR"
 [ -d "$CLI_DIR" ] || die "CLI_DIR not found: $CLI_DIR"
 [ -f "$NSI" ]     || die "NSIS script not found: $NSI"
@@ -33,6 +37,7 @@ if command -v file >/dev/null 2>&1; then
   fi
 fi
 
+
 # --- Show summary ---
 note "Packaging NSIS installer"
 echo "  Version : $VERSION"
@@ -43,8 +48,9 @@ echo "  CLI_DIR : $CLI_DIR"
 echo "  OUTDIR  : $OUTDIR"
 echo "  ICON_ICO: $ICON_ICO"
 echo "  Script  : $NSI"
+echo "  License : $LICENSE_FILE"
 
-# --- Run makensis (Linux uses -D, not /D) ---
+# --- Run makensis ---
 set -x
 makensis -V4 \
   -DVERSION="$VERSION" \
@@ -54,7 +60,9 @@ makensis -V4 \
   -DGUI_DIR="$GUI_DIR" \
   -DCLI_DIR="$CLI_DIR" \
   -DICON_ICO="$ICON_ICO" \
+  -DLICENSE_FILE="$LICENSE_FILE" \
   "$NSI"
 set +x
+
 
 note "Done. Output -> $OUTDIR"

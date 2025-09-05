@@ -65,14 +65,22 @@ Function .onInit
   SetRegView 64
 FunctionEnd
 
+; Require a license file path (passed from the shell script)
+!ifndef LICENSE_FILE
+  !error "LICENSE_FILE not defined – pass -DLICENSE_FILE=/absolute/path/to/LICENSE.txt"
+!endif
+
 ; -------- Pages --------
 !insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE "${LICENSE_FILE}"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "English"
+
+
 
 ; =========================
 ;        INSTALL
