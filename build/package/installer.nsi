@@ -1,18 +1,12 @@
-; --- NSIS installer for WPStallman ---
-; Build with:
-;   makensis ^
-;     /DVERSION=1.0.0 ^
-;     /DOUTDIR=/home/patrick/Documents/bitbucket/wpstallman/artifacts/packages ^
-;     /DAPP_NAME="W. P. Stallman" ^
-;     /DAPP_ID=com.wpstallman.app ^
-;     /DGUI_DIR=/home/patrick/Documents/bitbucket/wpstallman/src/WPStallman.GUI/bin/Release/net8.0/win-x64/publish ^
-;     /DCLI_DIR=/home/patrick/Documents/bitbucket/wpstallman/src/WPStallman.CLI/bin/Release/net8.0/win-x64/publish ^
-;     /DICON_ICO=/home/patrick/Documents/bitbucket/wpstallman/artifacts/icons/WPS.ico ^
-;     build/package/installer.nsi
+; ================================
+;  WPStallman Windows Installer
+;  Build with makensis and /D defines
+; ================================
 
 Unicode true
 !include "MUI2.nsh"
 
+; -------- Command-line /D defines (with safe defaults) --------
 !ifndef APP_NAME
 !define APP_NAME "WPStallman"
 !endif
@@ -45,36 +39,37 @@ Unicode true
 !define PRODUCT_NAME "${APP_NAME}"
 !define PRODUCT_VERSION "${VERSION}"
 
-; Output installer file (forward slashes are OK on Linux makensis)
-OutFile "${OUTDIR}/${APP_NAME}-Setup-${VERSION}.exe"
+; -------- Identity / Branding (fixes "Name" showing in the UI) --------
+Name "${APP_NAME}"
+Caption "${APP_NAME} ${VERSION}"
+BrandingText "© ${COMPANY_NAME}"
 
-; Install to Program Files (64-bit aware)
+; -------- Install location (64-bit Program Files) --------
 InstallDir "$ProgramFiles64\${APP_NAME}"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 
-; Branding and icons
+; -------- Version info / Icons for the installer EXE --------
 VIProductVersion "${PRODUCT_VERSION}.0"
-VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
-VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
-VIAddVersionKey "CompanyName" "${COMPANY_NAME}"
-VIAddVersionKey "FileDescription" "${PRODUCT_NAME} Installer"
+VIAddVersionKey "ProductName"       "${PRODUCT_NAME}"
+VIAddVersionKey "ProductVersion"    "${PRODUCT_VERSION}"
+VIAddVersionKey "CompanyName"       "${COMPANY_NAME}"
+VIAddVersionKey "FileDescription"   "${PRODUCT_NAME} Installer"
+
 !if "${ICON_ICO}" != ""
-Icon "${ICON_ICO}"
-UninstallIcon "${ICON_ICO}"
+  Icon "${ICON_ICO}"
+  UninstallIcon "${ICON_ICO}"
 !endif
 
-; -------------------------------------
-; Ensure 64-bit registry view where appropriate
-; -------------------------------------
+; -------- Output file --------
+OutFile "${OUTDIR}/${APP_NAME}-Setup-${VERSION}.exe"
+
+; -------- Ensure 64-bit registry view for writes --------
 Function .onInit
-  ; Valid place for SetRegView (NOT allowed at top-level)
   SetRegView 64
 FunctionEnd
 
-; -------------------------------------
-; Pages
-; -------------------------------------
+; -------- Pages --------
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -83,61 +78,68 @@ FunctionEnd
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "English"
 
-; -------------------------------------
-; Sections
-; -------------------------------------
+; =========================
+;        INSTALL
+; =========================
 Section "Install"
-  SetOutPath "$InstDir"
-
-  ; GUI payload
+  ; -- Copy GUI payload --
   SetOutPath "$InstDir\GUI"
-  File /r "${GUI_DIR}\*.*"
+  File /r "${GUI_DIR}/*.*"
 
-  ; CLI payload
+  ; -- Copy CLI payload --
   SetOutPath "$InstDir\CLI"
-  File /r "${CLI_DIR}\*.*"
+  File /r "${CLI_DIR}/*.*"
 
-  ; Root marker files (optional)
+  ; -- Drop a version marker --
   SetOutPath "$InstDir"
   FileOpen $0 "$InstDir\VERSION.txt" w
   FileWrite $0 "${PRODUCT_VERSION}$\r$\n"
   FileClose $0
 
-  ; Shortcuts
+  ; -- Shortcuts (update EXE name here if different) --
+  ; If your published GUI exe has another name, change WPStallman.GUI.exe below.
   CreateDirectory "$SMPROGRAMS\${APP_NAME}"
-  ; Main GUI exe guess: find the first *.exe in GUI dir (if you prefer, hard-code below)
-  ; For deterministic behavior, adjust "WPStallman.GUI.exe" if your exe name differs.
-  CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$InstDir\GUI\WPStallman.GUI.exe" "" "$InstDir\GUI\WPStallman.GUI.exe" 0
-  CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$InstDir\GUI\WPStallman.GUI.exe" "" "$InstDir\GUI\WPStallman.GUI.exe" 0
+  CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" \
+                 "$InstDir\GUI\WPStallman.GUI.exe" "" "$InstDir\GUI\WPStallman.GUI.exe" 0
+  CreateShortCut "$DESKTOP\${APP_NAME}.lnk" \
+                 "$InstDir\GUI\WPStallman.GUI.exe" "" "$InstDir\GUI\WPStallman.GUI.exe" 0
 
-  ; Write uninstall registry keys (using 64-bit view from .onInit)
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "DisplayName" "${APP_NAME}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "Publisher" "${COMPANY_NAME}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "DisplayVersion" "${PRODUCT_VERSION}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "InstallLocation" "$InstDir"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "UninstallString" "$InstDir\Uninstall.exe"
+  ; Optional: a debug shortcut that opens with a console window
+  CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME} (Debug Console).lnk" \
+                 "$InstDir\GUI\WPStallman.GUI.exe" "--console" "$InstDir\GUI\WPStallman.GUI.exe" 0
+
+  ; -- Uninstall registry keys --
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "DisplayName"    "${APP_NAME}"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "Publisher"      "${COMPANY_NAME}"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "DisplayVersion" "${PRODUCT_VERSION}"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "InstallLocation" "$InstDir"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "UninstallString" "$InstDir\Uninstall.exe"
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "NoModify" 1
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "NoRepair" 1
 
-  ; Generate uninstaller (prevents the prior warning)
+  ; -- Generate the uninstaller --
   WriteUninstaller "$InstDir\Uninstall.exe"
 SectionEnd
 
+; =========================
+;       UNINSTALL
+; =========================
 Section "Uninstall"
   ; Remove shortcuts
   Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME} (Debug Console).lnk"
   RMDir  "$SMPROGRAMS\${APP_NAME}"
   Delete "$DESKTOP\${APP_NAME}.lnk"
 
-  ; Remove files
+  ; Remove files/dirs
   RMDir /r "$InstDir\GUI"
   RMDir /r "$InstDir\CLI"
   Delete "$InstDir\VERSION.txt"
   Delete "$InstDir\Uninstall.exe"
 
-  ; Try to remove install dir (only if empty)
+  ; Try to remove install directory (only if empty)
   RMDir "$InstDir"
 
-  ; Clean uninstall entries
+  ; Clean registry
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}"
 SectionEnd
