@@ -1,11 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0-windows;net8.0</TargetFrameworks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Nullable>enable</Nullable>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>WPStallman.GUI</RootNamespace>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
+
+  <!-- Windows GUI: hide console + embed icon -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0-windows'">
+    <OutputType>WinExe</OutputType>
+    <ApplicationIcon>wwwroot\img\WPS.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- Non-Windows GUI: still an executable (not a class library) -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
+    <OutputType>Exe</OutputType>
+    <UseAppHost>true</UseAppHost> <!-- ensures a native launcher is produced -->
+  </PropertyGroup>
+
 
   <!-- Cross-platform self-contained single-file publishing (no system .NET required) -->
   <PropertyGroup>
@@ -26,18 +41,19 @@
 
   <!-- Ensure all static assets (including icons) are copied -->
   <ItemGroup>
-    <Content Update="wwwroot\**\*">
+    <Content Include="wwwroot\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
+
   <!-- Ensure license is always copied to build and publish -->
   <ItemGroup>
-  <Content Update="wwwroot\LICENSE.txt">
-    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-  </Content>
-</ItemGroup>
+    <Content Update="wwwroot\LICENSE.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
 
 
   <!-- Make sure macOS .icns and Info.plist are available at publish time -->

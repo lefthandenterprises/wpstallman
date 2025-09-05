@@ -83,19 +83,21 @@ refresh_icons() {
   }
 }
 
-# Publish roots (net8.0)
-GUI_PUB_BASE="$(dirname "$GUI_CSPROJ")/bin/Release/net8.0"
-CLI_PUB_BASE="$(dirname "$CLI_CSPROJ")/bin/Release/net8.0"
+# Publish roots
+GUI_PUB_BASE_WIN="$(dirname "$GUI_CSPROJ")/bin/Release/net8.0-windows"
+GUI_PUB_BASE_UNIX="$(dirname "$GUI_CSPROJ")/bin/Release/net8.0"
+CLI_PUB_BASE="$(dirname "$CLI_CSPROJ")/bin/Release/net8.0"  # adjust if CLI multi-targets later
 
-GUI_PUB_WIN="$GUI_PUB_BASE/$RID_WIN/publish"
-GUI_PUB_LIN="$GUI_PUB_BASE/$RID_LIN/publish"
-GUI_PUB_OSX_X64="$GUI_PUB_BASE/$RID_OSX_X64/publish"
-GUI_PUB_OSX_ARM="$GUI_PUB_BASE/$RID_OSX_ARM/publish"
+GUI_PUB_WIN="$GUI_PUB_BASE_WIN/$RID_WIN/publish"
+GUI_PUB_LIN="$GUI_PUB_BASE_UNIX/$RID_LIN/publish"
+GUI_PUB_OSX_X64="$GUI_PUB_BASE_UNIX/$RID_OSX_X64/publish"
+GUI_PUB_OSX_ARM="$GUI_PUB_BASE_UNIX/$RID_OSX_ARM/publish"
 
 CLI_PUB_WIN="$CLI_PUB_BASE/$RID_WIN/publish"
 CLI_PUB_LIN="$CLI_PUB_BASE/$RID_LIN/publish"
 CLI_PUB_OSX_X64="$CLI_PUB_BASE/$RID_OSX_X64/publish"
 CLI_PUB_OSX_ARM="$CLI_PUB_BASE/$RID_OSX_ARM/publish"
+
 
 # ---------- Desktop entry helper ----------
 create_desktop_entry() {
@@ -159,19 +161,32 @@ EOF
   fi
 }
 
-# ---------- Build (publish) ----------
-build_all() {
-  note "Publishing GUI + CLI (self-contained, net8.0)"
-  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_WIN"     --self-contained true /p:PublishSingleFile=true
-  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_LIN"     --self-contained true /p:PublishSingleFile=true
-  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_OSX_X64" --self-contained true /p:PublishSingleFile=true
-  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_OSX_ARM" --self-contained true /p:PublishSingleFile=true
+# Map a RuntimeIdentifier to the correct TFM for this repo
 
-  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_WIN"     --self-contained true /p:PublishSingleFile=true
-  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_LIN"     --self-contained true /p:PublishSingleFile=true
-  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_OSX_X64" --self-contained true /p:PublishSingleFile=true
-  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_OSX_ARM" --self-contained true /p:PublishSingleFile=true
+tfm_for() {
+  case "$1" in
+    win-*)   echo "net8.0-windows" ;;
+    *)       echo "net8.0" ;;
+  esac
 }
+
+build_all() {
+  note "Publishing GUI + CLI (self-contained, single-file)"
+
+  # --- GUI (RID→TFM) ---
+  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_WIN"     -p:TargetFramework="$(tfm_for "$RID_WIN")"     -p:SelfContained=true -p:PublishSingleFile=true
+  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_LIN"     -p:TargetFramework="$(tfm_for "$RID_LIN")"     -p:SelfContained=true -p:PublishSingleFile=true
+  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_OSX_X64" -p:TargetFramework="$(tfm_for "$RID_OSX_X64")" -p:SelfContained=true -p:PublishSingleFile=true
+  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_OSX_ARM" -p:TargetFramework="$(tfm_for "$RID_OSX_ARM")" -p:SelfContained=true -p:PublishSingleFile=true
+
+  # --- CLI (always net8.0) ---
+  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_WIN"     -p:TargetFramework=net8.0 -p:SelfContained=true -p:PublishSingleFile=true
+  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_LIN"     -p:TargetFramework=net8.0 -p:SelfContained=true -p:PublishSingleFile=true
+  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_OSX_X64" -p:TargetFramework=net8.0 -p:SelfContained=true -p:PublishSingleFile=true
+  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_OSX_ARM" -p:TargetFramework=net8.0 -p:SelfContained=true -p:PublishSingleFile=true
+}
+
+
 
 # ---------- Windows (NSIS) ----------
 win_nsis() {

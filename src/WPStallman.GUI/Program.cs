@@ -35,8 +35,8 @@ namespace WPStallman.GUI
                 string iconPath;
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    // Put your ICO at wwwroot/app.ico (or adjust this path)
-                    iconPath = Path.Combine(baseDir, "wwwroot", "app.ico");
+                    // Use the .ico you embed for Windows builds
+                    iconPath = Path.Combine(baseDir, "wwwroot", "img", "WPS.ico");
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
