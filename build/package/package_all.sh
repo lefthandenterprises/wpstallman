@@ -32,8 +32,8 @@ OUT="${PUBLISH_DIR:-artifacts}"
 
 # Debian metadata (edit to your real info)
 MAINT_NAME="${MAINT_NAME:-Patrick Driscoll}"
-MAINT_EMAIL="${MAINT_EMAIL:-patrick@example.com}"         # must be routable (no local hostnames)
-HOMEPAGE="${HOMEPAGE:-https://example.com/wpstallman}"    # put a real URL
+MAINT_EMAIL="${MAINT_EMAIL:-lefthandenterprises@outlook.com}"         # must be routable (no local hostnames)
+HOMEPAGE="${HOMEPAGE:-https://lefthandenterprises.com/wpstallman}"    # put a real URL
 
 # Packaging assets (desktop + icon produced by icon packer)
 DESKTOP_FILE="${DESKTOP_FILE:-$REPO_ROOT/build/assets/wpstallman.desktop}"
@@ -175,17 +175,45 @@ build_all() {
 
 # ---------- Windows (NSIS) ----------
 win_nsis() {
-  if ! have "$MAKENSIS"; then warn "makensis not found; skipping Windows NSIS."; return; fi
-  note "Building Windows NSIS installer"
-  if [[ -f "$REPO_ROOT/artifacts/icons/${ICON_BASENAME}.ico" ]]; then
-    cp -f "$REPO_ROOT/artifacts/icons/${ICON_BASENAME}.ico" "$GUI_PUB_WIN/${ICON_BASENAME}.ico" || true
+  if ! command -v "$MAKENSIS" >/dev/null 2>&1 ; then
+    warn "makensis not found; skipping Windows NSIS."
+    return
   fi
+
+  note "Building Windows NSIS installer"
+
+  # Optional icon (won’t fail if missing)
+  ICON_ICO_PATH=""
+  if [[ -f "$REPO_ROOT/artifacts/icons/${ICON_BASENAME}.ico" ]]; then
+    ICON_ICO_PATH="$REPO_ROOT/artifacts/icons/${ICON_BASENAME}.ico"
+  fi
+
   local NSI="$REPO_ROOT/build/package/installer.nsi"
-  if [[ ! -f "$NSI" ]]; then warn "Missing $NSI; skipping NSIS."; return; fi
+  if [[ ! -f "$NSI" ]]; then
+    warn "Missing $NSI; skipping NSIS."
+    return
+  fi
+
+  # Fail fast if Windows publish outputs aren’t there
+  [[ -f "$GUI_PUB_WIN/WPStallman.GUI.exe" ]] || die "No GUI exe at $GUI_PUB_WIN; did publish for win-x64 run?"
+  [[ -f "$CLI_PUB_WIN/WPStallman.CLI.exe" ]] || die "No CLI exe at $CLI_PUB_WIN; did publish for win-x64 run?"
+
   mkdir -p "$NSIS"
-  "$MAKENSIS" -DVERSION="$VERSION" -DOUTDIR="$PKG" "$NSI" || warn "NSIS warnings above"
+
+  # Pass absolute paths to NSIS (Linux-style slashes are fine on makensis for Linux)
+  "$MAKENSIS" -V4 \
+    -DVERSION="$VERSION" \
+    -DOUTDIR="$PKG" \
+    -DAPP_NAME="$APP_NAME" \
+    -DAPP_ID="$APP_ID" \
+    -DGUI_DIR="$GUI_PUB_WIN" \
+    -DCLI_DIR="$CLI_PUB_WIN" \
+    ${ICON_ICO_PATH:+-DICON_ICO="$ICON_ICO_PATH"} \
+    "$NSI"
+
   note "NSIS: $PKG/WPStallman-$VERSION-setup-win-x64.exe"
 }
+
 
 # ---------- Linux .deb (GUI + CLI, lintian friendly) ----------
 linux_deb() {
