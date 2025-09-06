@@ -1,4 +1,3 @@
-// WPStallman.Core/Services/InstallerClassGenerator.cs
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,19 +9,13 @@ namespace WPStallman.Core.Services
 {
     public class InstallerClassGenerator
     {
-        // =========================
-        // Public API
-        // =========================
-
         private static Dictionary<string, string> BuildTriggerNameMap(Manifest manifest)
         {
-            // Reserve all non-trigger object names (prefix-free, case-insensitive)
             var reserved = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var t in manifest.Tables) reserved.Add(t.Name ?? "");
             foreach (var v in manifest.Views) reserved.Add(v.Name ?? "");
             foreach (var sp in manifest.StoredProcedures) reserved.Add(sp.Name ?? "");
 
-            // Ensure triggers are unique vs reserved and vs one another
             var map = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
             var used = new HashSet<string>(reserved, System.StringComparer.OrdinalIgnoreCase);
 
@@ -42,13 +35,13 @@ namespace WPStallman.Core.Services
             return map;
         }
 
-
         public string GenerateInstallerClass(Manifest manifest, string className = "MyPlugin_Installer")
         {
             var sb = new StringBuilder();
 
-            // PHP class header
             sb.AppendLine("<?php");
+            sb.AppendLine("defined('ABSPATH') || exit;");
+            sb.AppendLine();
             sb.AppendLine($"class {className} {{");
             sb.AppendLine("    /** @var wpdb */");
             sb.AppendLine("    private $wpdb;");
@@ -61,15 +54,13 @@ namespace WPStallman.Core.Services
             sb.AppendLine("    }");
             sb.AppendLine();
 
-            // ================== INSTALL ==================
+            // INSTALL
             sb.AppendLine("    public function install() {");
             sb.AppendLine("        $charset_collate = $this->wpdb->get_charset_collate();");
             sb.AppendLine("        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');");
 
-            // ---------- TABLES ----------
             foreach (var table in manifest.Tables.Where(t => !t.Skip))
             {
-                // Build column lines with normalized defaults
                 var colLines = new List<string>();
                 foreach (var col in table.Columns)
                 {
@@ -107,7 +98,6 @@ namespace WPStallman.Core.Services
                 }
                 sb.AppendLine(") $charset_collate;");
                 sb.AppendLine("SQL;");
-                // Skip dbDelta for core WP tables
                 sb.AppendLine("        if ( $this->is_core_table(\"{$this->prefix}" + table.Name + "\") ) {");
                 sb.AppendLine("            // skip core WP table");
                 sb.AppendLine("        } else {");
@@ -115,7 +105,6 @@ namespace WPStallman.Core.Services
                 sb.AppendLine("        }");
             }
 
-            // ---------- VIEWS ----------
             foreach (var view in manifest.Views)
             {
                 var viewSqlSanitized = StringHelper.InjectPrefix(view.DefinitionSanitized, manifest.DefaultPrefix);
@@ -126,47 +115,33 @@ namespace WPStallman.Core.Services
                 sb.AppendLine("        $this->run_sql(\"" + StringHelper.EscapePhpString(viewSqlSanitized) + "\");");
             }
 
-
-            // ---------- STORED PROCEDURES ----------
             foreach (var sp in manifest.StoredProcedures)
             {
                 sb.AppendLine();
                 sb.AppendLine("        // Stored Procedure: " + sp.Name);
 
-                // Start from sanitized definition and inject table tokens first
                 var spCreate = StringHelper.InjectPrefix(sp.DefinitionSanitized ?? string.Empty, manifest.DefaultPrefix);
-
-                // Force the CREATE PROCEDURE header to use `{$this->prefix}<name>`
                 spCreate = System.Text.RegularExpressions.Regex.Replace(
                     spCreate,
                     @"(?is)\bCREATE\s+PROCEDURE\s+`?([A-Za-z0-9_]+)`?",
                     "CREATE PROCEDURE `{$this->prefix}$1`"
                 );
 
-                // DROP should also use the prefixed name (never rely on tokens here)
                 sb.AppendLine("        $this->run_sql(\"DROP PROCEDURE IF EXISTS `{$this->prefix}" + sp.Name + "`\");");
-
-                // CREATE (after header rewrite + injected tokens)
                 sb.AppendLine("        $this->run_sql(\"" + StringHelper.EscapePhpString(spCreate) + "\");");
             }
 
-
-            // ---------- TRIGGERS ----------
             var triggerNameMap = BuildTriggerNameMap(manifest);
-
             foreach (var trigger in manifest.Triggers)
             {
                 sb.AppendLine();
                 sb.AppendLine("        // Trigger: " + trigger.Name);
 
-                // Final trigger name (unique vs tables/views/procs), then prefix at runtime
                 var finalTrigName = triggerNameMap[trigger.Name];
                 var triggerNamePrefixed = "`{$" + "this->prefix}" + finalTrigName + "`";
 
-                // DROP must use prefixed trigger name
                 sb.AppendLine("        $this->run_sql(\"DROP TRIGGER IF EXISTS " + triggerNamePrefixed + "\");");
 
-                // Parse TIMING/EVENT from TriggerDefinition.Event (e.g., 'AFTER INSERT', 'BEFORE UPDATE', or 'INSERT')
                 string timing = "AFTER";
                 string ev = "INSERT";
                 var evt = (trigger.Event ?? string.Empty).Trim();
@@ -181,29 +156,21 @@ namespace WPStallman.Core.Services
                     }
                 }
 
-                // Body text (may be single statement). Ensure wrapped in BEGIN...END.
                 var trgText = (trigger.DefinitionSanitized ?? string.Empty).Trim();
                 trgText = StringHelper.InjectPrefix(trgText, manifest.DefaultPrefix);
                 bool hasBegin = System.Text.RegularExpressions.Regex.IsMatch(trgText, @"(?is)^\s*BEGIN\b");
                 string body = hasBegin ? trgText.Trim().TrimEnd(';') : "BEGIN " + trgText.Trim().TrimEnd(';') + " END";
 
-                // ON table (TriggerDefinition.Table is prefix-free)
                 string tableName = trigger.Table ?? string.Empty;
                 string tableRef = "`{$" + "this->prefix}" + tableName + "`";
 
-                // CREATE with prefixed trigger name and table
                 string createStmt = "CREATE TRIGGER " + triggerNamePrefixed + " " + timing + " " + ev + " ON " + tableRef + " FOR EACH ROW " + body;
-
                 sb.AppendLine("        $this->run_sql(\"" + StringHelper.EscapePhpString(createStmt) + "\");");
             }
 
-
-
-
-
             sb.AppendLine("    }"); // END install
 
-            // ================== POPULATE ==================
+            // POPULATE
             sb.AppendLine();
             sb.AppendLine("    public function populate() {");
             foreach (var table in manifest.Tables.Where(t => !t.Skip && t.RowLimit > 0 && t.SeedData.Any()))
@@ -216,25 +183,21 @@ namespace WPStallman.Core.Services
                     sb.AppendLine("        $this->wpdb->query(\"INSERT INTO {$this->prefix}" + table.Name + " (" + columns + ") VALUES (" + values + ");\");");
                 }
             }
-            sb.AppendLine("    }"); // END populate
+            sb.AppendLine("    }");
 
-            // ================== UNINSTALL ==================
+            // UNINSTALL
             sb.AppendLine();
             sb.AppendLine("    public function uninstall() {");
-            // Drop plugin tables (never drop core tables)
             foreach (var table in manifest.Tables.Where(t => !t.Skip))
             {
                 sb.AppendLine("        if ( !$this->is_core_table(\"{$this->prefix}" + table.Name + "\") ) {");
                 sb.AppendLine("            $this->wpdb->query(\"DROP TABLE IF EXISTS {$this->prefix}" + table.Name + "\");");
                 sb.AppendLine("        }");
             }
-            // Drop views
             foreach (var view in manifest.Views)
             {
                 sb.AppendLine("        $this->wpdb->query(\"DROP VIEW IF EXISTS {$this->prefix}" + view.Name + "\");");
             }
-
-            // Drop routines
             foreach (var sp in manifest.StoredProcedures)
             {
                 sb.AppendLine("        $this->run_sql(\"DROP PROCEDURE IF EXISTS `{$this->prefix}" + sp.Name + "`\");");
@@ -243,22 +206,18 @@ namespace WPStallman.Core.Services
             {
                 sb.AppendLine("        $this->run_sql(\"DROP TRIGGER IF EXISTS `{$this->prefix}" + trigger.Name + "`\");");
             }
+            sb.AppendLine("    }");
 
-            sb.AppendLine("    }"); // END uninstall
-
-            // ================== HELPERS ==================
+            // HELPERS
             sb.AppendLine();
-            sb.AppendLine("    /** Replace leftover tokens and guard dangerous core-table operations. */");
             sb.AppendLine("    private function apply_prefix($sql) {");
             sb.AppendLine("        $sql = str_replace('{wp_}', $this->prefix, $sql);");
             sb.AppendLine("        $sql = str_replace('{$this->prefix}', $this->prefix, $sql);");
             sb.AppendLine("        return $sql;");
             sb.AppendLine("    }");
             sb.AppendLine();
-            sb.AppendLine("    /** Core table list resolved from $wpdb (single-site + multisite). */");
             sb.AppendLine("    private function core_tables() {");
             sb.AppendLine("        $w = $this->wpdb;");
-            sb.AppendLine("        // Collect known core tables; filter out nulls and map to lowercase");
             sb.AppendLine("        $list = array_filter(array_map('strtolower', array(");
             sb.AppendLine("            isset($w->users) ? $w->users : null,");
             sb.AppendLine("            isset($w->usermeta) ? $w->usermeta : null,");
@@ -272,7 +231,6 @@ namespace WPStallman.Core.Services
             sb.AppendLine("            isset($w->termmeta) ? $w->termmeta : null,");
             sb.AppendLine("            isset($w->links) ? $w->links : null,");
             sb.AppendLine("            isset($w->options) ? $w->options : null,");
-            sb.AppendLine("            // Multisite (if present)");
             sb.AppendLine("            isset($w->blogs) ? $w->blogs : null,");
             sb.AppendLine("            isset($w->blog_versions) ? $w->blog_versions : null,");
             sb.AppendLine("            isset($w->registration_log) ? $w->registration_log : null,");
@@ -300,15 +258,11 @@ namespace WPStallman.Core.Services
             sb.AppendLine("    private function run_sql($sql) {");
             sb.AppendLine("        $sql = $this->apply_prefix($sql);");
             sb.AppendLine("        if ($this->is_core_table_alter($sql)) {");
-            sb.AppendLine("            return; // skip dangerous core table alters");
+            sb.AppendLine("            return;");
             sb.AppendLine("        }");
             sb.AppendLine("        $this->wpdb->query($sql);");
             sb.AppendLine("    }");
-
-            // End class
-            sb.AppendLine();
-            sb.AppendLine("}"); // END class
-           // sb.AppendLine("?>");
+            sb.AppendLine("}");
 
             return sb.ToString();
         }
@@ -326,35 +280,24 @@ namespace WPStallman.Core.Services
         public string CreateInstallerStub(string className, string classFile)
         {
             var sb = new StringBuilder();
-
             sb.AppendLine("<?php");
             sb.AppendLine("// Auto-generated test stub for " + className);
             sb.AppendLine();
-            sb.AppendLine("require_once( dirname(__FILE__) . '/wp-load.php' );");
-            sb.AppendLine("require_once( dirname(__FILE__) . '/" + classFile + "' );");
+            sb.AppendLine("require_once __DIR__ . '/wp-load.php';");
+            sb.AppendLine("require_once __DIR__ . '/" + classFile + "';");
             sb.AppendLine();
             sb.AppendLine("global $wpdb;");
             sb.AppendLine("$installer = new " + className + "($wpdb);");
-            sb.AppendLine();
             sb.AppendLine("echo \"Running install...\\n\";");
             sb.AppendLine("$installer->install();");
-            sb.AppendLine();
             sb.AppendLine("echo \"Populating seed data...\\n\";");
             sb.AppendLine("$installer->populate();");
-            sb.AppendLine();
             sb.AppendLine("// echo \"Uninstalling...\\n\";");
             sb.AppendLine("// $installer->uninstall();");
-            sb.AppendLine();
             sb.AppendLine("echo \"Done!\\n\";");
-           // sb.AppendLine("?>");
-
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Generates the main WP plugin file (with header) that requires the class file and
-        /// registers hooks. Activation/Deactivation use closures; Uninstall uses a named function.
-        /// </summary>
         public string CreateMainPHPClass(string className)
         {
             var slug = StringHelper.ConvertClassNameToKebabCase(className).Replace("--", "-").Trim('-');
@@ -378,17 +321,10 @@ namespace WPStallman.Core.Services
             sb.AppendLine("if ( ! defined( 'ABSPATH' ) ) exit;");
             sb.AppendLine();
             sb.AppendLine("require_once __DIR__ . '/" + classPhpFile + "';");
-            sb.AppendLine();
-            // Activation/Deactivation (closures OK)
-
             sb.AppendLine("register_activation_hook( __FILE__, function() { (new " + className + "($GLOBALS['wpdb']))->install(); (new " + className + "($GLOBALS['wpdb']))->populate(); } );");
-
             sb.AppendLine("register_deactivation_hook( __FILE__, function() { /* (new " + className + "($GLOBALS['wpdb']))->deactivate(); */ } );");
-            sb.AppendLine();
-            // Uninstall must be a named callable (persisted)
             sb.AppendLine("register_uninstall_hook( __FILE__, '" + uninstallFunc + "' );");
             sb.AppendLine("function " + uninstallFunc + "() { (new " + className + "($GLOBALS['wpdb']))->uninstall(); }");
-            sb.AppendLine();
             return sb.ToString();
         }
 
@@ -396,7 +332,6 @@ namespace WPStallman.Core.Services
         {
             var output = new List<InstallerOutputFile>();
 
-            // Installer class
             var installer = new InstallerOutputFile
             {
                 Name = "class-" + StringHelper.ConvertClassNameToKebabCase(manifest.InstallerClass) + ".php",
@@ -404,7 +339,6 @@ namespace WPStallman.Core.Services
                 Type = "InstallerClass"
             };
 
-            // Test stub
             var stub = new InstallerOutputFile
             {
                 Name = StringHelper.ConvertClassNameToKebabCase(manifest.InstallerClass) + "-installer.php",
@@ -412,7 +346,6 @@ namespace WPStallman.Core.Services
                 Type = "InstallerStub"
             };
 
-            // Main plugin file
             var main = new InstallerOutputFile
             {
                 Name = StringHelper.ConvertClassNameToKebabCase(manifest.InstallerClass) + ".php",
@@ -420,10 +353,20 @@ namespace WPStallman.Core.Services
                 Type = "MainPlugin"
             };
 
-            // Order: stub, main, class (keeps prior UI expectation)
+            // Root index.php to protect the plugin directory
+            var indexContent = "<?php\n// Silence is golden.\n";
+            var rootIndex = new InstallerOutputFile
+            {
+                Name = "index.php",
+                Content = indexContent,
+                Type = "IndexStub"
+            };
+
+            // Order of preview files
             output.Add(stub);
             output.Add(main);
             output.Add(installer);
+            output.Add(rootIndex);
 
             return output;
         }

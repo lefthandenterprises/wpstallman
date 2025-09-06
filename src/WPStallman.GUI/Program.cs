@@ -462,28 +462,106 @@ namespace WPStallman.GUI
                                         break;
                                     }
 
-                                    var utf8NoBom = new UTF8Encoding(false);
-                                    using (var fs = new FileStream(destinationZipFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
-                                    using (var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false))
+                                    // Case-insensitive property getter
+                                    static bool TryGetPropCI(JsonElement obj, string name, out JsonElement value)
                                     {
-                                        foreach (var fileEl in filesEl.EnumerateArray())
+                                        foreach (var p in obj.EnumerateObject())
                                         {
-                                            if (fileEl.ValueKind != JsonValueKind.Object) continue;
+                                            if (string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                value = p.Value; return true;
+                                            }
+                                        }
+                                        value = default; return false;
+                                    }
 
-                                            var name = fileEl.TryGetProperty("Name", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString() : null;
-                                            var content = fileEl.TryGetProperty("Content", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString() : "";
+                                    var utf8NoBom = new UTF8Encoding(false);
+                                    var items = new List<(string Name, string Content, int ByteLen)>();
 
-                                            if (string.IsNullOrWhiteSpace(name)) continue;
+                                    foreach (var fileEl in filesEl.EnumerateArray())
+                                    {
+                                        if (fileEl.ValueKind != JsonValueKind.Object) continue;
 
-                                            var entry = archive.CreateEntry(name);
+                                        // Accept Name/fileName and Content/content
+                                        string? name = null;
+                                        if (TryGetPropCI(fileEl, "Name", out var nEl) && nEl.ValueKind == JsonValueKind.String)
+                                            name = nEl.GetString();
+                                        else if (TryGetPropCI(fileEl, "fileName", out var fnEl) && fnEl.ValueKind == JsonValueKind.String)
+                                            name = fnEl.GetString();
+
+                                        if (string.IsNullOrWhiteSpace(name)) continue;
+
+                                        string content = "";
+                                        if (TryGetPropCI(fileEl, "Content", out var cEl) && cEl.ValueKind == JsonValueKind.String)
+                                            content = cEl.GetString() ?? "";
+                                        else if (TryGetPropCI(fileEl, "content", out var ceEl) && ceEl.ValueKind == JsonValueKind.String)
+                                            content = ceEl.GetString() ?? "";
+
+                                        // Normalize path inside zip
+                                        name = name.Replace('\\', '/').TrimStart('/');
+
+                                        items.Add((name, content, utf8NoBom.GetByteCount(content)));
+                                    }
+
+                                    var totalFiles = items.Count;
+                                    var nonEmptyFiles = items.Count(i => i.ByteLen > 0);
+
+                                    if (totalFiles == 0)
+                                    {
+                                        response.Success = false;
+                                        response.Error = "No valid files to include in zip (property name mismatch?).";
+                                        response.Payload = new { reason = "NO_FILES_AFTER_FILTER", destinationZipFilePath };
+                                        break;
+                                    }
+                                    if (nonEmptyFiles == 0)
+                                    {
+                                        response.Success = false;
+                                        response.Error = "All files are empty; refusing to create an empty zip.";
+                                        response.Payload = new { reason = "ALL_FILES_EMPTY", destinationZipFilePath, totalFiles };
+                                        break;
+                                    }
+
+                                    using (var fs = new FileStream(destinationZipFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                                    using (var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false, entryNameEncoding: Encoding.UTF8))
+                                    {
+                                        foreach (var it in items)
+                                        {
+                                            var entry = archive.CreateEntry(it.Name, CompressionLevel.Optimal);
                                             using var entryStream = entry.Open();
                                             using var writer = new StreamWriter(entryStream, utf8NoBom);
-                                            writer.Write(content ?? "");
+                                            writer.Write(it.Content);
                                         }
                                     }
 
+                                    // Verify zip has at least one non-empty entry (skip directory entries)
+                                    int entryCount = 0, nonEmptyEntryCount = 0;
+                                    using (var checkFs = new FileStream(destinationZipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                    using (var checkArchive = new ZipArchive(checkFs, ZipArchiveMode.Read, leaveOpen: false, entryNameEncoding: Encoding.UTF8))
+                                    {
+                                        foreach (var e in checkArchive.Entries)
+                                        {
+                                            if (string.IsNullOrEmpty(e.Name)) continue;
+                                            entryCount++;
+                                            if (e.Length > 0) nonEmptyEntryCount++;
+                                        }
+                                    }
+
+                                    if (entryCount == 0 || nonEmptyEntryCount == 0)
+                                    {
+                                        try { File.Delete(destinationZipFilePath); } catch { }
+                                        response.Success = false;
+                                        response.Error = "Zip integrity check failed: archive is empty or contains only empty entries.";
+                                        response.Payload = new { reason = "ZIP_EMPTY", expectedFiles = totalFiles, nonEmptySourceFiles = nonEmptyFiles };
+                                        break;
+                                    }
+
                                     response.Success = true;
-                                    response.Payload = $"Zip file saved to {destinationZipFilePath}";
+                                    response.Payload = new
+                                    {
+                                        message = $"Zip file saved to {destinationZipFilePath}",
+                                        filesAdded = entryCount,
+                                        nonEmptyEntries = nonEmptyEntryCount
+                                    };
                                 }
                                 break;
 
