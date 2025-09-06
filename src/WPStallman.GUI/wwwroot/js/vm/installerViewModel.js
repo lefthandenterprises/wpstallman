@@ -286,7 +286,6 @@ window.InstallerViewModel = function InstallerViewModel(parent) {
   };
 
   // ---------- Preview actions ----------
-  // ---------- Preview actions ----------
   self.copyPreviewToClipboard = async function () {
     const f = self.selectedPreviewFile();
     if (!f) return;
@@ -359,13 +358,14 @@ window.InstallerViewModel = function InstallerViewModel(parent) {
     details.PreviewFiles = files;
     details.AllowOverwrite = true;
     let resp = sendDotnetCommand("CreateInstallerZip", details).then(function (result) {
-      if (result && result.Success) {
+      if (result.Success) {
         self.parent.showGlobalModal({
           title: "ZIP created",
           message: "Saved to:\n" + path,
-          variant: "success",
           closeable: true
         });
+      } else {
+        self.parent.showGlobalModalError({ title: "Error Creating Zip", message: result.Error || "Failed to create zip." });
       }
     });
 
@@ -375,12 +375,7 @@ window.InstallerViewModel = function InstallerViewModel(parent) {
   self.createZip = async function () {
     const files = (self.previewFiles && self.previewFiles()) || [];
     if (!files.length) {
-      self.parent.showGlobalModal({
-        title: "No preview yet",
-        message: "Please generate a preview (Create Installer Files) before creating a ZIP.",
-        variant: "danger",
-        closeable: true
-      });
+      self.parent.showGlobalModalError({ title: "No preview yet", message: "Please generate a preview (Create Installer Files) before creating a ZIP." });
       return;
     }
 
@@ -402,12 +397,7 @@ window.InstallerViewModel = function InstallerViewModel(parent) {
     const fileExistsCheck = await sendDotnetCommand("CheckIfFileAlreadyExists", { Path: path });
 
     if (!fileExistsCheck || !fileExistsCheck.Success) {
-      self.parent.showGlobalModal({
-        title: "Path error",
-        message: (fileExistsCheck && fileExistsCheck.Error) || "Could not validate the destination path.",
-        variant: "danger",
-        closeable: true
-      });
+      self.parent.showGlobalModalError({ title: "Path error", message: (fileExistsCheck && fileExistsCheck.Error) || "Could not validate the destination path." });
       return;
     }
 
