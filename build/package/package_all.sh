@@ -143,7 +143,6 @@ if [ -x "$PKG_APPIMG" ]; then
   APP_NAME="$APP_NAME" \
   APP_ID="$APP_ID" \
   GUI_DIR="$GUI_DIR_LIN" \
-  ICON_PNG="$ICON_PNG_256" \
   "$PKG_APPIMG"
 else
   note "Skipping AppImage (wrapper not executable): $PKG_APPIMG"
