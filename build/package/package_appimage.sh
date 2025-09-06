@@ -47,6 +47,22 @@ mkdir -p "$OUTDIR" \
 # 1) copy app payload
 cp -a "$GUI_DIR/." "$APPDIR/usr/bin/"
 
+# Add this section after the "1) copy app payload" section
+# 1b) copy wwwroot
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+WWWROOT_SOURCE="${WWWROOT_SOURCE:-$REPO_ROOT/src/WPStallman.GUI/wwwroot}"
+
+if [ -d "$WWWROOT_SOURCE" ]; then
+  mkdir -p "$APPDIR/usr/bin/wwwroot"
+  cp -a "$WWWROOT_SOURCE/." "$APPDIR/usr/bin/wwwroot/"
+  note "Copied wwwroot from $WWWROOT_SOURCE to $APPDIR/usr/bin/wwwroot"
+else
+  die "wwwroot directory not found at $WWWROOT_SOURCE"
+fi
+
+
+
 # ensure main binary is executable
 if [ -f "$APPDIR/usr/bin/$MAIN_BIN" ]; then
   chmod +x "$APPDIR/usr/bin/$MAIN_BIN"
