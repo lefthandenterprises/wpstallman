@@ -321,17 +321,6 @@ function ManifestViewModel(parent) {
   }
 
   self.saveManifest = async function () {
-    // 1) Get JSON
-    /*     const jsonOrErr = buildManifestJsonSafely(self);
-        if (!jsonOrErr || jsonOrErr.__error) {
-          (self.parent.showGlobalModalError || self.parent.showGlobalModal)({
-            title: "Cannot save manifest",
-            message: jsonOrErr && jsonOrErr.__error ? String(jsonOrErr.__error) : "No manifest data available.",
-            closeable: true
-          });
-          return;
-        } */
-
     const content = self.manifestPreview && self.manifestPreview();
     if (!content || !content.trim?.()) {
       self.parent.showGlobalModal({
