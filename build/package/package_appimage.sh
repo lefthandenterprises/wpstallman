@@ -1,115 +1,120 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ---------- helpers FIRST (so they're available everywhere) ----------
 note(){ printf "\n\033[1;36m==> %s\033[0m\n" "$*"; }
+warn(){ printf "\033[1;33mWARNING:\033[0m %s\n" "$*"; }
 die(){  printf "\n\033[1;31mERROR:\033[0m %s\n" "$*" >&2; exit 1; }
 
-# ---------- repo paths ----------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# ---------- inputs (override via env) ----------
+# Inputs (override via env)
 : "${VERSION:=1.0.0}"
 : "${APP_NAME:=W. P. Stallman}"
-: "${APP_ID:=com.wpstallman.app}"            # must match Desktop Entry Icon and top-level ${APP_ID}.png
-: "${MAIN_BIN:=WPStallman.GUI}"              # name of your Linux GUI binary inside publish dir
+: "${APP_ID:=com.wpstallman.app}"            # also Desktop Icon= and root ${APP_ID}.png
+: "${MAIN_BIN:=WPStallman.GUI}"              # name of GUI binary in publish dir
+: "${GUI_DIR:=$ROOT/src/WPStallman.GUI/bin/Release/net8.0/linux-x64/publish}"
+: "${CLI_DIR:=$ROOT/src/WPStallman.CLI/bin/Release/net8.0/linux-x64/publish}"
+: "${ICON_PNG:=$ROOT/artifacts/icons/WPS-256.png}"
 
-# Linux GUI publish dir (already built)
-GUI_DIR="${GUI_DIR:-$ROOT/src/WPStallman.GUI/bin/Release/net8.0/linux-x64/publish}"
-
-# Icon input: explicit ICON_PNG or fallbacks
-ICON_PNG="${ICON_PNG:-}"
-if [ -z "$ICON_PNG" ]; then
-  if   [ -f "$ROOT/artifacts/icons/WPS-256.png" ]; then ICON_PNG="$ROOT/artifacts/icons/WPS-256.png"
-  elif [ -f "$ROOT/artifacts/icons/hicolor/256x256/apps/wpstallman.png" ]; then ICON_PNG="$ROOT/artifacts/icons/hicolor/256x256/apps/wpstallman.png"
-  fi
-fi
-
-# ---------- tool checks ----------
-command -v appimagetool >/dev/null || die "appimagetool not found. Install AppImageKit (see github.com/AppImage/AppImageKit)."
-
-# ---------- sanity checks ----------
-[ -d "$GUI_DIR" ] || die "GUI_DIR not found: $GUI_DIR"
-[ -n "$ICON_PNG" ] || die "ICON_PNG not set and no fallback icon found."
-[ -f "$ICON_PNG" ] || die "ICON_PNG not found: $ICON_PNG"
-
-# ---------- prepare AppDir ----------
+BUILD="$ROOT/artifacts/build"
 OUTDIR="$ROOT/artifacts/packages"
-TMPROOT="$(mktemp -d)"
-trap 'rm -rf "$TMPROOT"' EXIT
-APPDIR="$TMPROOT/AppDir"
+APPDIR="$BUILD/AppDir"
 
-mkdir -p "$OUTDIR" \
-         "$APPDIR/usr/bin" \
-         "$APPDIR/usr/share/applications" \
+ensure_photino_native() {
+  local dest="$APPDIR/usr/lib/$APP_ID"
+  [[ -f "$dest/libPhotino.Native.so" || -f "$dest/Photino.Native.so" ]] && {
+    [[ -f "$dest/libPhotino.Native.so" && ! -e "$dest/Photino.Native.so" ]] && ln -sf libPhotino.Native.so "$dest/Photino.Native.so"
+    [[ -f "$dest/Photino.Native.so"    && ! -e "$dest/libPhotino.Native.so" ]] && ln -sf Photino.Native.so "$dest/libPhotino.Native.so"
+    return 0
+  }
+
+  note "Locating Photino native for AppImage…"
+  local cand=""
+  # From GUI publish sibling dir (.../net8.0/linux-x64)
+  if [[ -n "${GUI_DIR:-}" ]]; then
+    for name in libPhotino.Native.so Photino.Native.so; do
+      [[ -z "$cand" && -f "$GUI_DIR/../$name" ]] && cand="$GUI_DIR/../$name"
+    done
+  fi
+  [[ -z "$cand" ]] && cand="$(find "$dest" -maxdepth 6 -type f -iname '*photino.native*.so' -print -quit 2>/dev/null || true)"
+  [[ -z "$cand" && -n "${GUI_DIR:-}" ]] && cand="$(find "$GUI_DIR/.." -maxdepth 8 -path '*/runtimes/linux-x64/native/*photino.native*.so' -type f -print -quit 2>/dev/null || true)"
+  if [[ -z "$cand" ]]; then
+    local NUPKG="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
+    cand="$(find "$NUPKG/photino.native" -path '*/runtimes/linux-x64/native/*photino.native*.so' -type f 2>/dev/null | sort -V | tail -n1 || true)"
+  fi
+
+  [[ -z "$cand" ]] && return 1
+
+  note "  candidate: $cand"
+  cp -f "$cand" "$dest/libPhotino.Native.so"
+  ln -sf libPhotino.Native.so "$dest/Photino.Native.so"
+  return 0
+}
+
+
+mkdir -p "$BUILD" "$OUTDIR"
+rm -rf "$APPDIR"
+mkdir -p "$APPDIR/usr/lib/$APP_ID" "$APPDIR/usr/share/applications" \
+         "$APPDIR/usr/share/icons/hicolor/64x64/apps" \
+         "$APPDIR/usr/share/icons/hicolor/128x128/apps" \
          "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-# 1) copy app payload
-cp -a "$GUI_DIR/." "$APPDIR/usr/bin/"
+# 1) Copy payload
+note "Staging payload into AppDir"
+rsync -a "$GUI_DIR/." "$APPDIR/usr/lib/$APP_ID/"
+rsync -a "$CLI_DIR/." "$APPDIR/usr/lib/$APP_ID/" || true
 
-# Add this section after the "1) copy app payload" section
-# 1b) copy wwwroot
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-WWWROOT_SOURCE="${WWWROOT_SOURCE:-$REPO_ROOT/src/WPStallman.GUI/wwwroot}"
-
-if [ -d "$WWWROOT_SOURCE" ]; then
-  mkdir -p "$APPDIR/usr/bin/wwwroot"
-  cp -a "$WWWROOT_SOURCE/." "$APPDIR/usr/bin/wwwroot/"
-  note "Copied wwwroot from $WWWROOT_SOURCE to $APPDIR/usr/bin/wwwroot"
-else
-  die "wwwroot directory not found at $WWWROOT_SOURCE"
+# 2) Sanity checks (+ self-heal for libPhotino.Native.so)
+[[ -x "$APPDIR/usr/lib/$APP_ID/$MAIN_BIN" ]] || die "Missing $MAIN_BIN in AppDir"
+if ! ensure_photino_native; then
+  die "Missing Photino native in AppDir and NuGet cache fallback failed."
 fi
 
-
-
-# ensure main binary is executable
-if [ -f "$APPDIR/usr/bin/$MAIN_BIN" ]; then
-  chmod +x "$APPDIR/usr/bin/$MAIN_BIN"
-else
-  die "Expected main binary not found: $APPDIR/usr/bin/$MAIN_BIN (set MAIN_BIN if different)"
-fi
-
-# 2) desktop entry (Icon must be ${APP_ID}, no extension)
-cat > "$APPDIR/${APP_ID}.desktop" <<EOF
+# 3) Desktop entry (root so old appimagetool finds it)
+DESKTOP="$APPDIR/$APP_ID.desktop"
+cat > "$DESKTOP" <<EOF
 [Desktop Entry]
 Type=Application
 Name=${APP_NAME}
-Exec=wpstallman-gui
+Comment=WordPress plugin project manager
+Exec=usr/lib/${APP_ID}/${MAIN_BIN} %U
 Icon=${APP_ID}
+Categories=Development;
 Terminal=false
-Categories=Utility;
+StartupWMClass=WPStallman.GUI
 EOF
+note "Desktop written: $DESKTOP"
+grep -E '^(Name|Exec|Icon|StartupWMClass)=' "$DESKTOP" | sed 's/^/  /'
 
-# 3) launcher script
-cat > "$APPDIR/usr/bin/wpstallman-gui" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-HERE="\$(cd "\$(dirname "\$0")" && pwd)"
-exec "\$HERE/$MAIN_BIN" "\$@"
-EOF
-chmod +x "$APPDIR/usr/bin/wpstallman-gui"
-
-# 4) icons — copy/resize to hicolor and top-level as ${APP_ID}.png
-ICON_256="$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_ID}.png"
-ICON_TOP="$APPDIR/${APP_ID}.png"
-if command -v convert >/dev/null 2>&1; then
-  convert "$ICON_PNG" -resize 256x256\! "$ICON_256"
-else
-  cp -a "$ICON_PNG" "$ICON_256"
+# 4) Icons (fallback to payload PNG if ICON_PNG missing)
+ICON_SRC=""
+if [[ -n "${ICON_PNG:-}" && -f "$ICON_PNG" ]]; then
+  ICON_SRC="$ICON_PNG"
+elif [[ -f "$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-256.png" ]]; then
+  ICON_SRC="$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-256.png"
+elif [[ -f "$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-512.png" ]]; then
+  ICON_SRC="$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-512.png"
 fi
-cp -a "$ICON_256" "$ICON_TOP"
+if [[ -n "$ICON_SRC" ]]; then
+  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/64x64/apps/${APP_ID}.png"
+  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/128x128/apps/${APP_ID}.png"
+  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_ID}.png"
+  cp -f "$ICON_SRC" "$APPDIR/${APP_ID}.png" 2>/dev/null || true
+else
+  warn "No icon source found; AppImage will still build but the desktop may show a generic icon."
+fi
 
-# 5) AppRun
+# 5) AppRun with LD_LIBRARY_PATH
 cat > "$APPDIR/AppRun" <<'EOF'
 #!/usr/bin/env bash
 HERE="$(dirname "$(readlink -f "$0")")"
-export PATH="$HERE/usr/bin:$PATH"
-exec "$HERE/usr/bin/wpstallman-gui" "$@"
+export DOTNET_BUNDLE_EXTRACT_BASE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/WPStallman/dotnet_bundle"
+export LD_LIBRARY_PATH="$HERE/usr/lib/com.wpstallman.app:${LD_LIBRARY_PATH}"
+exec "$HERE/usr/lib/com.wpstallman.app/WPStallman.GUI" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
-# 6) build AppImage
+# 6) Build AppImage
 APPIMAGE="$OUTDIR/${APP_NAME// /_}-${VERSION}-x86_64.AppImage"
 note "Building AppImage -> $APPIMAGE"
 appimagetool "$APPDIR" "$APPIMAGE"

@@ -9,11 +9,8 @@ GUI_CSPROJ="$ROOT/src/WPStallman.GUI/WPStallman.GUI.csproj"
 CLI_CSPROJ="$ROOT/src/WPStallman.CLI/WPStallman.CLI.csproj"
 
 # Granular packagers
-NSIS_WRAP="$ROOT/build/package/package_nsis.sh"
 PKG_DEB="$ROOT/build/package/package_deb.sh"
 PKG_APPIMG="$ROOT/build/package/package_appimage.sh"
-PKG_MAC="$ROOT/build/package/package_macos.sh"
-PKG_WINZIP="$ROOT/build/package/package_winzip.sh"
 
 # =========================
 # App metadata (override via env)
@@ -22,101 +19,104 @@ PKG_WINZIP="$ROOT/build/package/package_winzip.sh"
 : "${APP_NAME:=W. P. Stallman}"
 : "${APP_ID:=com.wpstallman.app}"
 
-# Icons / license
-: "${ICON_ICO:=$ROOT/artifacts/icons/WPS.ico}"            # Windows .ico (multi-res)
-: "${ICON_PNG_256:=$ROOT/artifacts/icons/WPS-256.png}"    # PNG used by AppImage/.deb (optional)
-: "${LICENSE_FILE:=$ROOT/build/package/LICENSE.txt}"      # MIT text for installers
+# Icons (optional)
+: "${ICON_PNG_256:=$ROOT/artifacts/icons/WPS-256.png}"
 
-# RIDs
+# RIDs / TFMs
 RID_WIN="win-x64"
 RID_LIN="linux-x64"
-RID_OSX_X64="osx-x64"
-RID_OSX_ARM="osx-arm64"
+: "${TFM_WIN_GUI:=net8.0-windows}"
+: "${TFM_LIN_GUI:=net8.0}"
+: "${TFM_WIN_CLI:=net8.0}"
+: "${TFM_LIN_CLI:=net8.0}"
 
 # Output directory
 OUTDIR="$ROOT/artifacts/packages"
 
 note(){ printf "\n\033[1;36m==> %s\033[0m\n" "$*"; }
+warn(){ printf "\033[1;33mWARNING:\033[0m %s\n" "$*"; }
 die(){  printf "\n\033[1;31mERROR:\033[0m %s\n" "$*" >&2; exit 1; }
 
 # =========================
-# Build helpers
+# Helpers
 # =========================
-tfm_for() {
-  case "$1" in
-    win-*)   echo "net8.0-windows" ;;
-    *)       echo "net8.0" ;;
-  esac
+ensure_photino_so_in_publish() {
+  local pub="$1"
+  local have_any=0
+  [[ -f "$pub/libPhotino.Native.so"     ]] && have_any=1
+  [[ -f "$pub/Photino.Native.so"        ]] && have_any=1
+  if [[ $have_any -eq 1 ]]; then
+    note "Photino native already in publish (one of the names is present)."
+    # ensure we have both names (real+symlink) for maximum compatibility
+    [[ -f "$pub/libPhotino.Native.so"  && ! -e "$pub/Photino.Native.so" ]] && ln -sf libPhotino.Native.so "$pub/Photino.Native.so"
+    [[ -f "$pub/Photino.Native.so"     && ! -e "$pub/libPhotino.Native.so" ]] && ln -sf Photino.Native.so "$pub/libPhotino.Native.so"
+    return 0
+  fi
+
+  note "Searching for Photino native…"
+  local parent cand=""
+  parent="$(cd "$pub/.." && pwd)"
+  # A) exactly where you found it
+  for name in libPhotino.Native.so Photino.Native.so; do
+    [[ -z "$cand" && -f "$parent/$name" ]] && cand="$parent/$name"
+  done
+  # B) inside publish tree
+  [[ -z "$cand" ]] && cand="$(find "$pub" -maxdepth 6 -type f -iname '*photino.native*.so' -print -quit 2>/dev/null || true)"
+  # C) sibling runtimes
+  [[ -z "$cand" ]] && cand="$(find "$parent" -maxdepth 8 -path '*/runtimes/linux-x64/native/*photino.native*.so' -type f -print -quit 2>/dev/null || true)"
+  # D) NuGet cache
+  if [[ -z "$cand" ]]; then
+    local NUPKG="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
+    cand="$(find "$NUPKG/photino.native" -path '*/runtimes/linux-x64/native/*photino.native*.so' -type f 2>/dev/null | sort -V | tail -n1 || true)"
+  fi
+
+  if [[ -n "$cand" ]]; then
+    note "  candidate: $cand"
+    cp -f "$cand" "$pub/libPhotino.Native.so"
+    ln -sf libPhotino.Native.so "$pub/Photino.Native.so"
+    note "Installed Photino native (lib + symlink) in publish/"
+    return 0
+  fi
+
+  note "DEBUG: couldn’t find it; listing $parent"
+  ls -la "$parent" || true
+  return 1
 }
 
+
+# =========================
+# Build
+# =========================
 build_all() {
-  note "Publishing GUI + CLI (self-contained, single-file)"
+  note "Publishing GUI + CLI (net8.0); Linux GUI is non–single-file"
+  # --- GUI ---
+  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_WIN" -f "$TFM_WIN_GUI" \
+    -p:SelfContained=true -p:PublishSingleFile=true
 
-  # GUI (RID→TFM mapping)
-  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_WIN"     -p:TargetFramework="$(tfm_for "$RID_WIN")"     -p:SelfContained=true -p:PublishSingleFile=true
-  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_LIN"     -p:TargetFramework="$(tfm_for "$RID_LIN")"     -p:SelfContained=true -p:PublishSingleFile=true
-  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_OSX_X64" -p:TargetFramework="$(tfm_for "$RID_OSX_X64")" -p:SelfContained=true -p:PublishSingleFile=true
-  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_OSX_ARM" -p:TargetFramework="$(tfm_for "$RID_OSX_ARM")" -p:SelfContained=true -p:PublishSingleFile=true
+  dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_LIN" -f "$TFM_LIN_GUI" \
+    -p:SelfContained=true -p:PublishSingleFile=false -p:IncludeNativeLibrariesForSelfExtract=false
 
-  # CLI (single TFM net8.0 for all RIDs unless you multi-targeted it)
-  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_WIN"     -p:TargetFramework=net8.0 -p:SelfContained=true -p:PublishSingleFile=true
-  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_LIN"     -p:TargetFramework=net8.0 -p:SelfContained=true -p:PublishSingleFile=true
-  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_OSX_X64" -p:TargetFramework=net8.0 -p:SelfContained=true -p:PublishSingleFile=true
-  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_OSX_ARM" -p:TargetFramework=net8.0 -p:SelfContained=true -p:PublishSingleFile=true
+  # --- CLI ---
+  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_WIN" -f "$TFM_WIN_CLI" \
+    -p:SelfContained=true -p:PublishSingleFile=true
+
+  dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_LIN" -f "$TFM_LIN_CLI" \
+    -p:SelfContained=true -p:PublishSingleFile=true
 }
 
-# =========================
-# Build everything
-# =========================
+# Resolve publish dirs
+GUI_DIR_LIN="$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish"
+CLI_DIR_LIN="$ROOT/src/WPStallman.CLI/bin/Release/${TFM_LIN_CLI}/${RID_LIN}/publish"
+
 build_all
 
-# =========================
-# Publish directories
-# =========================
-GUI_DIR_WIN="$ROOT/src/WPStallman.GUI/bin/Release/net8.0-windows/$RID_WIN/publish"
-GUI_DIR_LIN="$ROOT/src/WPStallman.GUI/bin/Release/net8.0/$RID_LIN/publish"
-GUI_DIR_OSX_X64="$ROOT/src/WPStallman.GUI/bin/Release/net8.0/$RID_OSX_X64/publish"
-GUI_DIR_OSX_ARM="$ROOT/src/WPStallman.GUI/bin/Release/net8.0/$RID_OSX_ARM/publish"
+# Sanity + self-heal for Photino native
+[[ -x "$GUI_DIR_LIN/WPStallman.GUI" ]] || die "Missing GUI binary at $GUI_DIR_LIN/WPStallman.GUI"
+[[ -f "$GUI_DIR_LIN/libPhotino.Native.so" || -f "$GUI_DIR_LIN/Photino.Native.so" ]] || die "Missing Photino native .so in $GUI_DIR_LIN"
 
-CLI_DIR_WIN="$ROOT/src/WPStallman.CLI/bin/Release/net8.0/$RID_WIN/publish"
-CLI_DIR_LIN="$ROOT/src/WPStallman.CLI/bin/Release/net8.0/$RID_LIN/publish"
-CLI_DIR_OSX_X64="$ROOT/src/WPStallman.CLI/bin/Release/net8.0/$RID_OSX_X64/publish"
-CLI_DIR_OSX_ARM="$ROOT/src/WPStallman.CLI/bin/Release/net8.0/$RID_OSX_ARM/publish"
 
-[ -d "$GUI_DIR_WIN" ] || die "Expected GUI publish not found: $GUI_DIR_WIN"
-[ -d "$CLI_DIR_WIN" ] || die "Expected CLI publish not found: $CLI_DIR_WIN"
-mkdir -p "$OUTDIR"
-
-# =========================
-# Package: Windows NSIS installer
-# =========================
-if [ -x "$NSIS_WRAP" ]; then
-  note "Packaging Windows installer (NSIS)"
-  VERSION="$VERSION" \
-  APP_NAME="$APP_NAME" \
-  APP_ID="$APP_ID" \
-  GUI_DIR="$GUI_DIR_WIN" \
-  CLI_DIR="$CLI_DIR_WIN" \
-  OUTDIR="$OUTDIR" \
-  ICON_ICO="$ICON_ICO" \
-  LICENSE_FILE="$LICENSE_FILE" \
-  "$NSIS_WRAP"
-else
-  note "Skipping NSIS (wrapper not executable): $NSIS_WRAP"
-fi
-
-# =========================
-# Package: Windows ZIP (EXE + LICENSE)
-# =========================
-if [ -x "$PKG_WINZIP" ]; then
-  note "Packaging Windows ZIP"
-  VERSION="$VERSION" \
-  APP_NAME="$APP_NAME" \
-  GUI_DIR="$GUI_DIR_WIN" \
-  LICENSE_FILE="$LICENSE_FILE" \
-  "$PKG_WINZIP"
-else
-  note "Skipping Windows ZIP (wrapper not executable): $PKG_WINZIP"
+if ! ensure_photino_so_in_publish "$GUI_DIR_LIN"; then
+  die "Missing libPhotino.Native.so in $GUI_DIR_LIN and not found in NuGet cache. Ensure Photino.Native is referenced and publish is non–single-file."
 fi
 
 # =========================
@@ -129,9 +129,10 @@ if [ -x "$PKG_DEB" ]; then
   APP_ID="$APP_ID" \
   GUI_DIR="$GUI_DIR_LIN" \
   CLI_DIR="$CLI_DIR_LIN" \
+  ICON_PNG="$ICON_PNG_256" \
   "$PKG_DEB"
 else
-  note "Skipping .deb (wrapper not executable): $PKG_DEB"
+  warn "Skipping .deb (wrapper not executable): $PKG_DEB"
 fi
 
 # =========================
@@ -143,23 +144,11 @@ if [ -x "$PKG_APPIMG" ]; then
   APP_NAME="$APP_NAME" \
   APP_ID="$APP_ID" \
   GUI_DIR="$GUI_DIR_LIN" \
+  CLI_DIR="$CLI_DIR_LIN" \
+  ICON_PNG="$ICON_PNG_256" \
   "$PKG_APPIMG"
 else
-  note "Skipping AppImage (wrapper not executable): $PKG_APPIMG"
-fi
-
-# =========================
-# Package: macOS (.app → zip, dmg if on macOS)
-# =========================
-if [ -x "$PKG_MAC" ]; then
-  note "Packaging macOS"
-  # By default, point to the osx-x64 bundle; override APP_BUNDLE if you build arm64 instead
-  APP_BUNDLE="$ROOT/src/WPStallman.GUI/bin/Release/net8.0/osx-x64/publish/${APP_NAME}.app" \
-  VERSION="$VERSION" \
-  APP_NAME="$APP_NAME" \
-  "$PKG_MAC"
-else
-  note "Skipping macOS packaging (wrapper not executable): $PKG_MAC"
+  warn "Skipping AppImage (wrapper not executable): $PKG_APPIMG"
 fi
 
 note "All done. Outputs in: $OUTDIR"
