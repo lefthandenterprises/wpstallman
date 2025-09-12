@@ -119,3 +119,15 @@ APPIMAGE="$OUTDIR/${APP_NAME// /_}-${VERSION}-x86_64.AppImage"
 note "Building AppImage -> $APPIMAGE"
 appimagetool "$APPDIR" "$APPIMAGE"
 note "Wrote $APPIMAGE"
+
+# --- copy debug runner next to the AppImage ---
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+DEBUG_RUNNER_SRC="$SCRIPT_DIR/run-wpst-debug.sh"
+if [[ -f "$DEBUG_RUNNER_SRC" ]]; then
+  cp -f "$DEBUG_RUNNER_SRC" "$OUTDIR/run-wpst-debug.sh"
+  chmod +x "$OUTDIR/run-wpst-debug.sh"
+  note "Debug runner: $OUTDIR/run-wpst-debug.sh"
+else
+  warn "No debug runner at $DEBUG_RUNNER_SRC; skipping copy."
+fi
+
