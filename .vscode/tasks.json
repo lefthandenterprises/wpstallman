@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build:launcher",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/src/WPStallman.Launcher/WPStallman.Launcher.csproj",
+        "-c", "Debug"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "build:gui",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/src/WPStallman.GUI/WPStallman.GUI.csproj",
+        "-c", "Debug"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "run:launcher",
+      "type": "shell",
+      "command": "dotnet run --project ${workspaceFolder}/src/WPStallman.Launcher/WPStallman.Launcher.csproj",
+      "problemMatcher": []
+    }
+  ]
+}
+

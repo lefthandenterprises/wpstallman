@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Launch (Launcher)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/src/WPStallman.Launcher/WPStallman.Launcher.csproj"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "stopAtEntry": false,
+      "linux": { "console": "internalConsole" },
+      "windows": { "console": "internalConsole" },
+      "osx": { "console": "internalConsole" }
+    }
+  ]
+}
