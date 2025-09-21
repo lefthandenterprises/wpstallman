@@ -154,6 +154,10 @@ internal static class Program
                 { i++; continue; } // skip value too
                 psi.ArgumentList.Add(launcherArgs[i]);
             }
+            // Report glibc info for framework-dependent (managed) launch
+            CheckAndReportGlibc(dllPath, true);
+
+
             return true;
         }
 
@@ -198,7 +202,13 @@ internal static class Program
         }
 
         reason = null;
+        // Report glibc info for native/AppImage launch
+        if (!CheckAndReportGlibc(targetPath, isDllLaunch: false, hardFail: false))
+        {
+            return false; // stop if you set hardFail=true
+        }
         return true;
+
     }
 
 
@@ -317,4 +327,156 @@ internal static class Program
         public ActionOnDispose(Action a) => _a = a;
         public void Dispose() => _a();
     }
+
+    // ===== Linux glibc helpers =====
+    [DllImport("libc")]
+    private static extern IntPtr gnu_get_libc_version();
+
+    private static string? GetInstalledGlibcVersion()
+    {
+        try
+        {
+            var ptr = gnu_get_libc_version();
+            var v = Marshal.PtrToStringAnsi(ptr);
+            return string.IsNullOrWhiteSpace(v) ? null : v;
+        }
+        catch
+        {
+            // Fallback: ldd --version first line usually contains "GLIBC X.Y"
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "ldd",
+                    ArgumentList = { "--version" },
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                };
+                using var p = Process.Start(psi)!;
+                var first = p.StandardOutput.ReadLine();
+                p.WaitForExit(1000);
+                if (!string.IsNullOrWhiteSpace(first))
+                {
+                    // Try to extract X.Y
+                    var idx = first.IndexOf("GLIBC", StringComparison.OrdinalIgnoreCase);
+                    if (idx >= 0)
+                    {
+                        var tail = first[(idx + 5)..]; // after "GLIBC"
+                        var m = System.Text.RegularExpressions.Regex.Match(tail, @"\s*([0-9]+\.[0-9]+)");
+                        if (m.Success) return m.Groups[1].Value;
+                    }
+                }
+            }
+            catch { /* ignore */ }
+            return null;
+        }
+    }
+
+    // Tries to read the highest GLIBC_* symbol referenced by a native target.
+    // Works for ELF executables/AppImages. Returns null if unknown.
+    // Note: for framework-dependent .dll, there is no direct GLIBC requirement in the managed file.
+    private static string? GetBinaryGlibcFloor(string targetPath)
+    {
+        try
+        {
+            // Prefer strings+grep; many systems have them even when binutils isn't installed.
+            var sh = "/bin/bash";
+            if (!File.Exists(sh)) sh = "/bin/sh";
+
+            string cmd = $"strings -a \"{targetPath.Replace("\"", "\\\"")}\" 2>/dev/null | " +
+                         "grep -oE 'GLIBC_[0-9]+\\.[0-9]+' | sort -V | tail -n1";
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = sh,
+                ArgumentList = { "-lc", cmd },
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+            using var p = Process.Start(psi)!;
+            var s = p.StandardOutput.ReadToEnd().Trim();
+            p.WaitForExit(1500);
+            if (!string.IsNullOrWhiteSpace(s)) return s.Replace("GLIBC_", "");
+
+            // Fallback: objdump -T can show versioned symbols if available.
+            try
+            {
+                var psi2 = new ProcessStartInfo
+                {
+                    FileName = sh,
+                    ArgumentList = { "-lc", $"objdump -T \"{targetPath.Replace("\"", "\\\"")}\" 2>/dev/null | grep -oE 'GLIBC_[0-9]+\\.[0-9]+' | sort -V | tail -n1" },
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                };
+                using var p2 = Process.Start(psi2)!;
+                var s2 = p2.StandardOutput.ReadToEnd().Trim();
+                p2.WaitForExit(2000);
+                if (!string.IsNullOrWhiteSpace(s2)) return s2.Replace("GLIBC_", "");
+            }
+            catch { /* ignore */ }
+        }
+        catch { /* ignore */ }
+
+        return null;
+    }
+
+    private static int CompareSemver(string a, string b)
+    {
+        // compares "2.35" vs "2.16" etc.
+        static int Parse(string s, int i) => i < s.Length ? int.Parse(s.Split('.')[i]) : 0;
+        var a0 = Parse(a, 0); var a1 = Parse(a, 1);
+        var b0 = Parse(b, 0); var b1 = Parse(b, 1);
+        if (a0 != b0) return a0.CompareTo(b0);
+        return a1.CompareTo(b1);
+    }
+
+    private static bool CheckAndReportGlibc(string targetPath, bool isDllLaunch, bool hardFail = false)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return true;
+
+        var installed = GetInstalledGlibcVersion() ?? "unknown";
+        string required = "n/a (managed .dll)";
+
+        if (!isDllLaunch)
+            required = GetBinaryGlibcFloor(targetPath) ?? "unknown";
+
+        Console.WriteLine($"[glibc] installed={installed}; required_by_target={required}");
+
+        if (!isDllLaunch && installed != "unknown" && required != "unknown")
+        {
+            // installed < required ? warn or fail
+            if (CompareSemver(installed, required) < 0)
+            {
+                var msg = $"This system’s glibc ({installed}) is older than the binary’s floor ({required}).";
+                if (hardFail)
+                {
+                    ShowError(msg + " Aborting launch.");
+                    return false;
+                }
+                Console.Error.WriteLine("[warning] " + msg);
+            }
+        }
+        return true;
+    }
+
+
+    private static void PrintGlibcInfoIfLinux(string targetPath, bool isDllLaunch)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return;
+
+        var installed = GetInstalledGlibcVersion() ?? "unknown";
+        string required = "n/a (managed .dll)";
+
+        if (!isDllLaunch)
+        {
+            // Only try to read a native binary/AppImage
+            required = GetBinaryGlibcFloor(targetPath) ?? "unknown";
+        }
+
+        Console.WriteLine($"[glibc] installed={installed}; required_by_target={required}");
+    }
+
 }
