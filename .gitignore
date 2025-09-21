@@ -78,3 +78,8 @@ node_modules/
 /src/WPStallman.Assets/staging/
 
 /build/package/.wine-wpst-smoke/
+
+# Personal VS Code overrides
+.vscode/*.local.json
+.vscode/settings.json
+.vscode/keybindings.json
