@@ -16,6 +16,60 @@ namespace WPStallman.GUI
     internal static class Program
     {
 
+
+        static string ResolveAssetPath(params string[] segments)
+        {
+            // 1) Deployed: <App>/wwwroot/...
+            var baseDir = AppContext.BaseDirectory;
+            var deployed = Path.Combine(baseDir, Path.Combine(segments));
+            if (File.Exists(deployed)) return deployed;
+
+            // 2) Dev fallback: src/WPStallman.Assets/wwwroot/...
+            // (Adjust hops if you move things around.)
+            var dev = Path.GetFullPath(Path.Combine(
+                baseDir, "../../../../src/WPStallman.Assets/wwwroot", Path.Combine(segments)));
+            if (File.Exists(dev)) return dev;
+
+            return deployed; // default (so logs show where we *expected* it)
+        }
+
+        static string ToFileUrl(string path) => new Uri(path, UriKind.Absolute).AbsoluteUri;
+
+        static void TrySetIcon(PhotinoWindow window, Action<string> log)
+        {
+            string iconPathGuess;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Prefer .ico on Windows
+                iconPathGuess = ResolveAssetPath("wwwroot", "img", "WPS.ico");
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // Prefer .icns, fall back to PNG
+                var icns = ResolveAssetPath("wwwroot", "app.icns");
+                iconPathGuess = File.Exists(icns)
+                    ? icns
+                    : ResolveAssetPath("wwwroot", "img", "WPS-256.png");
+            }
+            else
+            {
+                // Linux: PNG
+                iconPathGuess = ResolveAssetPath("wwwroot", "img", "WPS-256.png");
+            }
+
+            if (File.Exists(iconPathGuess))
+            {
+                window.SetIconFile(iconPathGuess);
+                log($"Window icon set: {iconPathGuess}");
+            }
+            else
+            {
+                log($"Icon file not found (skipping SetIconFile): {iconPathGuess}");
+            }
+        }
+
+
         // ---------- Entry point ----------
 #if WINDOWS
         [STAThread]
@@ -30,56 +84,30 @@ namespace WPStallman.GUI
                 StartupDiag.Log($"BaseDirectory={AppContext.BaseDirectory}");
                 StartupDiag.Log($"Args={string.Join(' ', args)}");
 
-                var baseDir = AppContext.BaseDirectory;
-                var indexRel = Path.Combine("wwwroot", "index.html");
-                var indexAbs = Path.Combine(baseDir, indexRel);
-                var indexToLoad = File.Exists(indexAbs) ? indexAbs : indexRel;
+                // keep your ResolveAssetPath helper if you added it
+                var indexPath = ResolveAssetPath("wwwroot", "index.html");
 
-                StartupDiag.Log($"Index exists? {File.Exists(indexAbs)} @ {indexToLoad}");
+                // Log and double-check
+                StartupDiag.Log($"Index exists? {File.Exists(indexPath)} @ {indexPath}");
 
+                // IMPORTANT: pass the absolute path string, not file://
                 var window = new PhotinoWindow()
                     .SetTitle("W. P. Stallman")
                     .SetSize(1200, 900)
                     .SetMinSize(800, 600)
-                    .Load(indexToLoad);
+                    .Load(indexPath);
 
-                // --- Window icon (keeps taskbar/dock looking right) ---
+
+                // --- Window icon (taskbar/dock) ---
                 try
                 {
-                    string iconPath;
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        // Ship a Windows .ico at wwwroot/img/WPS.ico
-                        iconPath = Path.Combine(baseDir, "wwwroot", "img", "WPS.ico");
-                    }
-                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    {
-                        // Prefer ICNS if available; fall back to PNG
-                        var icns = Path.Combine(baseDir, "wwwroot", "app.icns");
-                        iconPath = File.Exists(icns)
-                            ? icns
-                            : Path.Combine(baseDir, "wwwroot", "img", "WPS-256.png");
-                    }
-                    else
-                    {
-                        // Linux: PNG works great
-                        iconPath = Path.Combine(baseDir, "wwwroot", "img", "WPS-256.png");
-                    }
-
-                    if (File.Exists(iconPath))
-                    {
-                        window.SetIconFile(iconPath);
-                        StartupDiag.Log($"Window icon set: {iconPath}");
-                    }
-                    else
-                    {
-                        StartupDiag.Log($"Icon file not found (skipping SetIconFile): {iconPath}");
-                    }
+                    TrySetIcon(window, s => { StartupDiag.Log(s); });
                 }
                 catch (Exception ex)
                 {
                     StartupDiag.Log($"SetIconFile error: {ex}");
                 }
+
                 // ------------------------------------------------------
 
                 // Web message bridge (unchanged, apart from a few null-safety guards on inputs)

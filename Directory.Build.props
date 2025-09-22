@@ -1,16 +1,80 @@
 <Project>
+
   <!-- Only choose a TFM when the project multi-targets and a TFM wasn't specified -->
   <PropertyGroup Condition="'$(TargetFramework)'=='' AND '$(TargetFrameworks)'!=''">
     <!-- Windows builds -->
     <TargetFramework Condition="'$(RuntimeIdentifier)'=='win-x64'">net8.0-windows</TargetFramework>
-
     <!-- Linux & macOS builds -->
-    <TargetFramework Condition="'$(RuntimeIdentifier)'=='linux-x64' OR
-                                '$(RuntimeIdentifier)'=='osx-x64'  OR
-                                '$(RuntimeIdentifier)'=='osx-arm64'">net8.0</TargetFramework>
-
+    <TargetFramework
+      Condition="'$(RuntimeIdentifier)'=='linux-x64' OR '$(RuntimeIdentifier)'=='osx-x64' OR '$(RuntimeIdentifier)'=='osx-arm64'">
+      net8.0</TargetFramework>
     <!-- No RID provided: fallback by host OS -->
     <TargetFramework Condition="'$(RuntimeIdentifier)'=='' AND '$(OS)'=='Windows_NT'">net8.0-windows</TargetFramework>
     <TargetFramework Condition="'$(RuntimeIdentifier)'=='' AND '$(OS)'!='Windows_NT'">net8.0</TargetFramework>
   </PropertyGroup>
+
+  <!-- Base paths -->
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <!-- Point to the centralized wwwroot inside WPStallman.Assets -->
+    <WwwRootDir>$(RepoRoot)src/WPStallman.Assets/wwwroot</WwwRootDir>
+    <!-- Opt-in flag: by default, copy for non-library projects -->
+    <CopySharedWwwroot Condition="'$(CopySharedWwwroot)'==''">$(MSBuildProjectExtension) !=
+      '.csproj' OR $(OutputType) != 'Library'</CopySharedWwwroot>
+  </PropertyGroup>
+
+  <!-- Select what to copy (only if the folder exists) -->
+  <ItemGroup Condition="Exists('$(WwwRootDir)')">
+    <WwwRootFiles Include="$(WwwRootDir)\**\*"
+      Exclude="$(WwwRootDir)\**\*.tmp;$(WwwRootDir)\**\*.bak;$(WwwRootDir)\**\*.map" />
+  </ItemGroup>
+
+  <!-- Copy to bin/... on Build (only for runnable projects) -->
+  <Target Name="CopyWwwrootToOutDir"
+    AfterTargets="Build"
+    Condition="'$(CopySharedWwwroot)'!='false' AND '$(OutputType)'!='Library' AND Exists('$(WwwRootDir)')">
+    <PropertyGroup>
+      <WwwRootOut>$(OutDir)wwwroot</WwwRootOut>
+    </PropertyGroup>
+    <Message Text="Copying shared wwwroot -> $(WwwRootOut)" Importance="low" />
+    <MakeDir Directories="$(WwwRootOut)" />
+    <Copy SourceFiles="@(WwwRootFiles)"
+      DestinationFolder="$(WwwRootOut)\%(RecursiveDir)"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Clean output wwwroot only on Rebuild, not every Build -->
+  <Target Name="CleanOutWwwrootOnRebuild"
+    BeforeTargets="CopyWwwrootToOutDir"
+    Condition="'$(CopySharedWwwroot)'!='false' AND '$(OutputType)'!='Library' AND '$(BuildingProject)'=='true' AND '$(IsRebuild)'=='true'">
+    <RemoveDir Directories='$(OutDir)wwwroot' />
+  </Target>
+
+  <!-- Copy to publish/... on Publish -->
+  <Target Name="CopyWwwrootToPublishDir"
+    AfterTargets="Publish"
+    Condition="'$(CopySharedWwwroot)'!='false' AND '$(OutputType)'!='Library' AND Exists('$(WwwRootDir)')">
+    <PropertyGroup>
+      <WwwRootPublish>$(PublishDir)wwwroot</WwwRootPublish>
+    </PropertyGroup>
+    <Message Text="Copying shared wwwroot -> $(WwwRootPublish)" Importance="low" />
+    <RemoveDir Directories="$(WwwRootPublish)" />
+    <MakeDir Directories="$(WwwRootPublish)" />
+    <Copy SourceFiles="@(WwwRootFiles)"
+      DestinationFolder="$(WwwRootPublish)\%(RecursiveDir)"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- dotnet-watch: notice edits in src/WPStallman.Assets/wwwroot -->
+  <ItemGroup Condition="Exists('$(WwwRootDir)')">
+    <Watch Include="$(WwwRootDir)\**\*" />
+  </ItemGroup>
+
+  <!-- Friendly note if folder is missing (once per build) -->
+  <Target Name="WarnIfWwwrootMissing"
+    BeforeTargets="Build"
+    Condition="!Exists('$(WwwRootDir)')">
+    <Message Text="Shared wwwroot not found at $(WwwRootDir). Skipping copy." Importance="low" />
+  </Target>
+
 </Project>
