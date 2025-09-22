@@ -13,8 +13,10 @@ using Photino.NET;
 using WPStallman.Core.Models;
 using WPStallman.Core.Services;
 using WPStallman.Core.Utilities;
+using WPStallman.Core.Classes;
 
 using WPStallman.GUI.Classes;
+using WPStallman.Core.Interfaces;
 
 namespace WPStallman.GUI
 {
@@ -169,8 +171,13 @@ namespace WPStallman.GUI
                     var response = new CommandResponse();
                     string? requestId = null;
 
+                    IPhotinoWindowHandler handler = new PhotinoWindowHandler(win);
+
+
+
                     try
                     {
+
                         using (var jsonDoc = JsonDocument.Parse(message))
                         {
                             if (jsonDoc.RootElement.TryGetProperty("RequestId", out var ridProp)
@@ -189,7 +196,11 @@ namespace WPStallman.GUI
                         var manifestGenerator = new ManifestGenerator();
                         var installerClassGenerator = new InstallerClassGenerator();
 
-                        switch (envelope.Command)
+                        var commandProcessor = new GUICommandProcessor(handler, message, requestId);
+
+                        response = commandProcessor.ProcessCommand();
+
+                 /*        switch (envelope.Command) 
                         {
                             case "MaximizeWindow":
                                 if (win != null)
@@ -646,7 +657,7 @@ namespace WPStallman.GUI
                                 response.Success = false;
                                 response.Error = $"Unknown command: {envelope.Command}";
                                 break;
-                        }
+                        } */
                     }
                     catch (Exception ex)
                     {

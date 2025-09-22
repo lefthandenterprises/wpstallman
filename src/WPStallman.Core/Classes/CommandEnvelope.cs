@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+namespace WPStallman.Core.Classes;
 public class CommandEnvelope
 {
     public string? Command { get; set; }

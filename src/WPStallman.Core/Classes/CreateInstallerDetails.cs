@@ -1,7 +1,7 @@
 using WPStallman.Core.Models;
 
-namespace WPStallman.GUI.Classes
-{
+namespace WPStallman.Core.Classes;
+
     public class CreateInstallerDetails
     {
         public required string ConnectionString { get; set; }
@@ -13,4 +13,4 @@ namespace WPStallman.GUI.Classes
 
         public required Manifest Manifest { get; set; }
     }
-}
+

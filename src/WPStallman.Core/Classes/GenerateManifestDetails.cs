@@ -1,5 +1,5 @@
-namespace WPStallman.GUI.Classes
-{
+namespace WPStallman.Core.Classes;
+
     public class GenerateManifestDetails
     {
         public required string ConnectionString { get; set; }
@@ -8,6 +8,6 @@ namespace WPStallman.GUI.Classes
         public bool IncludeSeedData { get; set; }
         // Add other options as needed
     }
-}
+
 
 
