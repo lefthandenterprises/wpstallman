@@ -1,16 +1,10 @@
 
-using MySqlConnector;
-using WPStallman.Core.Models;
-using System.Data;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.ComponentModel.DataAnnotations;
 using WPStallman.Core.Classes;
 using System.Text;
 using System.IO.Compression;
 using WPStallman.Core.Utilities;
 using WPStallman.Core.Interfaces;
-
 
 namespace WPStallman.Core.Services;
 

@@ -1,19 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using Photino.NET;
 using WPStallman.Core.Classes;
 using WPStallman.Core.Interfaces;
-using WPStallman.Core.Models;
-using WPStallman.Core.Services;
-using WPStallman.Core.Utilities;
 
 namespace WPStallman.GUI.Classes;
 
