@@ -19,8 +19,6 @@ PKG_APPIMG="$ROOT/build/package/package_appimage.sh"
 : "${APP_NAME:=W. P. Stallman}"
 : "${APP_ID:=com.wpstallman.app}"
 
-# Icons (optional)
-: "${ICON_PNG_256:=$ROOT/artifacts/icons/WPS-256.png}"
 
 # RIDs / TFMs
 RID_WIN="win-x64"
@@ -29,6 +27,9 @@ RID_LIN="linux-x64"
 : "${TFM_LIN_GUI:=net8.0}"
 : "${TFM_WIN_CLI:=net8.0}"
 : "${TFM_LIN_CLI:=net8.0}"
+
+# Icons (optional)
+: "${ICON_PNG_256:=$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish/wwwroot/img/WPS-256.png}"
 
 # Output directory
 OUTDIR="$ROOT/artifacts/packages"
@@ -118,6 +119,10 @@ build_all
 if ! ensure_photino_so_in_publish "$GUI_DIR_LIN"; then
   die "Missing libPhotino.Native.so in $GUI_DIR_LIN and not found in NuGet cache. Ensure Photino.Native is referenced and publish is non–single-file."
 fi
+
+# Ensure shared wwwroot was copied into publish
+[[ -f "$GUI_DIR_LIN/wwwroot/index.html" ]] || die "Missing wwwroot in publish: $GUI_DIR_LIN/wwwroot/index.html"
+
 
 # =========================
 # Package: Debian/Ubuntu .deb

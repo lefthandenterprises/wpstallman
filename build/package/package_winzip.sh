@@ -17,6 +17,8 @@ die(){  printf "\n\033[1;31mERROR:\033[0m %s\n" "$*" >&2; exit 1; }
 command -v zip >/dev/null || die "zip not found (sudo apt-get install zip)."
 [ -d "$GUI_DIR" ] || die "GUI_DIR not found: $GUI_DIR"
 [ -f "$LICENSE_FILE" ] || die "LICENSE_FILE not found: $LICENSE_FILE"
+[ -f "$GUI_DIR/wwwroot/index.html" ] || die "Missing wwwroot in publish: $GUI_DIR/wwwroot/index.html"
+
 
 # Find the main EXE name (default: WPStallman.GUI.exe)
 EXE="${EXE:-$GUI_DIR/WPStallman.GUI.exe}"

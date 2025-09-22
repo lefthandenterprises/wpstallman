@@ -16,7 +16,13 @@ die(){  printf "\n\033[1;31mERROR:\033[0m %s\n" "$*" >&2; exit 1; }
 
 : "${GUI_DIR:=$ROOT/src/WPStallman.GUI/bin/Release/net8.0/linux-x64/publish}"
 : "${CLI_DIR:=$ROOT/src/WPStallman.CLI/bin/Release/net8.0/linux-x64/publish}"
-: "${ICON_PNG:=$ROOT/artifacts/icons/WPS-256.png}"
+: "${ICON_PNG:=$GUI_DIR/wwwroot/img/WPS-256.png}"
+
+
+[ -d "$GUI_DIR" ] || die "GUI_DIR not found: $GUI_DIR"
+[ -x "$GUI_DIR/WPStallman.GUI" ] || die "GUI binary not found: $GUI_DIR/WPStallman.GUI"
+[ -f "$GUI_DIR/wwwroot/index.html" ] || die "Missing wwwroot in publish: $GUI_DIR/wwwroot/index.html"
+
 
 BUILD="$ROOT/artifacts/build"
 OUTDIR="$ROOT/artifacts/packages"

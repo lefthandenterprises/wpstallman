@@ -12,7 +12,8 @@ APP_ID="${APP_ID:-com.wpstallman.app}"
 GUI_DIR="${GUI_DIR:-$ROOT/src/WPStallman.GUI/bin/Release/net8.0-windows/win-x64/publish}"
 CLI_DIR="${CLI_DIR:-$ROOT/src/WPStallman.CLI/bin/Release/net8.0/win-x64/publish}"
 OUTDIR="${OUTDIR:-$ROOT/artifacts/packages}"
-ICON_ICO="${ICON_ICO:-$ROOT/artifacts/icons/WPS.ico}"
+ICON_ICO="${ICON_ICO:-$GUI_DIR/wwwroot/img/WPS.ico}"
+
 NSI="${NSI:-$ROOT/build/package/installer.nsi}"
 LICENSE_FILE="${LICENSE_FILE:-$ROOT/build/package/LICENSE.txt}"
 [ -f "$LICENSE_FILE" ] || die "LICENSE_FILE not found: $LICENSE_FILE"
@@ -36,6 +37,8 @@ if command -v file >/dev/null 2>&1; then
     die "ICON_ICO is not a valid Windows .ico: $ICON_ICO"
   fi
 fi
+
+[ -f "$GUI_DIR/wwwroot/index.html" ] || die "Missing wwwroot in publish: $GUI_DIR/wwwroot/index.html"
 
 
 # --- Show summary ---
