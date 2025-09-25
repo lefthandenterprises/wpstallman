@@ -19,6 +19,18 @@ PKG_APPIMG="$ROOT/build/package/package_appimage.sh"
 : "${APP_NAME:=W. P. Stallman}"
 : "${APP_ID:=com.wpstallman.app}"
 
+# ----- Variant selection -----
+# Examples:
+#   VARIANT=glibc2.39 ./package_all.sh
+#   VARIANT=glibc2.35 ./package_all.sh
+#   VARIANT=current   ./package_all.sh   (uses the symlink)
+VARIANT="${VARIANT:-glibc2.39}"          # default = Modern
+RID_LIN="${RID_LIN:-linux-x64}"
+
+# Staged GUI dir (can be overridden by GUI_DIR_LIN if you want to bypass staging)
+GUI_DIR_LIN="${GUI_DIR_LIN:-$ROOT/artifacts/dist/WPStallman.GUI-${RID_LIN}-${VARIANT}}"
+
+
 
 # RIDs / TFMs
 RID_WIN="win-x64"
@@ -29,7 +41,7 @@ RID_LIN="linux-x64"
 : "${TFM_LIN_CLI:=net8.0}"
 
 # Icons (optional)
-: "${ICON_PNG_256:=$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish/wwwroot/img/WPS-256.png}"
+: "${ICON_PNG_256:=$GUI_DIR_LIN/wwwroot/img/WPS-256.png}"
 
 # Output directory
 OUTDIR="$ROOT/artifacts/packages"
@@ -113,7 +125,7 @@ build_all
 
 # Sanity + self-heal for Photino native
 [[ -x "$GUI_DIR_LIN/WPStallman.GUI" ]] || die "Missing GUI binary at $GUI_DIR_LIN/WPStallman.GUI"
-[[ -f "$GUI_DIR_LIN/libPhotino.Native.so" || -f "$GUI_DIR_LIN/Photino.Native.so" ]] || die "Missing Photino native .so in $GUI_DIR_LIN"
+[[ -f "$GUI_DIR_LIN/wwwroot/index.html" ]] || die "Missing wwwroot in $GUI_DIR_LIN/wwwroot/index.html"
 
 
 if ! ensure_photino_so_in_publish "$GUI_DIR_LIN"; then

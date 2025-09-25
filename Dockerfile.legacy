@@ -1,0 +1,10 @@
+# .NET 8 SDK on Ubuntu 22.04 ("jammy") — glibc 2.35
+FROM mcr.microsoft.com/dotnet/sdk:8.0-jammy
+
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# (Optional) log OS and glibc for traceability
+RUN getconf GNU_LIBC_VERSION && cat /etc/os-release
+
+WORKDIR /src
