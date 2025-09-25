@@ -1,0 +1,121 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Core settings -->
+  <PropertyGroup>
+    <AssemblyName>WPStallman.GUI</AssemblyName>
+    <RootNamespace>WPStallman.GUI</RootNamespace> <!-- lets you avoid namespace churn -->
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);LEGACY_FLOOR</DefineConstants>
+  </PropertyGroup>
+
+
+  <PropertyGroup>
+    <!-- Put net8.0 FIRST so it's the default when no -f is passed -->
+    <TargetFrameworks>net8.0;net8.0-windows</TargetFrameworks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+
+    <!-- Cross-platform self-contained single-file publishing -->
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- Photino uses reflection; trimming can break things -->
+    <PublishTrimmed>false</PublishTrimmed>
+
+    <!-- Ship for Linux/Windows/macOS (Intel + Apple Silicon) -->
+    <RuntimeIdentifiers>linux-x64;win-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <!-- Windows GUI: hide console + embed icon (from centralized Assets) -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0-windows'">
+    <OutputType>WinExe</OutputType>
+    <ApplicationIcon>$(WwwRootDir)\img\WPS.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- Non-Windows GUI: still an executable (not a class library) -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
+    <OutputType>Exe</OutputType>
+    <UseAppHost>true</UseAppHost>
+  </PropertyGroup>
+
+  <!-- Also ensure WinExe when building on Windows without specifying TFM -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <OutputType>WinExe</OutputType>
+    <ApplicationIcon>$(WwwRootDir)\img\WPS.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- REMOVE stale per-project wwwroot copying: Directory.Build.props handles it.
+       (Intentionally no <Content Include="wwwroot\**\*"> here.) -->
+
+  <!-- macOS packaging inputs: use centralized .icns; Info.plist stays in repo -->
+  <ItemGroup>
+    <None Include="$(WwwRootDir)\img\WPS.icns" Condition="Exists('$(WwwRootDir)\img\WPS.icns')" />
+    <None Include="platforms/macos/Info.plist" Condition="Exists('platforms/macos/Info.plist')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GtkSharp" Version="3.24.24.95" />
+    <PackageReference Include="LiteDB" Version="5.0.21" />
+    <PackageReference Include="Photino.NET" Version="3.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WPStallman.Core\WPStallman.Core.csproj" />
+  </ItemGroup>
+
+  <!-- macOS: create a simple .app bundle after publish -->
+  <Target Name="CreateMacAppBundle"
+    AfterTargets="Publish"
+    Condition="'$(RuntimeIdentifier)'=='osx-x64' OR '$(RuntimeIdentifier)'=='osx-arm64'">
+    <!-- PublishDir ends with 'publish/' -->
+    <PropertyGroup>
+      <MacAppName>WPStallman</MacAppName>
+      <MacAppDir>$(PublishDir)$(MacAppName).app</MacAppDir>
+    </PropertyGroup>
+
+    <!-- Create .app structure -->
+    <MakeDir
+      Directories="$(MacAppDir)/Contents;$(MacAppDir)/Contents/MacOS;$(MacAppDir)/Contents/Resources" />
+
+    <!-- Copy published files into MacOS/ -->
+    <ItemGroup>
+      <_PublishedFiles Include="$(PublishDir)**/*" Exclude="$(MacAppDir)/**" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_PublishedFiles)"
+      DestinationFiles="@(_PublishedFiles->'$(MacAppDir)/Contents/MacOS/%(RecursiveDir)%(Filename)%(Extension)')" />
+
+    <!-- Copy centralized WPS.icns into Resources (if present) -->
+    <Copy SourceFiles="$(WwwRootDir)/img/WPS.icns"
+      DestinationFiles="$(MacAppDir)/Contents/Resources/WPS.icns"
+      Condition="Exists('$(WwwRootDir)/img/WPS.icns')" />
+
+    <!-- Copy Info.plist into Contents (if present) -->
+    <Copy SourceFiles="platforms/macos/Info.plist"
+      DestinationFiles="$(MacAppDir)/Contents/Info.plist"
+      Condition="Exists('platforms/macos/Info.plist')" />
+  </Target>
+
+  <!-- Optional: sync icon source artwork into centralized wwwroot/img
+       (keeps all GUIs in sync). If you prefer to manage icons manually in
+       src/WPStallman.Assets/wwwroot/img, you can remove this target. -->
+  <PropertyGroup>
+    <IconSourceDir>$(RepoRoot)src\WPStallman.Assets\logo</IconSourceDir>
+    <IconDestDir>$(WwwRootDir)\img</IconDestDir>
+  </PropertyGroup>
+
+  <Target Name="SyncIcons"
+    BeforeTargets="Build;Publish"
+    Condition="Exists('$(IconSourceDir)') AND Exists('$(IconDestDir)')">
+    <ItemGroup>
+      <_IconFiles Include="$(IconSourceDir)\WPS-*.png" />
+      <_IconFiles Include="$(IconSourceDir)\WPS.ico" />
+      <_IconFiles Include="$(IconSourceDir)\WPS.icns" />
+    </ItemGroup>
+
+    <Message Text="Syncing icons: @(_IconFiles) -> $(IconDestDir)" Importance="Low" />
+    <Copy SourceFiles="@(_IconFiles)"
+      DestinationFiles="@(_IconFiles->'$(IconDestDir)\%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+</Project>

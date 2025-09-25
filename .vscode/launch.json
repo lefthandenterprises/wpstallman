@@ -14,9 +14,43 @@
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "stopAtEntry": false,
-      "linux": { "console": "internalConsole" },
-      "windows": { "console": "internalConsole" },
-      "osx": { "console": "internalConsole" }
+      "linux": {
+        "console": "internalConsole"
+      },
+      "windows": {
+        "console": "internalConsole"
+      },
+      "osx": {
+        "console": "internalConsole"
+      }
+    },
+    {
+      "name": ".NET Launch (GUI Modern)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "run",
+        "-f",
+        "net8.0",
+        "--project",
+        "${workspaceFolder}/src/WPStallman.GUI.Modern/WPStallman.GUI.csproj"
+      ],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": ".NET Launch (GUI Legacy)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "run",
+        "-f",
+        "net8.0",
+        "--project",
+        "${workspaceFolder}/src/WPStallman.GUI.Legacy/WPStallman.GUI.csproj"
+      ],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
