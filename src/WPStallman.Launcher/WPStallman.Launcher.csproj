@@ -1,20 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <!-- Base settings apply to all OSes -->
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-
-    <!-- Make it runnable everywhere -->
     <OutputType>Exe</OutputType>
 
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-
+    <!-- AppImage-safe publish defaults -->
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishTrimmed>false</PublishTrimmed>
-    <InvariantGlobalization>true</InvariantGlobalization>
-  </PropertyGroup>
+    <UseAppHost>true</UseAppHost>
 
-  <!-- On Windows, hide the console window -->
-  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
-    <OutputType>WinExe</OutputType>
+    <!-- You can add more RIDs if you want, we only need linux-x64 here -->
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
 </Project>
