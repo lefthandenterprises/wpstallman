@@ -1,4 +1,4 @@
-# WPStallman.NetCore
+# WPStallman
 
 A WordPress packaging utility designed to help developers generate **database installers** for their WordPress plugins.
 

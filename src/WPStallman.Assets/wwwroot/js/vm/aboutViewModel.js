@@ -5,8 +5,8 @@ var AboutViewModel = function (app, params) {
   params = params || {};
 
   // ---- Public fields already used by index.html ----
-  self.imageSrc = params.imageSrc || 'img/portrait.jpg';
-  self.imageAlt = params.imageAlt || 'Our mascot, W. P. Stallman';
+  self.imageSrc = params.imageSrc || 'img/logo.jpg';
+  self.imageAlt = params.imageAlt || 'W. P. Stallman Logo';
   self.aboutHtml = ko.observable(
     `<p>W.P. Stallman came about as a home-grown solution to a very annoying problem - having to package all of your database objects for a WordPress plugin. Before the concept, there was the character... What if you combined Richard Stallman, one of the pioneers of Free Software, with W. C. Fields, a curmudgeonly stalwart of classic comedy? The result is this application. If you find it useful, please donate below.</p>`
   );
