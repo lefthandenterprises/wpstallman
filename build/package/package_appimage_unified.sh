@@ -68,7 +68,9 @@ cat > "$DESKTOP" <<EOF
 [Desktop Entry]
 Type=Application
 Name=${APP_NAME}
-Comment=WordPress plugin project manager (unified)
+GenericName=WordPress plugin database packer
+Comment=WordPress plugin database packer (unified)
+Keywords=WordPress;plugins;database;stallman;wp;packer;
 Exec=usr/lib/${APP_ID}/WPStallman.Launcher %U
 Icon=${APP_ID}
 Categories=Development;
@@ -92,6 +94,12 @@ if [[ -n "$ICON_SRC" ]]; then
 else
   warn "No icon source found"
 fi
+
+# Also set the AppImage file icon (.DirIcon) so the AppImage itself shows the app icon
+if [[ -n "$ICON_SRC" ]]; then
+  cp -f "$ICON_SRC" "$APPDIR/.DirIcon" 2>/dev/null || true
+fi
+
 
 # 5) AppRun -> runs Launcher, sets env for self-contained & ICU-lite
 cat > "$APPDIR/AppRun" <<'EOF'

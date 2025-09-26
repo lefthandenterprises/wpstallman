@@ -23,7 +23,7 @@ APP_ID="${APP_ID:-com.wpstallman.app}"       # used for install root + .desktop 
 MAIN_LAUNCHER="${MAIN_LAUNCHER:-WPStallman.Launcher}"
 MAIN_BIN_NAME="${MAIN_BIN_NAME:-WPStallman.GUI}"  # name of each GUI binary
 VERSION="${VERSION:-1.0.0}"
-MAINTAINER="${MAINTAINER:-W. P. Stallman <noreply@example.com>}"
+MAINTAINER="${MAINTAINER:-Patrick Driscoll <patrick@lefthandenterprises.com>}"
 DESCRIPTION="${DESCRIPTION:-WordPress plugin project manager (unified launcher + glibc2.35/2.39 variants)}"
 
 # Debian architecture (prefer dpkg; fallback map)
@@ -152,13 +152,16 @@ cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
 Name=${APP_NAME}
-Comment=WordPress plugin project manager (unified)
-Exec=wpstallman %U
+GenericName=WordPress plugin database packer
+Comment=WordPress plugin database packer (unified)
+Keywords=WordPress;plugins;database;stallman;wp;packer;
 Icon=${APP_ID}
+Exec=wpstallman %U
 Categories=Development;
 Terminal=false
 StartupWMClass=WPStallman.GUI
 EOF
+chmod 0644 "$DESKTOP_FILE"
 chmod 0644 "$DESKTOP_FILE" 2>/dev/null || true
 chmod 0644 "$DEBROOT/usr/share/applications/${APP_ID}.desktop"
 
@@ -201,6 +204,41 @@ EOF
 chmod 0644 "$DEBIAN/control"
 
 # (Optional) postinst to refresh icon cache can be added if you like.
+
+# ---------- postrm: clean up leftover dirs on purge ----------
+cat > "$DEBIAN/postrm" <<'EOF'
+#!/bin/sh
+set -e
+case "$1" in
+  purge)
+    # Remove installed app directory and wrapper if they still exist
+    rm -rf /usr/lib/com.wpstallman.app || true
+    rm -f  /usr/bin/wpstallman || true
+
+    # Refresh desktop/icon caches if tools exist (best-effort)
+    command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database -q || true
+    command -v gtk-update-icon-cache   >/dev/null 2>&1 && gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+    ;;
+esac
+exit 0
+EOF
+chmod 0755 "$DEBIAN/postrm"
+
+# ---------- postinst: refresh desktop/icon caches ----------
+cat > "$DEBIAN/postinst" <<'EOF'
+#!/bin/sh
+set -e
+# Refresh desktop entries and icon caches (best-effort)
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database -q || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+fi
+exit 0
+EOF
+chmod 0755 "$DEBIAN/postinst"
+
 
 # ---------- build .deb ----------
 note "Building unified .deb -> $OUT_DEB"

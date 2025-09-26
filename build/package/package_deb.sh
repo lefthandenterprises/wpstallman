@@ -33,7 +33,7 @@ APP_NAME="${APP_NAME:-W. P. Stallman}"
 APP_ID="${APP_ID:-com.wpstallman.app}"        # used for /usr/lib/<APP_ID> and .desktop Icon
 MAIN_BIN="${MAIN_BIN:-WPStallman.GUI}"        # main executable filename in publish dir
 VERSION="${VERSION:-1.0.0}"
-MAINTAINER="${MAINTAINER:-W. P. Stallman <noreply@example.com>}"
+MAINTAINER="${MAINTAINER:-Patrick Driscoll <patrick@lefthandenterprises.com>}"
 DESCRIPTION="${DESCRIPTION:-WordPress plugin project manager}"
 
 # Icons (prefer payload icon)
