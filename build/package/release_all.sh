@@ -49,6 +49,25 @@ VARIANT="glibc$LEG_LABEL" "$SCRIPTS/package_appimage.sh"
 VARIANT="glibc$LEG_LABEL" "$SCRIPTS/package_deb.sh"
 
 
+# Build launcher publish for linux-x64
+note "Publishing Launcher (linux-x64)…"
+dotnet publish src/WPStallman.Launcher/WPStallman.Launcher.csproj \
+  -c Release -f net8.0 -r linux-x64 \
+  -p:SelfContained=true \
+  -p:PublishSingleFile=true \
+  -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:PublishTrimmed=false
+
+
+# Unified AppImage containing launcher + both variants
+note "Packaging Unified AppImage (launcher + legacy + modern)…"
+LAUNCHER_DIR="src/WPStallman.Launcher/bin/Release/net8.0/linux-x64/publish" \
+build/package/package_appimage_unified.sh
+
+note "Packaging Unified .deb (launcher + legacy + modern)…"
+LAUNCHER_DIR="src/WPStallman.Launcher/bin/Release/net8.0/linux-x64/publish" \
+build/package/package_deb_unified.sh
+
 # ---------- Windows cross-publish ----------
 note "Cross-publishing Windows GUI…"
 dotnet publish src/WPStallman.GUI/WPStallman.GUI.csproj \
