@@ -9,10 +9,10 @@ die(){  printf "\n\033[1;31mERROR:\033[0m %s\n" "$*" >&2; exit 1; }
 # ---------- repo root ----------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# ---------- defaults (override via env) ----------
-# Variant selection (matches artifacts/dist/… naming)
+# ---------- variant-aware output roots ----------
+# Variant comes from env (release_all.sh sets VARIANT=glibc2.39 / glibc2.35)
+VARIANT="${VARIANT:-glibc2.39}"     # or 'current'
 RID="${RID:-linux-x64}"
-VARIANT="${VARIANT:-glibc2.39}"   # e.g. glibc2.35 | glibc2.39 | current
 
 # Staged input (produced by your stage script or orchestrator)
 GUI_DIR="${GUI_DIR:-$ROOT/artifacts/dist/WPStallman.GUI-${RID}-${VARIANT}}"
@@ -20,20 +20,24 @@ CLI_DIR="${CLI_DIR:-$ROOT/src/WPStallman.CLI/bin/Release/net8.0/${RID}/publish}"
 
 # App identity
 APP_NAME="${APP_NAME:-W. P. Stallman}"
-APP_ID="${APP_ID:-com.wpstallman.app}"   # also used for .desktop Icon and /usr/lib/<APP_ID>/
-MAIN_BIN="${MAIN_BIN:-WPStallman.GUI}"   # main executable name in publish dir
+APP_ID="${APP_ID:-com.wpstallman.app}"         # used for paths and .desktop Icon
+MAIN_BIN="${MAIN_BIN:-WPStallman.GUI}"         # main executable name in publish dir
+VERSION="${VERSION:-1.0.0}"
+ARCH="${ARCH:-$(uname -m)}"
 
 # Icons (prefer the one shipped in the payload)
 ICON_PNG="${ICON_PNG:-$GUI_DIR/wwwroot/img/WPS-256.png}"
 
 # Build/output folders
-BUILD="$ROOT/artifacts/build"
-OUTDIR="$ROOT/artifacts/packages"
-APPDIR="$BUILD/AppDir"
+BUILD="${BUILD:-$ROOT/artifacts/build}"        # keep build cache in a common place
+APPDIR="${APPDIR:-$BUILD/AppDir}"
 
-# Output filename
-VERSION="${VERSION:-1.0.0}"
-ARCH="${ARCH:-$(uname -m)}"
+# Variant-aware output directory for artifacts
+LINUXVAR_DIR="${LINUXVAR_DIR:-$ROOT/artifacts/packages/linuxvariants/$VARIANT}"
+OUTDIR="${OUTDIR:-$LINUXVAR_DIR}"
+mkdir -p "$OUTDIR"
+
+# Output filename (needs OUTDIR defined first)
 _SAFE_APP_NAME="$(printf '%s' "$APP_NAME" | tr ' /' '__')"
 OUT_APPIMAGE="${OUT_APPIMAGE:-$OUTDIR/${_SAFE_APP_NAME}-${VERSION}-${ARCH}.AppImage}"
 
@@ -42,7 +46,7 @@ OUT_APPIMAGE="${OUT_APPIMAGE:-$OUTDIR/${_SAFE_APP_NAME}-${VERSION}-${ARCH}.AppIm
 REQUIRE_PHOTINO_NATIVE="${REQUIRE_PHOTINO_NATIVE:-0}"
 
 
-mkdir -p "$BUILD" "$OUTDIR"
+mkdir -p "$OUTDIR"
 
 # ---------- sanity checks on inputs ----------
 [ -d "$GUI_DIR" ] || die "GUI_DIR not found: $GUI_DIR"
@@ -178,6 +182,7 @@ fi
 # ---------- build AppImage (no FUSE needed) ----------
 note "Building AppImage -> $OUT_APPIMAGE"
 APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" "$APPDIR" "$OUT_APPIMAGE"
+
 note "Wrote $OUT_APPIMAGE"
 
 # ---------- optional: copy debug runner next to AppImage ----------
