@@ -13,7 +13,10 @@ var DonateViewModel = function (app, params) {
             symbol: w.symbol,
             iconUrl: w.iconUrl,
             address: w.address,
-            urlTemplate: w.urlTemplate
+            urlTemplate: w.urlTemplate,
+            isCoin: w.isCoin,
+            url: w.url,
+            note: w.note
         };
 
         wallet.resolvedUrl = ko.pureComputed(function () {
@@ -47,78 +50,92 @@ var DonateViewModel = function (app, params) {
         return wallet;
     }
 
-var defaultWallets = [
-    {
-        name: 'Bitcoin',
-        symbol: 'BTC',
-        address: 'bc1qfrsp5z478svmwsskkmdej0qnsn2l4gxzpkfkc5',
-        urlTemplate: 'https://www.blockchain.com/btc/address/{address}',
-        iconUrl: 'img/coins/btc.png'
-    },
-    {
-        name: 'Ethereum',
-        symbol: 'ETH',
-        address: '0xA9F10eAdf8586a1D1A37325e29075f8d3E021D6c',
-        urlTemplate: 'https://etherscan.io/address/{address}',
-        iconUrl: 'img/coins/eth.png'
-    },
-    {
-        name: 'Tether',
-        symbol: 'USDT',
-        address: '0xA9F10eAdf8586a1D1A37325e29075f8d3E021D6c',
-        urlTemplate: 'https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7?a={address}',
-        iconUrl: 'img/coins/usdt.png'
-    },
-    {
-        name: 'USD Coin',
-        symbol: 'USDC',
-        address: '0xA9F10eAdf8586a1D1A37325e29075f8d3E021D6c',
-        urlTemplate: 'https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48?a={address}',
-        iconUrl: 'img/coins/usdc.png'
-    },
-    {
-        name: 'Binance Coin',
-        symbol: 'BNB',
-        address: '0xA9F10eAdf8586a1D1A37325e29075f8d3E021D6c',
-        urlTemplate: 'https://bscscan.com/address/{address}',
-        iconUrl: 'img/coins/bnb.png'
-    },
-    {
-        name: 'XRP',
-        symbol: 'XRP',
-        address: 'rwT7FEtJBUUAtGgixixG7rvgLb6GvWxrW4',
-        urlTemplate: 'https://xrpscan.com/account/{address}',
-        iconUrl: 'img/coins/xrp.png'
-    },
-    {
-        name: 'Dogecoin',
-        symbol: 'DOGE',
-        address: 'DN7XUZ89hxf21RDSPytJgQqnbbsNDAS88r',
-        urlTemplate: 'https://dogechain.info/address/{address}',
-        iconUrl: 'img/coins/doge.png'
-    },
-    {
-        name: 'Litecoin',
-        symbol: 'LTC',
-        address: 'ltc1qdruymcyl35y9t6t8fl2am06ekt5ekph7tre4ty',
-        urlTemplate: 'https://blockchair.com/litecoin/address/{address}',
-        iconUrl: 'img/coins/ltc.png'
-    },
-    {
-        name: 'Cardano',
-        symbol: 'ADA',
-        address: 'addr1q8ttnwgph73dy8wrjlnc4qwz9g6yk04as596vcrpa9hgf8460vmxj9pzteruwzvcr2wkkaky6hmvptpw76qakyzj0kjq46mrnp',
-        urlTemplate: 'https://cardanoscan.io/address/{address}',
-        iconUrl: 'img/coins/ada.png'
-    },
-    {
-        name: 'Tron',
-        symbol: 'TRX',
-        address: 'TBrg7gJ3gkRMMu5AFdZWZp5LweMxCHQQrX',
-        urlTemplate: 'https://tronscan.org/#/address/{address}',
-        iconUrl: 'img/coins/trx.png'
-    }
-];
+    var defaultWallets = [
+        // Example items in self.wallets (non-coin):
+        { name: 'PayPal', iconUrl: 'img/payments/paypal-128.png', url: 'https://paypal.me/lefthandenterprises', isCoin: false, note: 'LeftHandEnterprises' },
+        { name: 'Cash App', iconUrl: 'img/payments/cashapp-128.png', url: 'https://cash.app/$LeftHandEnterprises', isCoin: false, note: '$LeftHandEnterprises' },
+
+        {
+            name: 'Bitcoin',
+            symbol: 'BTC',
+            address: 'bc1qfrsp5z478svmwsskkmdej0qnsn2l4gxzpkfkc5',
+            urlTemplate: 'https://www.blockchain.com/btc/address/{address}',
+            iconUrl: 'img/coins/btc.png',
+            isCoin: true
+        },
+        {
+            name: 'Ethereum',
+            symbol: 'ETH',
+            address: '0xA9F10eAdf8586a1D1A37325e29075f8d3E021D6c',
+            urlTemplate: 'https://etherscan.io/address/{address}',
+            iconUrl: 'img/coins/eth.png',
+            isCoin: true
+        },
+        {
+            name: 'Tether',
+            symbol: 'USDT',
+            address: '0xA9F10eAdf8586a1D1A37325e29075f8d3E021D6c',
+            urlTemplate: 'https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7?a={address}',
+            iconUrl: 'img/coins/usdt.png',
+            isCoin: true
+        },
+        {
+            name: 'USD Coin',
+            symbol: 'USDC',
+            address: '0xA9F10eAdf8586a1D1A37325e29075f8d3E021D6c',
+            urlTemplate: 'https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48?a={address}',
+            iconUrl: 'img/coins/usdc.png',
+            isCoin: true
+        },
+        {
+            name: 'Binance Coin',
+            symbol: 'BNB',
+            address: '0xA9F10eAdf8586a1D1A37325e29075f8d3E021D6c',
+            urlTemplate: 'https://bscscan.com/address/{address}',
+            iconUrl: 'img/coins/bnb.png',
+            isCoin: true
+        },
+        {
+            name: 'XRP',
+            symbol: 'XRP',
+            address: 'rwT7FEtJBUUAtGgixixG7rvgLb6GvWxrW4',
+            urlTemplate: 'https://xrpscan.com/account/{address}',
+            iconUrl: 'img/coins/xrp.png',
+            isCoin: true
+        },
+        {
+            name: 'Dogecoin',
+            symbol: 'DOGE',
+            address: 'DN7XUZ89hxf21RDSPytJgQqnbbsNDAS88r',
+            urlTemplate: 'https://dogechain.info/address/{address}',
+            iconUrl: 'img/coins/doge.png',
+            isCoin: true
+        },
+        {
+            name: 'Litecoin',
+            symbol: 'LTC',
+            address: 'ltc1qdruymcyl35y9t6t8fl2am06ekt5ekph7tre4ty',
+            urlTemplate: 'https://blockchair.com/litecoin/address/{address}',
+            iconUrl: 'img/coins/ltc.png',
+            isCoin: true
+        },
+        {
+            name: 'Cardano',
+            symbol: 'ADA',
+            address: 'addr1q8ttnwgph73dy8wrjlnc4qwz9g6yk04as596vcrpa9hgf8460vmxj9pzteruwzvcr2wkkaky6hmvptpw76qakyzj0kjq46mrnp',
+            urlTemplate: 'https://cardanoscan.io/address/{address}',
+            iconUrl: 'img/coins/ada.png',
+            isCoin: true
+        },
+        {
+            name: 'Tron',
+            symbol: 'TRX',
+            address: 'TBrg7gJ3gkRMMu5AFdZWZp5LweMxCHQQrX',
+            urlTemplate: 'https://tronscan.org/#/address/{address}',
+            iconUrl: 'img/coins/trx.png',
+            isCoin: true
+        }
+    ];
 
 
 
@@ -132,6 +149,26 @@ var defaultWallets = [
         { key: 'address', title: 'Address' },
         { key: 'actions', title: 'Actions' }
     ];
+
+    function asBool(v) {
+        v = ko.unwrap(v);                         // works for observables and plain values
+        if (typeof v === 'string') v = v.trim().toLowerCase();
+        if (v === 'true') return true;
+        if (v === 'false') return false;
+        return !!v;                               // numbers/booleans/undefined -> boolean
+    }
+
+    // ✅ Coins only
+    self.walletsCrypto = ko.pureComputed(() => {
+        const list = self.wallets();              // IMPORTANT: unwrap the observableArray
+        return list.filter(w => asBool(w.isCoin));
+    });
+
+    // (optional) Non-coins
+    self.walletsNonCrypto = ko.pureComputed(() => {
+        const list = self.wallets();
+        return list.filter(w => !asBool(w.isCoin));
+    });
 
     // Send a { Command, Details, RequestId } envelope to the host
     function sendEnvelope(command, details) {
@@ -161,7 +198,15 @@ var defaultWallets = [
 
 
     self.openInHost = function (wallet) {
-        var url = wallet.resolvedUrl();
+        var url = null;
+
+        if (wallet.isCoin) {
+            url = wallet.resolvedUrl();
+        }
+        else {
+            url = wallet.url;
+        }
+
         var details = { url: url, symbol: wallet.symbol, name: wallet.name, address: wallet.address };
 
         if (!sendEnvelope("OpenUrl", details)) {
