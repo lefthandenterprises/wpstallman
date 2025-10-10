@@ -1,4 +1,13 @@
 <Project>
+  <PropertyGroup>
+    <!-- app/package version shown in About dialogs, filenames, etc. -->
+    <Version>1.0.0</Version>
+
+    <!-- Optional (usually align with Version): -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <PackageVersion>1.0.0</PackageVersion>
+  </PropertyGroup>
 
   <!-- Only choose a TFM when the project multi-targets and a TFM wasn't specified -->
   <PropertyGroup Condition="'$(TargetFramework)'=='' AND '$(TargetFrameworks)'!=''">

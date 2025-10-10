@@ -1,150 +1,232 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-note(){ printf "\n\033[1;36m==> %s\033[0m\n" "$*"; }
-warn(){ printf "\033[1;33mWARNING:\033[0m %s\n" "$*"; }
-die(){  printf "\n\033[1;31mERROR:\033[0m %s\n" "$*" >&2; exit 2; }
+# ───────────────────────────────
+# Pretty logging
+# ───────────────────────────────
+note() { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
+warn() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
+die()  { printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# ───────────────────────────────
+# Repo layout & identity
+# ───────────────────────────────
+ROOT="${ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+cd "$ROOT"
 
-# ----- inputs -----
-RID="${RID:-linux-x64}"
+: "${APP_ID:=com.wpstallman.app}"
+: "${APP_NAME:="W. P. Stallman"}"
+: "${MAIN_BIN:=WPStallman.GUI}"
 
-LEG_DIR="${LEG_DIR:-$ROOT/artifacts/dist/WPStallman.GUI-${RID}-glibc2.35}"
-MOD_DIR="${MOD_DIR:-$ROOT/artifacts/dist/WPStallman.GUI-${RID}-glibc2.39}"
+# Optional suffix to label the build (e.g., -unified, -nightly, etc.)
+: "${APP_SUFFIX:="-unified"}"
 
-LAUNCHER_DIR="${LAUNCHER_DIR:-$ROOT/src/WPStallman.Launcher/bin/Release/net8.0/${RID}/publish}"
+# Projects / publish defaults (you can override via env)
+: "${GUI_CSPROJ:=src/WPStallman.GUI/WPStallman.GUI.csproj}"
+: "${TFM_LIN_GUI:=net8.0}"
+: "${RID_LIN:=linux-x64}"
 
-APP_NAME="${APP_NAME:-W. P. Stallman}"
-APP_ID="${APP_ID:-com.wpstallman.app}"
-VERSION="${VERSION:-1.0.0}"
-ARCH="${ARCH:-$(uname -m)}"
-
-ICON_PNG="${ICON_PNG:-$MOD_DIR/wwwroot/img/WPS-256.png}"
-
-OUTBASE="${OUTBASE:-$ROOT/artifacts/packages/linuxvariants/unified}"
-OUTDIR="$OUTBASE"
-mkdir -p "$OUTDIR"
-
-SAFE_NAME="$(printf '%s' "$APP_NAME" | tr ' /' '__')"
-OUT_APPIMAGE="${OUT_APPIMAGE:-$OUTDIR/${SAFE_NAME}_${VERSION}_${ARCH}.AppImage}"
-
-BUILD="${BUILD:-$ROOT/artifacts/build}"
-APPDIR="$BUILD/AppDirUnified"
-
-# sanity
-[ -d "$LEG_DIR" ] || die "Legacy staged dir missing: $LEG_DIR"
-[ -d "$MOD_DIR" ] || die "Modern staged dir missing: $MOD_DIR"
-[ -x "$LEG_DIR/WPStallman.GUI" ] || die "Legacy GUI missing: $LEG_DIR/WPStallman.GUI"
-[ -x "$MOD_DIR/WPStallman.GUI" ] || die "Modern GUI missing: $MOD_DIR/WPStallman.GUI"
-[ -d "$LAUNCHER_DIR" ] || die "Launcher publish dir missing: $LAUNCHER_DIR"
-[ -x "$LAUNCHER_DIR/WPStallman.Launcher" ] || die "Launcher binary missing in publish (ensure SelfContained=true)"
-
-# clean build dir (recover if root-owned)
-if [ -d "$APPDIR" ]; then
-  rm -rf "$APPDIR" 2>/dev/null || { note "Escalating to sudo to clean $APPDIR…"; sudo rm -rf "$APPDIR"; }
+# Try to auto-locate payloads if not provided:
+# GTK 4.1 payload (24.04+ baseline)
+: "${PUBLISH_DIR_GTK41:=}"
+if [[ -z "${PUBLISH_DIR_GTK41}" ]]; then
+  for cand in \
+    "$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish" \
+    "$ROOT/artifacts/publish-gtk4.1" \
+    "$ROOT/src/WPStallman.GUI.GTK41/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish"
+  do [[ -d "$cand" ]] && PUBLISH_DIR_GTK41="$cand" && break; done
 fi
-mkdir -p \
-  "$APPDIR/usr/lib/$APP_ID" \
-  "$APPDIR/usr/lib/$APP_ID/variants/glibc2.35" \
-  "$APPDIR/usr/lib/$APP_ID/variants/glibc2.39" \
-  "$APPDIR/usr/share/applications" \
-  "$APPDIR/usr/share/icons/hicolor/64x64/apps" \
-  "$APPDIR/usr/share/icons/hicolor/128x128/apps" \
-  "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-# 1) copy launcher
-note "Copying launcher"
-rsync -a "$LAUNCHER_DIR/." "$APPDIR/usr/lib/$APP_ID/"
+# GTK 4.0 payload (22.04 baseline)
+: "${PUBLISH_DIR_GTK40:=}"
+if [[ -z "${PUBLISH_DIR_GTK40}" ]]; then
+  for cand in \
+    "$ROOT/artifacts/publish-gtk4.0" \
+    "$ROOT/src/WPStallman.GUI.GTK40/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish"
+  do [[ -d "$cand" ]] && PUBLISH_DIR_GTK40="$cand" && break; done
+fi
 
-# 2) copy variants
-note "Copying variants"
-rsync -a --delete "$LEG_DIR/." "$APPDIR/usr/lib/$APP_ID/variants/glibc2.35/"
-rsync -a --delete "$MOD_DIR/." "$APPDIR/usr/lib/$APP_ID/variants/glibc2.39/"
+# You need at least one payload; ideally both.
+[[ -d "${PUBLISH_DIR_GTK41:-/nonexistent}" || -d "${PUBLISH_DIR_GTK40:-/nonexistent}" ]] \
+  || die "No payloads found. Set PUBLISH_DIR_GTK41 and/or PUBLISH_DIR_GTK40."
 
-# 3) desktop file (points to Launcher via AppRun)
-DESKTOP="$APPDIR/$APP_ID.desktop"
-cat > "$DESKTOP" <<EOF
-[Desktop Entry]
-Type=Application
-Name=${APP_NAME}
-GenericName=WordPress plugin database packer
-Comment=WordPress plugin database packer (unified)
-Keywords=WordPress;plugins;database;stallman;wp;packer;
-Exec=usr/lib/${APP_ID}/WPStallman.Launcher %U
-Icon=${APP_ID}
-Categories=Development;
-Terminal=false
-StartupWMClass=WPStallman.GUI
-EOF
-install -m644 "$DESKTOP" "$APPDIR/usr/share/applications/${APP_ID}.desktop"
+# ───────────────────────────────
+# Version resolver (Directory.Build.props / MSBuild)
+# ───────────────────────────────
+get_msbuild_prop() {
+  local proj="$1" prop="$2"
+  dotnet msbuild "$proj" -nologo -getProperty:"$prop" 2>/dev/null | tr -d '\r' | tail -n1
+}
+get_version_from_props() {
+  local props="$ROOT/Directory.Build.props"
+  [[ -f "$props" ]] || { echo ""; return; }
+  grep -oP '(?<=<Version>).*?(?=</Version>)' "$props" | head -n1
+}
+resolve_app_version() {
+  local v=""
+  v="$(get_msbuild_prop "$GUI_CSPROJ" "Version")"
+  if [[ -z "$v" || "$v" == "*Undefined*" ]]; then
+    v="$(get_version_from_props)"
+  fi
+  echo "$v"
+}
+APP_VERSION="${APP_VERSION_OVERRIDE:-$(resolve_app_version)}"
+[[ -n "$APP_VERSION" ]] || die "Could not resolve Version from MSBuild or Directory.Build.props"
+export APP_VERSION
+note "Version: $APP_VERSION"
 
-# 4) icons
+# ───────────────────────────────
+# Output dirs
+# ───────────────────────────────
+: "${ARTIFACTS_DIR:=artifacts}"
+: "${BUILDDIR:=$ARTIFACTS_DIR/build}"
+: "${OUTDIR:=$ARTIFACTS_DIR/packages}"
+mkdir -p "$BUILDDIR" "$OUTDIR"
+
+APPDIR="$BUILDDIR/AppDir"
+rm -rf "$APPDIR"
+mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/lib/$APP_ID" "$APPDIR/usr/share/applications"
+
+# ───────────────────────────────
+# Stage payloads
+# ───────────────────────────────
+stage_payload() {
+  local src="$1" subdir="$2"
+  [[ -d "$src" ]] || return 1
+  note "Staging $subdir payload from: $src"
+  mkdir -p "$APPDIR/usr/lib/$APP_ID/$subdir"
+  rsync -a --delete "$src/" "$APPDIR/usr/lib/$APP_ID/$subdir/"
+  # Ensure native lib is present
+  if [[ ! -f "$APPDIR/usr/lib/$APP_ID/$subdir/libPhotino.Native.so" ]]; then
+    warn "[$subdir] libPhotino.Native.so not found in publish; GUI may fail if host lacks WebKitGTK."
+  fi
+  return 0
+}
+
+HAVE_41=0
+HAVE_40=0
+if [[ -n "${PUBLISH_DIR_GTK41:-}" && -d "$PUBLISH_DIR_GTK41" ]]; then
+  stage_payload "$PUBLISH_DIR_GTK41" "gtk4.1" && HAVE_41=1
+fi
+if [[ -n "${PUBLISH_DIR_GTK40:-}" && -d "$PUBLISH_DIR_GTK40" ]]; then
+  stage_payload "$PUBLISH_DIR_GTK40" "gtk4.0" && HAVE_40=1
+fi
+(( HAVE_41 == 1 || HAVE_40 == 1 )) || die "Staging failed; no payload copied."
+
+# ───────────────────────────────
+# Choose an icon and copy to AppDir root
+# ───────────────────────────────
+pick_icon() {
+  local base="$1"
+  local candidates=(
+    "$base/wwwroot/img/WPS-256.png"
+    "$base/wwwroot/img/WPS.png"
+    "$base/wwwroot/img/wpst-256.png"
+  )
+  for c in "${candidates[@]}"; do [[ -f "$c" ]] && echo "$c" && return 0; done
+  return 1
+}
 ICON_SRC=""
-if [[ -f "$ICON_PNG" ]]; then
-  ICON_SRC="$ICON_PNG"
-elif [[ -f "$MOD_DIR/wwwroot/img/WPS-256.png" ]]; then
-  ICON_SRC="$MOD_DIR/wwwroot/img/WPS-256.png"
+if (( HAVE_41 )); then
+  ICON_SRC="$(pick_icon "$APPDIR/usr/lib/$APP_ID/gtk4.1")" || true
+fi
+if [[ -z "$ICON_SRC" && $HAVE_40 -eq 1 ]]; then
+  ICON_SRC="$(pick_icon "$APPDIR/usr/lib/$APP_ID/gtk4.0")" || true
 fi
 if [[ -n "$ICON_SRC" ]]; then
-  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/64x64/apps/${APP_ID}.png"
-  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/128x128/apps/${APP_ID}.png"
-  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_ID}.png"
-  cp -f "$ICON_SRC" "$APPDIR/${APP_ID}.png" 2>/dev/null || true
+  cp -f "$ICON_SRC" "$APPDIR/${APP_ID}.png"
 else
-  warn "No icon source found"
+  warn "Icon not found in payloads; AppImage will use a generic icon."
 fi
 
-# Also set the AppImage file icon (.DirIcon) so the AppImage itself shows the app icon
-if [[ -n "$ICON_SRC" ]]; then
-  cp -f "$ICON_SRC" "$APPDIR/.DirIcon" 2>/dev/null || true
-fi
-
-
-# 5) AppRun -> runs Launcher, sets env for self-contained & ICU-lite
+# ───────────────────────────────
+# Create AppRun (runtime selector)
+# ───────────────────────────────
 cat > "$APPDIR/AppRun" <<'EOF'
 #!/usr/bin/env bash
-HERE="$(dirname "$(readlink -f "$0")")"
-APP_ID="com.wpstallman.app"
+set -euo pipefail
+HERE="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+APPROOT="$HERE/usr/lib/com.wpstallman.app"
 
-# Keep .NET single-file extraction cache stable between runs
-export DOTNET_BUNDLE_EXTRACT_BASE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/WPStallman/dotnet_bundle"
+gtk41_dir="$APPROOT/gtk4.1"
+gtk40_dir="$APPROOT/gtk4.0"
+target_dir=""
 
-# Some distros lack ICU; use invariant globalization rather than failing hard
-export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+version_ge() { # compare dotted versions (e.g., 2.39 >= 2.38)
+  [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]
+}
 
-# Let native loader find libs sitting next to whichever variant the launcher picks
-export LD_LIBRARY_PATH="$HERE/usr/lib/${APP_ID}:${LD_LIBRARY_PATH:-}"
+glibc_ver="$(ldd --version 2>/dev/null | awk 'NR==1{print $NF}')"
+have_gtk41_libs="no"
+if ldconfig -p 2>/dev/null | grep -q 'libwebkit2gtk-4\.1\.so\.0'; then
+  have_gtk41_libs="yes"
+elif [[ -e /lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0 || -e /usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0 ]]; then
+  have_gtk41_libs="yes"
+fi
 
-exec "$HERE/usr/lib/${APP_ID}/WPStallman.Launcher" "$@"
+# Prefer gtk4.1 when host glibc >= 2.38 and libs exist; else fall back
+if [[ -d "$gtk41_dir" ]] && [[ "$have_gtk41_libs" == "yes" ]] && version_ge "${glibc_ver:-0}" "2.38"; then
+  target_dir="$gtk41_dir"
+elif [[ -d "$gtk40_dir" ]]; then
+  target_dir="$gtk40_dir"
+elif [[ -d "$gtk41_dir" ]]; then
+  target_dir="$gtk41_dir"
+fi
+
+if [[ -z "$target_dir" ]]; then
+  echo "No suitable GUI payload found." >&2
+  exit 1
+fi
+
+export LD_LIBRARY_PATH="$target_dir:${LD_LIBRARY_PATH:-}"
+exec "$target_dir/WPStallman.GUI" "${@:-}"
 EOF
 chmod +x "$APPDIR/AppRun"
 
-# 6) appimagetool bootstrap & build
-APPTOOLS_DIR="${APPTOOLS_DIR:-$ROOT/build/tools}"
-APPIMAGETOOL="${APPIMAGETOOL:-appimagetool}"
-if ! command -v "$APPIMAGETOOL" >/dev/null 2>&1; then
-  mkdir -p "$APPTOOLS_DIR"
-  APPIMAGETOOL="$APPTOOLS_DIR/appimagetool-x86_64.AppImage"
-  if [[ ! -x "$APPIMAGETOOL" ]]; then
-    note "Bootstrapping appimagetool -> $APPIMAGETOOL"
-    curl -fsSL -o "$APPIMAGETOOL" \
-      https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-    chmod +x "$APPIMAGETOOL"
+# Create symlink for Exec target
+ln -sf "./AppRun" "$APPDIR/usr/bin/${APP_ID}"
+
+# ───────────────────────────────
+# Desktop file (includes AppImage version)
+# ───────────────────────────────
+cat > "$APPDIR/${APP_ID}.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=${APP_NAME}
+Comment=WPStallman
+Exec=${APP_ID}
+Icon=${APP_ID}
+Categories=Utility;
+StartupWMClass=WPStallman.GUI
+X-AppImage-Version=${APP_VERSION}
+EOF
+
+# ───────────────────────────────
+# Diagnostics (print ldd for each payload if present)
+# ───────────────────────────────
+print_ldd() {
+  local sub="$1"
+  local so="$APPDIR/usr/lib/$APP_ID/$sub/libPhotino.Native.so"
+  if [[ -f "$so" ]]; then
+    note "ldd on Photino native ($sub payload):"
+    ldd "$so" | sed 's/^/  /' || true
+  else
+    warn "No libPhotino.Native.so found under $sub payload."
   fi
-fi
+}
+(( HAVE_41 )) && print_ldd "gtk4.1"
+(( HAVE_40 )) && print_ldd "gtk4.0"
 
-note "Building Unified AppImage -> $OUT_APPIMAGE"
-APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" "$APPDIR" "$OUT_APPIMAGE"
-note "Wrote $OUT_APPIMAGE"
+# ───────────────────────────────
+# Build the AppImage
+# ───────────────────────────────
+OUTFILE="$OUTDIR/WPStallman-${APP_VERSION}-x86_64${APP_SUFFIX}.AppImage"
+note "Building AppImage → $OUTFILE"
 
-# 7) copy debug runner next to the unified AppImage
-SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
-DEBUG_RUNNER_SRC="$SCRIPT_DIR/run-wpst-debug.sh"
-if [[ -f "$DEBUG_RUNNER_SRC" ]]; then
-  cp -f "$DEBUG_RUNNER_SRC" "$OUTDIR/run-wpst-debug.sh"
-  chmod +x "$OUTDIR/run-wpst-debug.sh"
-  note "Debug runner: $OUTDIR/run-wpst-debug.sh"
-else
-  warn "No debug runner at $DEBUG_RUNNER_SRC; skipping copy."
-fi
+export APPIMAGE_EXTRACT_AND_RUN=${APPIMAGE_EXTRACT_AND_RUN:-1}
+command -v appimagetool >/dev/null 2>&1 || die "appimagetool is not in PATH."
+
+appimagetool "$APPDIR" "$OUTFILE"
+chmod +x "$OUTFILE"
+
+note "AppImage built: $OUTFILE"

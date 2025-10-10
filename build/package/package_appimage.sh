@@ -1,195 +1,153 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ---------- helpers ----------
-note(){ printf "\n\033[1;36m==> %s\033[0m\n" "$*"; }
-warn(){ printf "\033[1;33mWARNING:\033[0m %s\n" "$*"; }
-die(){  printf "\n\033[1;31mERROR:\033[0m %s\n" "$*" >&2; exit 1; }
+# ───────────────────────────────
+# Pretty logging
+# ───────────────────────────────
+note() { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
+warn() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
+die()  { printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
 
-# ---------- repo root ----------
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# ───────────────────────────────
+# Repo layout & inputs (adjust if needed)
+# ───────────────────────────────
+ROOT="${ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+cd "$ROOT"
 
-# ---------- variant-aware output roots ----------
-# Variant comes from env (release_all.sh sets VARIANT=glibc2.39 / glibc2.35)
-VARIANT="${VARIANT:-glibc2.39}"     # or 'current'
-RID="${RID:-linux-x64}"
+: "${GUI_CSPROJ:=src/WPStallman.GUI/WPStallman.GUI.csproj}"
+: "${TFM_LIN_GUI:=net8.0}"
+: "${RID_LIN:=linux-x64}"
 
-# Staged input (produced by your stage script or orchestrator)
-GUI_DIR="${GUI_DIR:-$ROOT/artifacts/dist/WPStallman.GUI-${RID}-${VARIANT}}"
-CLI_DIR="${CLI_DIR:-$ROOT/src/WPStallman.CLI/bin/Release/net8.0/${RID}/publish}"
+PUB_LIN_GUI="$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish"
+[[ -d "$PUB_LIN_GUI" ]] || die "Linux GUI publish folder not found: $PUB_LIN_GUI (run package_all.sh first)"
 
-# App identity
-APP_NAME="${APP_NAME:-W. P. Stallman}"
-APP_ID="${APP_ID:-com.wpstallman.app}"         # used for paths and .desktop Icon
-MAIN_BIN="${MAIN_BIN:-WPStallman.GUI}"         # main executable name in publish dir
-VERSION="${VERSION:-1.0.0}"
-ARCH="${ARCH:-$(uname -m)}"
+# Output dirs/files
+: "${ARTIFACTS_DIR:=artifacts}"
+: "${BUILDDIR:=$ARTIFACTS_DIR/build}"
+: "${OUTDIR:=$ARTIFACTS_DIR/packages}"
+mkdir -p "$BUILDDIR" "$OUTDIR"
 
-# Icons (prefer the one shipped in the payload)
-ICON_PNG="${ICON_PNG:-$GUI_DIR/wwwroot/img/WPS-256.png}"
+# AppImage identity
+: "${APP_ID:=com.wpstallman.app}"
+: "${APP_NAME:="W. P. Stallman"}"
+: "${MAIN_BIN:=WPStallman.GUI}"
 
-# Build/output folders
-BUILD="${BUILD:-$ROOT/artifacts/build}"        # keep build cache in a common place
-APPDIR="${APPDIR:-$BUILD/AppDir}"
+# Optional suffix to label baselines (e.g., -gtk4.0 / -gtk4.1)
+: "${APP_SUFFIX:=}"
 
-# Variant-aware output directory for artifacts
-LINUXVAR_DIR="${LINUXVAR_DIR:-$ROOT/artifacts/packages/linuxvariants/$VARIANT}"
-OUTDIR="${OUTDIR:-$LINUXVAR_DIR}"
-mkdir -p "$OUTDIR"
-
-# Output filename (needs OUTDIR defined first)
-_SAFE_APP_NAME="$(printf '%s' "$APP_NAME" | tr ' /' '__')"
-OUT_APPIMAGE="${OUT_APPIMAGE:-$OUTDIR/${_SAFE_APP_NAME}-${VERSION}-${ARCH}.AppImage}"
-
-# Require Photino native to be present as a loose file?
-# 0 = best-effort (warn if missing), 1 = hard requirement
-REQUIRE_PHOTINO_NATIVE="${REQUIRE_PHOTINO_NATIVE:-0}"
-
-
-mkdir -p "$OUTDIR"
-
-# ---------- sanity checks on inputs ----------
-[ -d "$GUI_DIR" ] || die "GUI_DIR not found: $GUI_DIR"
-[ -x "$GUI_DIR/$MAIN_BIN" ] || die "GUI binary not found: $GUI_DIR/$MAIN_BIN"
-[ -f "$GUI_DIR/wwwroot/index.html" ] || die "Missing wwwroot: $GUI_DIR/wwwroot/index.html"
-
-# ---------- clean AppDir structure ----------
-rm -rf "$APPDIR"
-mkdir -p \
-  "$APPDIR/usr/lib/$APP_ID" \
-  "$APPDIR/usr/share/applications" \
-  "$APPDIR/usr/share/icons/hicolor/64x64/apps" \
-  "$APPDIR/usr/share/icons/hicolor/128x128/apps" \
-  "$APPDIR/usr/share/icons/hicolor/256x256/apps"
-
-# ---------- stage payload ----------
-note "Staging payload into AppDir"
-rsync -a "$GUI_DIR/." "$APPDIR/usr/lib/$APP_ID/"
-# CLI optional
-if [ -d "$CLI_DIR" ]; then
-  rsync -a "$CLI_DIR/." "$APPDIR/usr/lib/$APP_ID/" || true
-fi
-
-# ---------- ensure Photino native present in AppDir ----------
-ensure_photino_native() {
-  local dest="$APPDIR/usr/lib/$APP_ID"
-  # if present, make sure both names exist for good measure
-  if [[ -f "$dest/libPhotino.Native.so" || -f "$dest/Photino.Native.so" ]]; then
-    [[ -f "$dest/libPhotino.Native.so" && ! -e "$dest/Photino.Native.so" ]] && ln -sf libPhotino.Native.so "$dest/Photino.Native.so"
-    [[ -f "$dest/Photino.Native.so"    && ! -e "$dest/libPhotino.Native.so" ]] && ln -sf Photino.Native.so "$dest/libPhotino.Native.so"
-    return 0
-  fi
-
-  note "Locating Photino native for AppImage…"
-  local cand=""
-
-  # 1) Common publish sibling (…/net8.0/linux-x64)
-  for name in libPhotino.Native.so Photino.Native.so; do
-    [[ -z "$cand" && -f "$GUI_DIR/../$name" ]] && cand="$GUI_DIR/../$name"
-  done
-
-  # 2) Under runtimes in publish root
-  [[ -z "$cand" ]] && cand="$(find "$GUI_DIR/.." -maxdepth 8 -path '*/runtimes/linux-x64/native/*photino.native*.so' -type f -print -quit 2>/dev/null || true)"
-
-  # 3) NuGet cache fallback
-  if [[ -z "$cand" ]]; then
-    local NUPKG="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
-    cand="$(find "$NUPKG/photino.native" -path '*/runtimes/linux-x64/native/*photino.native*.so' -type f 2>/dev/null | sort -V | tail -n1 || true)"
-  fi
-
-  [[ -z "$cand" ]] && return 1
-
-  note "  candidate: $cand"
-  cp -f "$cand" "$dest/libPhotino.Native.so"
-  ln -sf libPhotino.Native.so "$dest/Photino.Native.so"
-  return 0
+# ───────────────────────────────
+# Version resolver (Directory.Build.props / MSBuild)
+# ───────────────────────────────
+get_msbuild_prop() {
+  local proj="$1" prop="$2"
+  dotnet msbuild "$proj" -nologo -getProperty:"$prop" 2>/dev/null | tr -d '\r' | tail -n1
 }
+get_version_from_props() {
+  local props="$ROOT/Directory.Build.props"
+  [[ -f "$props" ]] || { echo ""; return; }
+  grep -oP '(?<=<Version>).*?(?=</Version>)' "$props" | head -n1
+}
+resolve_app_version() {
+  local v=""
+  v="$(get_msbuild_prop "$GUI_CSPROJ" "Version")"
+  if [[ -z "$v" || "$v" == "*Undefined*" ]]; then
+    v="$(get_version_from_props)"
+  fi
+  echo "$v"
+}
+APP_VERSION="${APP_VERSION_OVERRIDE:-$(resolve_app_version)}"
+[[ -n "$APP_VERSION" ]] || die "Could not resolve Version from MSBuild or Directory.Build.props"
+export APP_VERSION
+note "Version: $APP_VERSION"
 
-[[ -x "$APPDIR/usr/lib/$APP_ID/$MAIN_BIN" ]] || die "Missing $MAIN_BIN inside AppDir"
-# old:
-# ensure_photino_native || die "Missing Photino native in AppDir and NuGet cache fallback failed."
+# ───────────────────────────────
+# Prepare AppDir
+# ───────────────────────────────
+APPDIR="$BUILDDIR/AppDir"
+rm -rf "$APPDIR"
+mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/lib/$APP_ID" "$APPDIR/usr/share/applications"
 
-# new:
-if ! ensure_photino_native; then
-  if [[ "$REQUIRE_PHOTINO_NATIVE" == "1" ]]; then
-    die "Missing Photino native in AppDir and NuGet cache fallback failed."
+# Stage payload (publish folder → usr/lib/<APP_ID>)
+note "Staging publish → $APPDIR/usr/lib/$APP_ID"
+rsync -a --delete "$PUB_LIN_GUI/" "$APPDIR/usr/lib/$APP_ID/"
+
+# Ensure native lib is present (Photino requires it when non–single-file)
+if [[ ! -f "$APPDIR/usr/lib/$APP_ID/libPhotino.Native.so" ]]; then
+  warn "Missing libPhotino.Native.so in publish; attempting to locate next to publish…"
+  if [[ -f "$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/libPhotino.Native.so" ]]; then
+    cp -f "$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/libPhotino.Native.so" "$APPDIR/usr/lib/$APP_ID/"
+    note "Copied libPhotino.Native.so from bin/Release."
   else
-    warn "Photino native not found to pre-copy; relying on single-file runtime extraction."
+    warn "Still no libPhotino.Native.so; the AppImage may fail on systems lacking the right WebKitGTK."
   fi
 fi
 
-
-# ---------- .desktop entry ----------
-DESKTOP="$APPDIR/$APP_ID.desktop"
-cat > "$DESKTOP" <<EOF
-[Desktop Entry]
-Type=Application
-Name=${APP_NAME}
-Comment=WordPress plugin project manager
-Exec=usr/lib/${APP_ID}/${MAIN_BIN} %U
-Icon=${APP_ID}
-Categories=Development;
-Terminal=false
-StartupWMClass=WPStallman.GUI
-EOF
-note "Desktop written: $DESKTOP"
-
-# ---------- icons ----------
-ICON_SRC=""
-if [[ -f "$ICON_PNG" ]]; then
-  ICON_SRC="$ICON_PNG"
-elif [[ -f "$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-256.png" ]]; then
-  ICON_SRC="$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-256.png"
-elif [[ -f "$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-512.png" ]]; then
-  ICON_SRC="$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-512.png"
+# Copy icon (prefer the 256px app icon from wwwroot/img)
+ICON_SRC="$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-256.png"
+if [[ ! -f "$ICON_SRC" ]]; then
+  # Try a couple alternative names
+  for alt in "$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS.png" \
+             "$APPDIR/usr/lib/$APP_ID/wwwroot/img/wpst-256.png"; do
+    [[ -f "$alt" ]] && ICON_SRC="$alt" && break
+  done
 fi
-
-if [[ -n "$ICON_SRC" ]]; then
-  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/64x64/apps/${APP_ID}.png"
-  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/128x128/apps/${APP_ID}.png"
-  install -m644 "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_ID}.png"
-  # Root-level icon for very old appimagetool expectations
-  cp -f "$ICON_SRC" "$APPDIR/${APP_ID}.png" 2>/dev/null || true
+if [[ -f "$ICON_SRC" ]]; then
+  cp -f "$ICON_SRC" "$APPDIR/${APP_ID}.png"
 else
-  warn "No icon source found; desktop may show a generic icon."
+  warn "App icon not found at wwwroot/img; the AppImage will have a generic icon."
 fi
 
-# ---------- AppRun launcher ----------
+# AppRun (sets LD_LIBRARY_PATH and executes the app)
 cat > "$APPDIR/AppRun" <<'EOF'
 #!/usr/bin/env bash
-HERE="$(dirname "$(readlink -f "$0")")"
-export DOTNET_BUNDLE_EXTRACT_BASE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/WPStallman/dotnet_bundle"
-export LD_LIBRARY_PATH="$HERE/usr/lib/com.wpstallman.app:${LD_LIBRARY_PATH}"
-exec "$HERE/usr/lib/com.wpstallman.app/WPStallman.GUI" "$@"
+set -euo pipefail
+HERE="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+APPDIR_LIB="$HERE/usr/lib/com.wpstallman.app"
+export LD_LIBRARY_PATH="$APPDIR_LIB:${LD_LIBRARY_PATH:-}"
+exec "$APPDIR_LIB/WPStallman.GUI" "${@:-}"
 EOF
 chmod +x "$APPDIR/AppRun"
 
-# ---------- appimagetool bootstrap (portable) ----------
-APPTOOLS_DIR="${APPTOOLS_DIR:-$ROOT/build/tools}"
-APPIMAGETOOL="${APPIMAGETOOL:-appimagetool}"
+# Desktop file
+cat > "$APPDIR/${APP_ID}.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=${APP_NAME}
+Comment=WPStallman
+Exec=${APP_ID}
+Icon=${APP_ID}
+Categories=Utility;
+StartupWMClass=WPStallman.GUI
+X-AppImage-Version=${APP_VERSION}
+EOF
 
-if ! command -v "$APPIMAGETOOL" >/dev/null 2>&1; then
-  mkdir -p "$APPTOOLS_DIR"
-  APPIMAGETOOL="$APPTOOLS_DIR/appimagetool-x86_64.AppImage"
-  if [[ ! -x "$APPIMAGETOOL" ]]; then
-    note "Bootstrapping appimagetool -> $APPIMAGETOOL"
-    curl -fsSL -o "$APPIMAGETOOL" \
-      https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-    chmod +x "$APPIMAGETOOL"
+# Symlink launcher name expected by .desktop
+ln -sf "./AppRun" "$APPDIR/usr/bin/${APP_ID}"
+
+# ───────────────────────────────
+# Sanity: show native deps (warn if GTK SONAME is 4.0 when you expect 4.1)
+# ───────────────────────────────
+if [[ -f "$APPDIR/usr/lib/$APP_ID/libPhotino.Native.so" ]]; then
+  note "ldd on Photino native (AppImage payload):"
+  ldd "$APPDIR/usr/lib/$APP_ID/libPhotino.Native.so" | sed 's/^/  /' || true
+  if ldd "$APPDIR/usr/lib/$APP_ID/libPhotino.Native.so" | grep -q 'libwebkit2gtk-4\.0'; then
+    warn "Photino native links to WebKitGTK 4.0. On Ubuntu 24.04+, prefer GTK 4.1 builds."
   fi
 fi
 
-# ---------- build AppImage (no FUSE needed) ----------
-note "Building AppImage -> $OUT_APPIMAGE"
-APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" "$APPDIR" "$OUT_APPIMAGE"
+# ───────────────────────────────
+# Build AppImage
+# ───────────────────────────────
+OUTFILE="$OUTDIR/WPStallman-${APP_VERSION}-x86_64${APP_SUFFIX}.AppImage"
+note "Building AppImage → $OUTFILE"
 
-note "Wrote $OUT_APPIMAGE"
+# Hint for environments without FUSE
+export APPIMAGE_EXTRACT_AND_RUN=${APPIMAGE_EXTRACT_AND_RUN:-1}
 
-# ---------- optional: copy debug runner next to AppImage ----------
-SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
-DEBUG_RUNNER_SRC="$SCRIPT_DIR/run-wpst-debug.sh"
-if [[ -f "$DEBUG_RUNNER_SRC" ]]; then
-  cp -f "$DEBUG_RUNNER_SRC" "$OUTDIR/run-wpst-debug.sh"
-  chmod +x "$OUTDIR/run-wpst-debug.sh"
-  note "Debug runner: $OUTDIR/run-wpst-debug.sh"
+if ! command -v appimagetool >/dev/null 2>&1; then
+  die "appimagetool is not in PATH. Install it or place it at /usr/local/bin/appimagetool."
 fi
+
+appimagetool "$APPDIR" "$OUTFILE"
+chmod +x "$OUTFILE"
+note "AppImage built: $OUTFILE"
