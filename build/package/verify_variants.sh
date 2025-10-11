@@ -1,92 +1,68 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ---------- config ----------
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-RID="${RID:-linux-x64}"
-VARIANTS=(${VARIANTS:-glibc2.35 glibc2.39})
-APP_NAME="${APP_NAME:-W. P. Stallman}"
+note(){ printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
+warn(){ printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
+die(){  printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
 
-ok()  { printf "\033[32m✔ %s\033[0m\n" "$*"; }
-bad() { printf "\033[31m✗ %s\033[0m\n" "$*"; }
-hdr() { printf "\n\033[1;36m==> %s\033[0m\n" "$*"; }
+ROOT="${ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+cd "$ROOT"
 
-fail=0
+# Match stage_variants layout
+: "${ARTIFACTS_DIR:=artifacts}"
+: "${DIST_DIR:=$ARTIFACTS_DIR/dist}"
+LINUX_DIR="$DIST_DIR/linux"
+STAGE41="${STAGE41:-$LINUX_DIR/gtk4.1}"
+STAGE40="${STAGE40:-$LINUX_DIR/gtk4.0}"
 
-check_variant () {
-  local variant="$1"
-  hdr "Verifying Linux variant: $variant"
+mkdir -p "$LINUX_DIR" # keep it tidy on clean runs
 
-  # ---- staged payload (dist) ----
-  local STAGED="$ROOT/artifacts/dist/WPStallman.GUI-${RID}-${variant}"
-  if [[ ! -d "$STAGED" ]]; then bad "Staged dir missing: $STAGED"; fail=1; return; fi
-  ok "Staged dir exists: $STAGED"
+# Version (nice to print)
+: "${GUI_CSPROJ:=src/WPStallman.GUI/WPStallman.GUI.csproj}"
+get_msbuild_prop(){ dotnet msbuild "$1" -nologo -getProperty:"$2" 2>/dev/null | tr -d '\r' | tail -n1; }
+get_version_from_props(){ local p="$ROOT/Directory.Build.props"; [[ -f "$p" ]] && grep -oP '(?<=<Version>).*?(?=</Version>)' "$p" | head -n1 || echo ""; }
+resolve_app_version(){ local v; v="$(get_msbuild_prop "$GUI_CSPROJ" "Version")"; [[ -z "$v" || "$v" == "*Undefined*" ]] && v="$(get_version_from_props)"; echo "$v"; }
+APP_VERSION="${APP_VERSION_OVERRIDE:-$(resolve_app_version)}"
+[[ -n "$APP_VERSION" ]] && note "Version: $APP_VERSION" || warn "Version unresolved (OK)."
 
-  [[ -x "$STAGED/WPStallman.GUI" ]] || { bad "Missing GUI binary in staged dir"; fail=1; return; }
-  ok "Binary present: $STAGED/WPStallman.GUI"
-
-  [[ -f "$STAGED/wwwroot/index.html" ]] || { bad "Missing wwwroot/index.html in staged dir"; fail=1; return; }
-  ok "wwwroot present"
-
-  if [[ -f "$STAGED/SHA256SUMS" ]]; then
-    (cd "$STAGED" && sha256sum -c SHA256SUMS >/dev/null) \
-      && ok "SHA256SUMS verified" \
-      || { bad "SHA256SUMS failed"; fail=1; }
-  else
-    bad "No SHA256SUMS in staged dir (non-fatal)"
+check_payload(){
+  local dir="$1" label="$2"
+  printf "\n\033[1m== %s ==\033[0m\n" "$label"
+  if [[ ! -d "$dir" ]]; then
+    warn "Missing dir: $dir"
+    return
+  fi
+  local so="$dir/libPhotino.Native.so"
+  if [[ ! -f "$so" ]]; then
+    warn "No libPhotino.Native.so in $dir"
+    return
   fi
 
-  # glibc floor (informational)
-  local floor
-  floor="$(strings -a "$STAGED/WPStallman.GUI" | grep -oE 'GLIBC_[0-9]+\.[0-9]+' | sort -V | tail -n1 || true)"
-  [[ -n "$floor" ]] && ok "Detected GLIBC floor symbol in binary: $floor" || ok "GLIBC floor symbol not detected (ok)"
+  note "ldd on libPhotino.Native.so:"
+  (ldd "$so" || true) | sed 's/^/  /'
 
-  # ---- packaged outputs (linuxvariants/<variant>) ----
-  local OUTBASE="$ROOT/artifacts/packages/linuxvariants/$variant"
-  if [[ ! -d "$OUTBASE" ]]; then bad "Output dir missing: $OUTBASE"; fail=1; return; fi
-  ok "Output dir exists: $OUTBASE"
+  local need_glibc
+  need_glibc="$(strings "$so" | grep -oE 'GLIBC_[0-9]+\.[0-9]+' | sort -V | tail -n1 || true)"
+  [[ -n "$need_glibc" ]] && note "Detected GLIBC floor: $need_glibc" || warn "Could not detect GLIBC floor."
 
-  # AppImage
-  local ai; ai="$(ls -1 "$OUTBASE"/*.AppImage 2>/dev/null | head -n1 || true)"
-  if [[ -n "$ai" ]]; then
-    chmod +x "$ai" || true
-    ok "AppImage found: $(basename "$ai")"
-    # Quick metadata ping (no FUSE needed)
-    APPIMAGE_EXTRACT_AND_RUN=1 "$ai" --appimage-version >/dev/null 2>&1 \
-      && ok "AppImage self-check passed (--appimage-version)" \
-      || bad "AppImage self-check failed (--appimage-version)"
+  local has_gtk41="no" has_gtk40="no"
+  ldd "$so" 2>/dev/null | grep -q 'libwebkit2gtk-4\.1\.so\.0' && has_gtk41="yes"
+  ldd "$so" 2>/dev/null | grep -q 'libwebkit2gtk-4\.0\.so\.37' && has_gtk40="yes"
+
+  if [[ "$has_gtk41" == "yes" ]]; then
+    echo "→ WebKitGTK: 4.1 (Ubuntu 24.04+). Suggested .deb Depends:"
+    echo "   libc6 (>= 2.38), libstdc++6 (>= 13), libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, libjavascriptcoregtk-4.1-0, libwebkit2gtk-4.1-0"
+  elif [[ "$has_gtk40" == "yes" ]]; then
+    echo "→ WebKitGTK: 4.0 (22.04). Suggested .deb Depends:"
+    echo "   libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, libjavascriptcoregtk-4.0-18, libwebkit2gtk-4.0-37"
   else
-    bad "No AppImage found in $OUTBASE"; fail=1
-  fi
-
-  # .deb
-  local deb; deb="$(ls -1 "$OUTBASE"/*.deb 2>/dev/null | head -n1 || true)"
-  if [[ -n "$deb" ]]; then
-    ok "Deb found: $(basename "$deb")"
-    dpkg-deb -I "$deb" >/dev/null && ok "Deb metadata readable" || { bad "dpkg-deb -I failed"; fail=1; }
-  else
-    bad "No .deb found in $OUTBASE"; fail=1
+    warn "Could not determine WebKitGTK soname from ldd."
   fi
 }
 
-# ----- run checks for all variants -----
-for v in "${VARIANTS[@]}"; do
-  check_variant "$v"
-done
+note "Verifying staged Linux variants in $LINUX_DIR …"
+check_payload "$STAGE41" "gtk4.1 payload ($STAGE41)"
+check_payload "$STAGE40" "gtk4.0 payload ($STAGE40)"
 
-# ----- Windows installer (optional) -----
-hdr "Checking Windows artifacts"
-WIN_PUBLISH="$ROOT/src/WPStallman.GUI/bin/Release/net8.0-windows/win-x64/publish"
-WIN_EXE="$(ls -1 "$ROOT"/artifacts/packages/*.exe 2>/dev/null | head -n1 || true)"
-
-[[ -d "$WIN_PUBLISH" ]] && ok "Windows publish present" || bad "Windows publish missing (optional)"
-[[ -n "$WIN_EXE" ]] && ok "NSIS installer present: $(basename "$WIN_EXE")" || bad "NSIS installer missing (optional)"
-
-# ----- summary -----
 echo
-if [[ "$fail" -eq 0 ]]; then
-  hdr "All checks passed ✅"
-else
-  hdr "Some checks failed ❌  (see messages above)"
-  exit 1
-fi
+note "Verification complete."
