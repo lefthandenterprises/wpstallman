@@ -135,6 +135,25 @@ if [[ -f "$APPDIR/usr/lib/$APP_ID/libPhotino.Native.so" ]]; then
   fi
 fi
 
+# ── Auto-suffix based on GTK soname (only if not already provided) ────────────
+if [[ -z "${APP_SUFFIX:-}" ]]; then
+  so="$APPDIR/usr/lib/$APP_ID/libPhotino.Native.so"
+  if [[ -f "$so" ]]; then
+    if ldd "$so" 2>/dev/null | grep -q 'libwebkit2gtk-4\.1\.so\.0'; then
+      APP_SUFFIX="-gtk4.1"
+    elif ldd "$so" 2>/dev/null | grep -q 'libwebkit2gtk-4\.0\.so\.37'; then
+      APP_SUFFIX="-gtk4.0"
+    else
+      APP_SUFFIX=""
+      warn "Could not detect WebKitGTK soname from $so; leaving suffix empty."
+    fi
+  else
+    warn "No libPhotino.Native.so found in AppDir; cannot auto-set GTK suffix."
+  fi
+fi
+export APP_SUFFIX
+
+
 # ───────────────────────────────
 # Build AppImage
 # ───────────────────────────────
