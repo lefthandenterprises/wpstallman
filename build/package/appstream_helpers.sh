@@ -22,22 +22,22 @@
 : "${APP_URL_BUGS:=}"
 
 # ...same header and variables...
+# ---- compute release date once (expands in heredoc) ----
 
 write_appstream() {
   local appdir="${1:?usage: write_appstream <APPDIR>}"
   mkdir -p "$appdir/usr/share/metainfo" "$appdir/usr/share/applications"
 
-  # If your .desktop lives at appdir root, also copy it into the conventional location
+  # also place .desktop in the conventional path if you keep it at AppDir root
   if compgen -G "$appdir/*.desktop" >/dev/null; then
     cp -f "$appdir"/*.desktop "$appdir/usr/share/applications/" 2>/dev/null || true
   fi
 
   local meta="$appdir/usr/share/metainfo/${APP_ID}.metainfo.xml"
 
-  # Prepare optional URL lines (avoid conditional command substitutions in the heredoc)
-  local url_help_line=""
+  # prepare optional URL lines to avoid empty <url> tags
+  local url_help_line="" url_bugs_line=""
   [[ -n "$APP_URL_HELP" ]] && url_help_line="  <url type=\"help\">${APP_URL_HELP}</url>"
-  local url_bugs_line=""
   [[ -n "$APP_URL_BUGS" ]] && url_bugs_line="  <url type=\"bugtracker\">${APP_URL_BUGS}</url>"
 
   cat > "$meta" <<EOF
@@ -50,6 +50,7 @@ write_appstream() {
     <p>${APP_DESCRIPTION}</p>
   </description>
 
+  <!-- pre-1.0 compatible -->
   <developer_name>${APP_DEVELOPER}</developer_name>
 
   <project_license>${APP_LICENSE}</project_license>
@@ -77,22 +78,33 @@ ${url_bugs_line}
 EOF
 }
 
-
-
 validate_desktop_and_metainfo() {
   local appdir="${1:?usage: validate_desktop_and_metainfo <APPDIR>}"
-
   if command -v desktop-file-validate >/dev/null 2>&1; then
-    if compgen -G "$appdir/usr/share/applications/*.desktop" > /dev/null; then
+    if compgen -G "$appdir/usr/share/applications/*.desktop" >/dev/null; then
       desktop-file-validate "$appdir/usr/share/applications/"*.desktop || true
-    elif compgen -G "$appdir/*.desktop" > /dev/null; then
+    elif compgen -G "$appdir/*.desktop" >/dev/null; then
       desktop-file-validate "$appdir/"*.desktop || true
     fi
   fi
-
   if command -v appstreamcli >/dev/null 2>&1; then
-    if compgen -G "$appdir/usr/share/metainfo/*.metainfo.xml" > /dev/null; then
+    if compgen -G "$appdir/usr/share/metainfo/*.metainfo.xml" >/dev/null; then
       appstreamcli validate --no-net "$appdir/usr/share/metainfo/"*.metainfo.xml || true
     fi
   fi
 }
+
+# ---- allow running the helper directly for ad-hoc use ----
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  case "$1" in
+    --write)    write_appstream   "${APPDIR:?set APPDIR}";;
+    --validate) validate_desktop_and_metainfo "${APPDIR:?set APPDIR}";;
+    *)
+      echo "Usage:" >&2
+      echo "  APPDIR=/path APP_ID=com.wpstallman.app APP_NAME='W.P. Stallman' APP_VERSION=1.0.0 \\" >&2
+      echo "    APP_HOMEPAGE=https://... APP_DEVELOPER='Left Hand Enterprises, LLC' \\" >&2
+      echo "    $0 --write|--validate" >&2
+      exit 2
+      ;;
+  esac
+fi

@@ -58,6 +58,61 @@ fi
 [[ -d "${PUBLISH_DIR_GTK41:-/nonexistent}" || -d "${PUBLISH_DIR_GTK40:-/nonexistent}" ]] \
   || die "No payloads found. Set PUBLISH_DIR_GTK41 and/or PUBLISH_DIR_GTK40."
 
+# ---- robust path resolution (works from any cwd, even via symlinks) ----
+# Requires bash
+if [ -z "${BASH_SOURCE[0]}" ]; then
+  echo "[ERROR] This script must be run with bash, not sh." >&2
+  exit 1
+fi
+
+# Resolve this script's physical directory
+__src="${BASH_SOURCE[0]}"
+while [ -h "$__src" ]; do
+  __dir="$(cd -P "$(dirname "$__src")" && pwd)"
+  __src="$(readlink "$__src")"
+  [[ "$__src" != /* ]] && __src="$__dir/$__src"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$__src")" && pwd)"
+
+# Try to detect repo root (optional)
+REPO_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null || echo "")"
+
+# Candidate locations for the helper (first existing wins)
+HELPER_CANDIDATES=(
+  "${APPSTREAM_HELPERS_PATH:-}"                    # explicit override wins
+  "${SCRIPT_DIR}/appstream_helpers.sh"             # same dir as this script
+  "${SCRIPT_DIR}/../appstream_helpers.sh"          # one level up
+  "${SCRIPT_DIR}/../../appstream_helpers.sh"       # two levels up
+  "${REPO_ROOT:+${REPO_ROOT}/build/package/appstream_helpers.sh}"
+  "${REPO_ROOT:+${REPO_ROOT}/appstream_helpers.sh}"
+)
+
+APPSTREAM_HELPERS=""
+for cand in "${HELPER_CANDIDATES[@]}"; do
+  if [[ -n "$cand" && -f "$cand" ]]; then
+    APPSTREAM_HELPERS="$cand"
+    break
+  fi
+done
+
+# Debug: set DEBUG_HELPERS=1 to print how we resolved paths
+if [[ "${DEBUG_HELPERS:-0}" = "1" ]]; then
+  echo "[DBG] PWD=$(pwd)"
+  echo "[DBG] SCRIPT_DIR=$SCRIPT_DIR"
+  echo "[DBG] REPO_ROOT=$REPO_ROOT"
+  printf '[DBG] Candidates:\n'; printf '  - %s\n' "${HELPER_CANDIDATES[@]}"
+  echo "[DBG] Selected: $APPSTREAM_HELPERS"
+fi
+
+if [[ -z "$APPSTREAM_HELPERS" ]]; then
+  echo "[ERROR] appstream_helpers.sh not found. Set APPSTREAM_HELPERS_PATH to an absolute path." >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$APPSTREAM_HELPERS"
+
+
 # ───────────────────────────────
 # Version resolver (Directory.Build.props / MSBuild)
 # ───────────────────────────────
@@ -223,10 +278,41 @@ METADATA_LICENSE="CC0-1.0"  # license for the AppStream XML
 APP_URL_BUGS="https://github.com/lefthandenterprises/wpstallman/issues"
 APP_URL_HELP=""
 
+# --- resolve this script's directory (works when called from anywhere) ---
+_get_script_dir() {
+  local src="${BASH_SOURCE[0]}"
+  local dir
+  while [ -h "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ $src != /* ]] && src="$dir/$src"
+  done
+  cd -P "$(dirname "$src")" && pwd
+}
+SCRIPT_DIR="$(_get_script_dir)"
 
-# Source helper from the script’s dir (robust to cwd)
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-source "${SCRIPT_DIR}/build/package/appstream_helpers.sh"
+# --- locate appstream_helpers.sh robustly ---
+# You can override via env: APPSTREAM_HELPERS_PATH=/abs/path/to/appstream_helpers.sh
+HELPER_CANDIDATES=(
+  "${APPSTREAM_HELPERS_PATH:-}"
+  "${SCRIPT_DIR}/appstream_helpers.sh"             # same dir as this script
+  "${SCRIPT_DIR}/../appstream_helpers.sh"          # one level up
+  "${SCRIPT_DIR}/../../appstream_helpers.sh"       # two levels up (repo root)
+)
+APPSTREAM_HELPERS=""
+for cand in "${HELPER_CANDIDATES[@]}"; do
+  if [[ -n "$cand" && -f "$cand" ]]; then
+    APPSTREAM_HELPERS="$cand"
+    break
+  fi
+done
+if [[ -z "$APPSTREAM_HELPERS" ]]; then
+  echo "[ERROR] appstream_helpers.sh not found. Set APPSTREAM_HELPERS_PATH to an absolute path." >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "$APPSTREAM_HELPERS"
 
 # Write metainfo into AppDir + (optionally) copy .desktop
 write_appstream "$APPDIR"
