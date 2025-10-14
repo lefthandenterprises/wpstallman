@@ -199,7 +199,7 @@ Version: ${APP_VERSION}
 Section: utils
 Priority: optional
 Architecture: amd64
-Maintainer: WPStallman Team <noreply@example.com>
+Maintainer: Patrick Driscoll <patrick@lefthandenterprises.com>
 Depends: ${DEB_DEPENDS}
 Description: W. P. Stallman – desktop app (Photino.NET; unified gtk4.0/gtk4.1)
  Ships both gtk4.0 and gtk4.1 payloads and selects the right one at runtime.

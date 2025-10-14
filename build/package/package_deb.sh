@@ -143,7 +143,7 @@ Version: ${APP_VERSION}
 Section: utils
 Priority: optional
 Architecture: amd64
-Maintainer: WPStallman Team <noreply@example.com>
+Maintainer: Patrick Driscoll <patrick@lefthandenterprises.com>
 Depends: ${DEB_DEPENDS}
 Description: W. P. Stallman – desktop app (Photino.NET)
  A cross-platform desktop app using Photino.NET.

@@ -1,4 +1,24 @@
 ; build/package/installer.nsi
+; ===== Identity (autoinjected) =====
+!ifndef APPNAME
+  !define APPNAME        "W.P. Stallman"
+!endif
+
+!ifndef COMPANYNAME
+  !define COMPANYNAME    "Left Hand Enterprises, LLC"
+!endif
+
+!ifndef PRODUCTVERSION
+  !define PRODUCTVERSION "1.0.0"
+!endif
+
+!ifndef FILEDESCRIPTION
+  !define FILEDESCRIPTION "W.P. Stallman Installer"
+!endif
+
+!ifndef HOMEPAGE
+  !define HOMEPAGE "https://lefthandenterprises.com/projects/wpstallman"
+!endif
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "x64.nsh"
@@ -35,18 +55,23 @@
 ; ── General ───────────────────────────────────────────────────────────────────
 Name "${APP_NAME}"
 OutFile "${OUT_EXE}"
+; ===== Version info embedded in the EXE =====
+VIProductVersion "${PRODUCTVERSION}.0"
+VIFileVersion    "${PRODUCTVERSION}.0"
+VIAddVersionKey "CompanyName"      "${COMPANYNAME}"
+VIAddVersionKey "FileDescription"  "${FILEDESCRIPTION}"
+VIAddVersionKey "ProductName"      "${APPNAME}"
+VIAddVersionKey "ProductVersion"   "${PRODUCTVERSION}"
+VIAddVersionKey "OriginalFilename" "WPStallman-Setup-${PRODUCTVERSION}.exe"
+VIAddVersionKey "LegalCopyright"   "© 2025 Left Hand Enterprises, LLC"
+VIAddVersionKey "Comments"         "${HOMEPAGE}"
+
 RequestExecutionLevel admin
 InstallDir "$PROGRAMFILES64\${APP_NAME}"
 InstallDirRegKey HKLM "${UNINST_KEY}" "InstallLocation"
 SetCompressor /SOLID lzma
 
 ; ── Version Info ──────────────────────────────────────────────────────────────
-VIProductVersion "${VI_VERSION}"
-VIAddVersionKey "ProductName"     "${APP_NAME}"
-VIAddVersionKey "ProductVersion"  "${APP_VERSION}"
-VIAddVersionKey "CompanyName"     "${COMPANY_NAME}"
-VIAddVersionKey "FileDescription" "${APP_NAME} Installer"
-VIAddVersionKey "FileVersion"     "${VI_VERSION}"
 
 ; ── UI ────────────────────────────────────────────────────────────────────────
 !define MUI_ABORTWARNING

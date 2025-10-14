@@ -11,12 +11,20 @@ die()  { printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
 # ───────────────────────────────
 # Repo layout & identity
 # ───────────────────────────────
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ROOT="${ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ROOT"
 
 : "${APP_ID:=com.wpstallman.app}"
 : "${APP_NAME:="W. P. Stallman"}"
 : "${MAIN_BIN:=WPStallman.GUI}"
+
+# AppStream / publisher metadata (override with env if you like)
+: "${APP_SUMMARY:=Packaging tools for WordPress modules}"
+: "${APP_HOMEPAGE:=https://lefthandenterprises.com/projects/wpstallman}"
+: "${APP_DEVELOPER:=Patrick Driscoll}"
+: "${APP_LICENSE:=MIT}"
+
 
 # Optional suffix to label the build (e.g., -unified, -nightly, etc.)
 : "${APP_SUFFIX:="-unified"}"
@@ -200,6 +208,39 @@ Categories=Utility;
 StartupWMClass=WPStallman.GUI
 X-AppImage-Version=${APP_VERSION}
 EOF
+
+# Identity
+APP_ID="com.wpstallman.app"
+APP_NAME="W.P. Stallman"
+APP_VERSION="1.0.0"
+
+# publisher/licensing (what we decided)
+APP_DEVELOPER="Left Hand Enterprises, LLC"
+APP_LICENSE="MIT"           # software license
+METADATA_LICENSE="CC0-1.0"  # license for the AppStream XML
+
+# optional URLs
+APP_URL_BUGS="https://github.com/lefthandenterprises/wpstallman/issues"
+APP_URL_HELP=""
+
+
+# Source helper from the script’s dir (robust to cwd)
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+source "${SCRIPT_DIR}/build/package/appstream_helpers.sh"
+
+# Write metainfo into AppDir + (optionally) copy .desktop
+write_appstream "$APPDIR"
+validate_desktop_and_metainfo "$APPDIR"   # optional but helpful
+
+# Optional validation (best-effort; won’t fail the build)
+if command -v desktop-file-validate >/dev/null 2>&1; then
+  desktop-file-validate "$APPDIR/${APP_ID}.desktop" || warn "desktop-file-validate warnings"
+fi
+if command -v appstreamcli >/dev/null 2>&1; then
+  appstreamcli validate --no-net "$APPDIR/usr/share/metainfo/${APP_ID}.metainfo.xml" \
+    || warn "appstreamcli validation warnings"
+fi
+
 
 # ───────────────────────────────
 # Diagnostics (print ldd for each payload if present)
