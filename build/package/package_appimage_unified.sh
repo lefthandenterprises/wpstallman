@@ -1,6 +1,42 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- compatibility shim: accept both old and new env var names ---
+# New names exported by release_all.sh:
+#   GTK41_SRC, GTK40_SRC, LAUNCHER_SRC, VERSION
+# Old names this packer historically expected:
+#   PUBLISH_DIR_GTK41, PUBLISH_DIR_GTK40, PUBLISH_DIR_LAUNCHER, APP_VERSION
+
+: "${PUBLISH_DIR_GTK41:=${GTK41_SRC:-}}"
+: "${PUBLISH_DIR_GTK40:=${GTK40_SRC:-}}"
+: "${PUBLISH_DIR_LAUNCHER:=${LAUNCHER_SRC:-}}"
+: "${APP_VERSION:=${APP_VERSION:-${VERSION:-}}}"
+
+# Basic validation (don’t require both variants, but do require at least one)
+if [[ -z "${PUBLISH_DIR_GTK41}" && -z "${PUBLISH_DIR_GTK40}" ]]; then
+  echo "[ERR ] No payloads found. Set PUBLISH_DIR_GTK41 and/or PUBLISH_DIR_GTK40." >&2
+  exit 1
+fi
+
+# Directory checks (only if provided)
+for _v in PUBLISH_DIR_GTK41 PUBLISH_DIR_GTK40 PUBLISH_DIR_LAUNCHER; do
+  _p="${!_v:-}"
+  if [[ -n "${_p}" && ! -d "${_p}" ]]; then
+    echo "[ERR ] ${_v} path does not exist: ${_p}" >&2
+    exit 1
+  fi
+done
+
+# Optional debug dump
+if [[ "${DEBUG_APPIMAGE:-0}" == "1" ]]; then
+  echo "[DBG ] APP_VERSION=${APP_VERSION}"
+  echo "[DBG ] PUBLISH_DIR_GTK41=${PUBLISH_DIR_GTK41}"
+  echo "[DBG ] PUBLISH_DIR_GTK40=${PUBLISH_DIR_GTK40}"
+  echo "[DBG ] PUBLISH_DIR_LAUNCHER=${PUBLISH_DIR_LAUNCHER}"
+fi
+# --- end compatibility shim ---
+
+
 # ───────────────────────────────
 # Pretty logging
 # ───────────────────────────────

@@ -1,6 +1,7 @@
 # ===== WPStallman (.NET multi-project) =====
 
 # ----- Build outputs (repo-level buckets) -----
+/.dockersdk_home/
 /artifacts/
 /dist/
 /rel/

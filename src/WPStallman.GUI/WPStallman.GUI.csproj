@@ -47,7 +47,8 @@
   <ItemGroup>
     <PackageReference Include="GtkSharp" Version="3.24.24.95" />
     <PackageReference Include="LiteDB" Version="5.0.21" />
-    <PackageReference Include="Photino.NET" Version="3.2.3" />
+    <PackageReference Include="Photino.Native" Version="4.0.22" />
+    <PackageReference Include="Photino.NET" Version="4.0.16" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,9 +56,7 @@
   </ItemGroup>
 
   <!-- macOS: create a simple .app bundle after publish -->
-  <Target Name="CreateMacAppBundle"
-          AfterTargets="Publish"
-          Condition="'$(RuntimeIdentifier)'=='osx-x64' OR '$(RuntimeIdentifier)'=='osx-arm64'">
+  <Target Name="CreateMacAppBundle" AfterTargets="Publish" Condition="'$(RuntimeIdentifier)'=='osx-x64' OR '$(RuntimeIdentifier)'=='osx-arm64'">
     <!-- PublishDir ends with 'publish/' -->
     <PropertyGroup>
       <MacAppName>WPStallman</MacAppName>
@@ -71,18 +70,13 @@
     <ItemGroup>
       <_PublishedFiles Include="$(PublishDir)**/*" Exclude="$(MacAppDir)/**" />
     </ItemGroup>
-    <Copy SourceFiles="@(_PublishedFiles)"
-          DestinationFiles="@(_PublishedFiles->'$(MacAppDir)/Contents/MacOS/%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(_PublishedFiles)" DestinationFiles="@(_PublishedFiles->'$(MacAppDir)/Contents/MacOS/%(RecursiveDir)%(Filename)%(Extension)')" />
 
     <!-- Copy centralized WPS.icns into Resources (if present) -->
-    <Copy SourceFiles="$(WwwRootDir)/img/WPS.icns"
-          DestinationFiles="$(MacAppDir)/Contents/Resources/WPS.icns"
-          Condition="Exists('$(WwwRootDir)/img/WPS.icns')" />
+    <Copy SourceFiles="$(WwwRootDir)/img/WPS.icns" DestinationFiles="$(MacAppDir)/Contents/Resources/WPS.icns" Condition="Exists('$(WwwRootDir)/img/WPS.icns')" />
 
     <!-- Copy Info.plist into Contents (if present) -->
-    <Copy SourceFiles="platforms/macos/Info.plist"
-          DestinationFiles="$(MacAppDir)/Contents/Info.plist"
-          Condition="Exists('platforms/macos/Info.plist')" />
+    <Copy SourceFiles="platforms/macos/Info.plist" DestinationFiles="$(MacAppDir)/Contents/Info.plist" Condition="Exists('platforms/macos/Info.plist')" />
   </Target>
 
   <!-- Optional: sync icon source artwork into centralized wwwroot/img
@@ -93,18 +87,14 @@
     <IconDestDir>$(WwwRootDir)\img</IconDestDir>
   </PropertyGroup>
 
-  <Target Name="SyncIcons"
-          BeforeTargets="Build;Publish"
-          Condition="Exists('$(IconSourceDir)') AND Exists('$(IconDestDir)')">
+  <Target Name="SyncIcons" BeforeTargets="Build;Publish" Condition="Exists('$(IconSourceDir)') AND Exists('$(IconDestDir)')">
     <ItemGroup>
       <_IconFiles Include="$(IconSourceDir)\WPS-*.png" />
       <_IconFiles Include="$(IconSourceDir)\WPS.ico" />
       <_IconFiles Include="$(IconSourceDir)\WPS.icns" />
     </ItemGroup>
 
-    <Message Text="Syncing icons: @(_IconFiles) -> $(IconDestDir)" Importance="Low" />
-    <Copy SourceFiles="@(_IconFiles)"
-          DestinationFiles="@(_IconFiles->'$(IconDestDir)\%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+    <Message Text="Syncing icons: @(_IconFiles) -&gt; $(IconDestDir)" Importance="Low" />
+    <Copy SourceFiles="@(_IconFiles)" DestinationFiles="@(_IconFiles->'$(IconDestDir)\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

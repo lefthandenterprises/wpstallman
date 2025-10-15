@@ -7,4 +7,8 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
 # (Optional) log OS and glibc for traceability
 RUN getconf GNU_LIBC_VERSION && cat /etc/os-release
 
+# Create a user and switch to it
+# RUN useradd -ms /bin/bash customuser  # Create user
+# USER customuser  # Switch to the new user
+
 WORKDIR /src

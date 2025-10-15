@@ -200,9 +200,16 @@ Section: utils
 Priority: optional
 Architecture: amd64
 Maintainer: Patrick Driscoll <patrick@lefthandenterprises.com>
-Depends: ${DEB_DEPENDS}
-Description: W. P. Stallman – desktop app (Photino.NET; unified gtk4.0/gtk4.1)
- Ships both gtk4.0 and gtk4.1 payloads and selects the right one at runtime.
+Package: wpstallman
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, \
+ libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, \
+ libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, \
+ libgtk-3-0, libnss3, libasound2
+Description: Packaging tools for WordPress modules
+ W.P. Stallman packages WordPress modules into AppImage/.deb/Windows installers,
+ and generates release manifests and checksums for reproducible releases.
+
 EOF
 
 # Optional postinst to refresh caches

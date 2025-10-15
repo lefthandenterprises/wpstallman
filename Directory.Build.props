@@ -86,4 +86,26 @@
     <Message Text="Shared wwwroot not found at $(WwwRootDir). Skipping copy." Importance="low" />
   </Target>
 
+
+  <!-- Enforce Linux publish layout for Photino (self-contained, multi-file, no trimming) -->
+  <PropertyGroup Condition=" '$([System.String]::Copy($(RuntimeIdentifier)).StartsWith(`linux-`))' == 'true' ">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Optional optimizations that are safe with native deps -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <DebugType>none</DebugType>
+    <StripSymbols>true</StripSymbols>
+  </PropertyGroup>
+
+  <!-- If RuntimeIdentifier is unset but we're building on Linux, still apply -->
+  <PropertyGroup Condition=" '$(RuntimeIdentifier)' == '' AND '$(OS)' == 'Linux' ">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <DebugType>none</DebugType>
+    <StripSymbols>true</StripSymbols>
+  </PropertyGroup>
+
 </Project>
