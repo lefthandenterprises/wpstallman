@@ -106,6 +106,15 @@ dotnet_flags_win=(
 )
 
 # ---- helpers ----
+# returns 0 if the .csproj supports the given TFM (e.g., net8.0-windows)
+supports_tfm() {
+  local csproj="$1" tfm="$2"
+  # Try to read TargetFrameworks/TargetFramework quickly
+  local tfms
+  tfms="$(grep -Eo '<TargetFrameworks?>[^<]+' "$csproj" 2>/dev/null | sed -E 's/.*>(.*)$/\1/' | tr ';' '\n' | tr -d '[:space:]' || true)"
+  [[ -n "$tfms" ]] && grep -qx "$tfm" <<<"$tfms"
+}
+
 check_exists() { [[ -e "$1" ]] || { echo "[ERROR] Missing $2 at: $1" >&2; exit 1; }; }
 
 print_sonames_hint() {
@@ -216,38 +225,58 @@ package_linux() {
 # ---- Optional Windows packaging (won't block Linux unless STRICT_WINDOWS=1) ----
 package_windows() {
   echo "==> Publishing Windows payloads (Modern, Legacy, Launcher)…"
-  publish_windows "${PROJ_MODERN}"
-  publish_windows "${PROJ_LEGACY}"
-  publish_windows "${PROJ_LAUNCHER}"
 
-  check_exists "${PUB_WIN_MODERN}"   "Windows Modern publish dir"
-  check_exists "${PUB_WIN_LEGACY}"   "Windows Legacy publish dir"
-  check_exists "${PUB_WIN_LAUNCHER}" "Windows Launcher publish dir"
+  local build_modern=0 build_legacy=0 build_launcher=0
 
-  # NSIS installer (unified)
+  if supports_tfm "${PROJ_MODERN}" "net8.0-windows";   then build_modern=1; else echo "[INFO] Modern does not target net8.0-windows — skipping."; fi
+  if supports_tfm "${PROJ_LEGACY}" "net8.0-windows";   then build_legacy=1; else echo "[INFO] Legacy does not target net8.0-windows — skipping."; fi
+  if supports_tfm "${PROJ_LAUNCHER}" "net8.0-windows"; then build_launcher=1; else echo "[INFO] Launcher does not target net8.0-windows — skipping."; fi
+
+  if (( build_modern == 0 && build_legacy == 0 && build_launcher == 0 )); then
+    echo "[WARN] No projects target net8.0-windows; skipping all Windows packaging."
+    return 0
+  fi
+
+  # Publish only the projects that support the Windows TFM
+  if (( build_modern  )); then publish_windows "${PROJ_MODERN}";  fi
+  if (( build_legacy  )); then publish_windows "${PROJ_LEGACY}";  fi
+  if (( build_launcher)); then publish_windows "${PROJ_LAUNCHER}"; fi
+
+  # Validate only what we built
+  if (( build_modern ));   then check_exists "${PUB_WIN_MODERN}"   "Windows Modern publish dir";   fi
+  if (( build_legacy ));   then check_exists "${PUB_WIN_LEGACY}"   "Windows Legacy publish dir";   fi
+  if (( build_launcher )); then check_exists "${PUB_WIN_LAUNCHER}" "Windows Launcher publish dir"; fi
+
+  # Export only the built sources for packaging
+  if (( build_modern ));   then export WIN_MODERN_SRC="${PUB_WIN_MODERN}";   else unset WIN_MODERN_SRC;   fi
+  if (( build_legacy ));   then export WIN_LEGACY_SRC="${PUB_WIN_LEGACY}";   else unset WIN_LEGACY_SRC;   fi
+  if (( build_launcher )); then export WIN_LAUNCHER_SRC="${PUB_WIN_LAUNCHER}"; else unset WIN_LAUNCHER_SRC; fi
+  export APP_VERSION="${VERSION}"
+
+  # NSIS (requires at least one payload present)
   if [[ "${BUILD_WINDOWS_NSIS}" == "1" && -x "${PKG_NSIS:-/nonexistent}" ]]; then
-    echo "==> Packaging NSIS (unified)…"
-    export WIN_MODERN_SRC="${PUB_WIN_MODERN}"
-    export WIN_LEGACY_SRC="${PUB_WIN_LEGACY}"
-    export WIN_LAUNCHER_SRC="${PUB_WIN_LAUNCHER}"
-    export APP_VERSION="${VERSION}"
-    bash "${PKG_NSIS}"
-    echo "✔ NSIS packaging done."
-    echo
+    if [[ -n "${WIN_MODERN_SRC:-}" || -n "${WIN_LEGACY_SRC:-}" || -n "${WIN_LAUNCHER_SRC:-}" ]]; then
+      echo "==> Packaging NSIS (unified)…"
+      bash "${PKG_NSIS}"
+      echo "✔ NSIS packaging done."
+      echo
+    else
+      echo "[INFO] No Windows payloads to feed NSIS; skipping."
+    fi
   else
     echo "[INFO] NSIS packer disabled or not present (${PKG_NSIS}); skip."
   fi
 
-  # Windows ZIP (unified)
+  # Windows ZIP (same condition)
   if [[ "${BUILD_WINDOWS_ZIP}" == "1" && -x "${PKG_WINZIP:-/nonexistent}" ]]; then
-    echo "==> Packaging Windows ZIP (unified)…"
-    export WIN_MODERN_SRC="${PUB_WIN_MODERN}"
-    export WIN_LEGACY_SRC="${PUB_WIN_LEGACY}"
-    export WIN_LAUNCHER_SRC="${PUB_WIN_LAUNCHER}"
-    export APP_VERSION="${VERSION}"
-    bash "${PKG_WINZIP}"
-    echo "✔ Windows ZIP packaging done."
-    echo
+    if [[ -n "${WIN_MODERN_SRC:-}" || -n "${WIN_LEGACY_SRC:-}" || -n "${WIN_LAUNCHER_SRC:-}" ]]; then
+      echo "==> Packaging Windows ZIP (unified)…"
+      bash "${PKG_WINZIP}"
+      echo "✔ Windows ZIP packaging done."
+      echo
+    else
+      echo "[INFO] No Windows payloads to zip; skipping."
+    fi
   else
     echo "[INFO] Windows ZIP packer disabled or not present (${PKG_WINZIP}); skip."
   fi
