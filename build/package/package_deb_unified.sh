@@ -1,6 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- compatibility shim: accept both old and new env var names ---
+: "${PUBLISH_DIR_GTK41:=${GTK41_SRC:-}}"
+: "${PUBLISH_DIR_GTK40:=${GTK40_SRC:-}}"
+: "${PUBLISH_DIR_LAUNCHER:=${LAUNCHER_SRC:-}}"
+: "${APP_VERSION:=${APP_VERSION:-${VERSION:-}}}"
+
+if [[ -z "${PUBLISH_DIR_GTK41}" && -z "${PUBLISH_DIR_GTK40}" ]]; then
+  echo "[ERR ] No payloads found. Set PUBLISH_DIR_GTK41 and/or PUBLISH_DIR_GTK40." >&2
+  exit 1
+fi
+
+for _v in PUBLISH_DIR_GTK41 PUBLISH_DIR_GTK40 PUBLISH_DIR_LAUNCHER; do
+  _p="${!_v:-}"
+  if [[ -n "${_p}" && ! -d "${_p}" ]]; then
+    echo "[ERR ] ${_v} path does not exist: ${_p}" >&2
+    exit 1
+  fi
+done
+
+if [[ "${DEBUG_DEB:-0}" == "1" ]]; then
+  echo "[DBG] APP_VERSION=${APP_VERSION}"
+  echo "[DBG] PUBLISH_DIR_GTK41=${PUBLISH_DIR_GTK41}"
+  echo "[DBG] PUBLISH_DIR_GTK40=${PUBLISH_DIR_GTK40}"
+  echo "[DBG] PUBLISH_DIR_LAUNCHER=${PUBLISH_DIR_LAUNCHER}"
+fi
+# --- end compatibility shim ---
+
+# Accept both possible Photino native names
+has_photino_native() {
+  local d="$1"
+  [[ -f "$d/libPhotino.Native.so" || -f "$d/Photino.Native.so" ]]
+}
+
+copy_photino_if_needed() {
+  local src="$1" dst="$2"
+  if [[ -f "$src/libPhotino.Native.so" ]]; then
+    install -m 0644 "$src/libPhotino.Native.so" "$dst/"
+  elif [[ -f "$src/Photino.Native.so" ]]; then
+    install -m 0644 "$src/Photino.Native.so" "$dst/"
+  fi
+}
+
+
+
 # ───────────────────────────────
 # Pretty logging
 # ───────────────────────────────
@@ -93,19 +137,30 @@ install -d "$DEB_ROOT/DEBIAN" \
 stage_payload() {
   local src="$1" dest_sub="$2"
   [[ -d "$src" ]] || return 1
+
   local dest="$DEB_ROOT/usr/lib/$APP_ID/$dest_sub"
   note "Staging $dest_sub from: $src"
   install -d "$dest"
   rsync -a --delete "$src/" "$dest/"
-  # Sanity: show lib deps if present
+
+  # Find the Photino native .so under the staged dest (accept both names)
+  local photino_so=""
   if [[ -f "$dest/libPhotino.Native.so" ]]; then
-    note "ldd on Photino native ($dest_sub payload):"
-    ldd "$dest/libPhotino.Native.so" | sed 's/^/  /' || true
+    photino_so="$dest/libPhotino.Native.so"
+  elif [[ -f "$dest/Photino.Native.so" ]]; then
+    photino_so="$dest/Photino.Native.so"
+  fi
+
+  # Sanity: show lib deps if present
+  if [[ -n "$photino_so" ]]; then
+    note "ldd on Photino native ($dest_sub payload): $(basename "$photino_so")"
+    ldd "$photino_so" | sed 's/^/  /' || true
   else
-    warn "[$dest_sub] No libPhotino.Native.so found; GUI may fail on clean systems."
+    warn "[$dest_sub] No Photino native .so found (looked for libPhotino.Native.so or Photino.Native.so); GUI may fail on clean systems."
   fi
   return 0
 }
+
 
 HAVE_41=0
 HAVE_40=0
@@ -186,11 +241,14 @@ Categories=Utility;
 StartupWMClass=WPStallman.GUI
 EOF
 
-# ───────────────────────────────
-# Control metadata (loose, works for both baselines)
-# ───────────────────────────────
-# Default to "either-or" GTK deps so the unified package installs broadly.
-: "${DEB_DEPENDS:=libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37}"
+# ── Control metadata (loose, works for both baselines) ──
+# curated deps for both baselines
+: "${DEB_DEPENDS:=libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, \
+libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, \
+libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, libasound2}"
+
+# leave shlibs empty unless you actually compute it
+shlibs="${shlibs:-}"
 
 CONTROL_FILE="$DEB_ROOT/DEBIAN/control"
 cat > "$CONTROL_FILE" <<EOF
@@ -199,18 +257,15 @@ Version: ${APP_VERSION}
 Section: utils
 Priority: optional
 Architecture: amd64
-Maintainer: Patrick Driscoll <patrick@lefthandenterprises.com>
-Package: wpstallman
-Architecture: amd64
-Depends: ${shlibs:Depends}, ${misc:Depends}, \
- libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, \
- libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, \
- libgtk-3-0, libnss3, libasound2
+Maintainer: Left Hand Enterprises, LLC <maintainers@lefthandenterprises.com>
+Homepage: https://lefthandenterprises.com/projects/wpstallman
+Depends: ${shlibs:+${shlibs}, }${DEB_DEPENDS}
 Description: Packaging tools for WordPress modules
  W.P. Stallman packages WordPress modules into AppImage/.deb/Windows installers,
  and generates release manifests and checksums for reproducible releases.
-
 EOF
+
+
 
 # Optional postinst to refresh caches
 cat > "$DEB_ROOT/DEBIAN/postinst" <<'EOF'

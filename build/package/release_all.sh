@@ -2,19 +2,23 @@
 set -euo pipefail
 
 # ===============================
-# W.P. Stallman - Unified Release
-# Linux builds can run in Docker (default); Windows builds on host.
+# W.P. Stallman — release_all.sh
 # ===============================
+# Linux builds run in Docker by default; Windows builds run on host.
+# Linux packaging (AppImage, .deb) is independent from Windows.
 
-# --- config ---
-USE_DOCKER="${USE_DOCKER:-1}"
+# ---- knobs ----
+USE_DOCKER="${USE_DOCKER:-1}"               # 1 = build Linux in Docker, 0 = host
+BUILD_WINDOWS="${BUILD_WINDOWS:-1}"         # 1 = also build Windows artifacts
+BUILD_WINDOWS_NSIS="${BUILD_WINDOWS_NSIS:-1}"
+BUILD_WINDOWS_ZIP="${BUILD_WINDOWS_ZIP:-1}"
+STRICT_WINDOWS="${STRICT_WINDOWS:-0}"       # 1 = Windows failures abort script
 
-# Containers (adjust if you like)
+# Containers (tune if needed)
 DOCKER_IMAGE_NOBLE="${DOCKER_IMAGE_NOBLE:-mcr.microsoft.com/dotnet/sdk:8.0-noble}"
 DOCKER_IMAGE_JAMMY="${DOCKER_IMAGE_JAMMY:-mcr.microsoft.com/dotnet/sdk:8.0-jammy}"
-# Which variant uses which image
-DOCKER_IMG_MODERN="${DOCKER_IMG_MODERN:-$DOCKER_IMAGE_NOBLE}"  # WebKitGTK 4.1 era
-DOCKER_IMG_LEGACY="${DOCKER_IMG_LEGACY:-$DOCKER_IMAGE_JAMMY}"  # WebKitGTK 4.0 era
+DOCKER_IMG_MODERN="${DOCKER_IMG_MODERN:-$DOCKER_IMAGE_NOBLE}"    # WebKitGTK 4.1 era
+DOCKER_IMG_LEGACY="${DOCKER_IMG_LEGACY:-$DOCKER_IMAGE_JAMMY}"    # WebKitGTK 4.0 era
 DOCKER_IMG_LAUNCHER="${DOCKER_IMG_LAUNCHER:-$DOCKER_IMAGE_NOBLE}"
 
 # --- resolve repository root robustly ---
@@ -85,7 +89,7 @@ fi
 echo "Version: ${VERSION}"
 echo
 
-# ---- helpers ----
+# ---- flags for dotnet publish ----
 dotnet_flags_linux=(
   -c Release -f "${TFM_LINUX}" -r "${RID_LINUX}"
   --self-contained true
@@ -101,6 +105,7 @@ dotnet_flags_win=(
   -p:PublishTrimmed=false
 )
 
+# ---- helpers ----
 check_exists() { [[ -e "$1" ]] || { echo "[ERROR] Missing $2 at: $1" >&2; exit 1; }; }
 
 print_sonames_hint() {
@@ -116,12 +121,12 @@ docker_publish() {
   local proj_abs="$1"; shift
   local -a pub_flags=( "$@" )
 
-  local work_in="/work"                               # mount point in container
-  local proj_in="${proj_abs/#$PROJECT_ROOT/$work_in}" # project path in container
+  local work_in="/work"
+  local proj_in="${proj_abs/#$PROJECT_ROOT/$work_in}"
 
-  # make a fake HOME inside the mounted repo so it's writable by your UID
+  # writable fake HOME inside repo mount
   local home_host="${PROJECT_ROOT}/.dockersdk_home"
-  mkdir -p "${home_host}/.nuget/packages"
+  mkdir -p "${home_host}/.nuget/packages" "${home_host}/.cache"
 
   echo "-- docker publish: ${proj_abs}"
   docker run --rm \
@@ -137,8 +142,6 @@ docker_publish() {
     "${image}" \
     bash -lc "mkdir -p '${work_in}/.dockersdk_home/.nuget/packages' '${work_in}/.dockersdk_home/.cache' && dotnet publish '${proj_in}' ${pub_flags[*]}"
 }
-
-
 
 host_publish() {
   local proj="$1"; shift
@@ -161,55 +164,57 @@ publish_windows() {
   host_publish "${proj}" "${dotnet_flags_win[@]}"
 }
 
-# -------- Linux: build Modern + Legacy + Launcher (Docker by default) --------
-echo "==> Publishing Linux payloads (Modern, Legacy, Launcher)…"
-dotnet nuget locals all --clear || true
+# ---- Linux-only packaging (never touches Windows) ----
+package_linux() {
+  echo "==> Publishing Linux payloads (Modern, Legacy, Launcher)…"
+  dotnet nuget locals all --clear || true
 
-publish_linux "${PROJ_MODERN}"   "${DOCKER_IMG_MODERN}"
-publish_linux "${PROJ_LEGACY}"   "${DOCKER_IMG_LEGACY}"
-publish_linux "${PROJ_LAUNCHER}" "${DOCKER_IMG_LAUNCHER}"
+  publish_linux "${PROJ_MODERN}"   "${DOCKER_IMG_MODERN}"
+  publish_linux "${PROJ_LEGACY}"   "${DOCKER_IMG_LEGACY}"
+  publish_linux "${PROJ_LAUNCHER}" "${DOCKER_IMG_LAUNCHER}"
 
-check_exists "${PUB_LINUX_MODERN}"   "Modern publish dir"
-check_exists "${PUB_LINUX_LEGACY}"   "Legacy publish dir"
-check_exists "${PUB_LINUX_LAUNCHER}" "Launcher publish dir"
+  check_exists "${PUB_LINUX_MODERN}"   "Modern publish dir"
+  check_exists "${PUB_LINUX_LEGACY}"   "Legacy publish dir"
+  check_exists "${PUB_LINUX_LAUNCHER}" "Launcher publish dir"
 
-echo "   Linux Modern output:  ${PUB_LINUX_MODERN}"
-print_sonames_hint "${PUB_LINUX_MODERN}/Photino.Native.so"
-echo "   Linux Legacy output:  ${PUB_LINUX_LEGACY}"
-print_sonames_hint "${PUB_LINUX_LEGACY}/Photino.Native.so"
-echo "   Linux Launcher output:${PUB_LINUX_LAUNCHER}"
-echo
-
-# -------- AppImage (unified) --------
-if [[ -x "${PKG_APPIMAGE}" ]]; then
-  echo "==> Packaging AppImage (unified)…"
-  export GTK41_SRC="${PUB_LINUX_MODERN}"
-  export GTK40_SRC="${PUB_LINUX_LEGACY}"
-  export LAUNCHER_SRC="${PUB_LINUX_LAUNCHER}"
-  export APP_VERSION="${VERSION}"
-  bash "${PKG_APPIMAGE}"
-  echo "✔ AppImage packaging done."
+  echo "   Linux Modern output:  ${PUB_LINUX_MODERN}"
+  print_sonames_hint "${PUB_LINUX_MODERN}/Photino.Native.so"
+  echo "   Linux Legacy output:  ${PUB_LINUX_LEGACY}"
+  print_sonames_hint "${PUB_LINUX_LEGACY}/Photino.Native.so"
+  echo "   Linux Launcher output:${PUB_LINUX_LAUNCHER}"
   echo
-else
-  echo "[WARN] AppImage packer not found/executable at ${PKG_APPIMAGE} – skipping."
-fi
 
-# -------- .deb (unified) --------
-if [[ -x "${PKG_DEB:-/nonexistent}" ]]; then
-  echo "==> Packaging .deb (unified)…"
-  export GTK41_SRC="${PUB_LINUX_MODERN}"
-  export GTK40_SRC="${PUB_LINUX_LEGACY}"
-  export LAUNCHER_SRC="${PUB_LINUX_LAUNCHER}"
-  export APP_VERSION="${VERSION}"
-  bash "${PKG_DEB}"
-  echo "✔ .deb packaging done."
-  echo
-else
-  echo "[INFO] Debian packer script not present (${PKG_DEB}); skip."
-fi
+  # ---- AppImage (unified) ----
+  if [[ -x "${PKG_APPIMAGE}" ]]; then
+    echo "==> Packaging AppImage (unified)…"
+    export GTK41_SRC="${PUB_LINUX_MODERN}"
+    export GTK40_SRC="${PUB_LINUX_LEGACY}"
+    export LAUNCHER_SRC="${PUB_LINUX_LAUNCHER}"
+    export APP_VERSION="${VERSION}"
+    bash "${PKG_APPIMAGE}"
+    echo "✔ AppImage packaging done."
+    echo
+  else
+    echo "[WARN] AppImage packer not found/executable at ${PKG_APPIMAGE} – skipping."
+  fi
 
-# -------- Windows: build Modern + Legacy + Launcher on host --------
-if [[ "${BUILD_WINDOWS:-1}" == "1" ]]; then
+  # ---- .deb (unified) ----
+  if [[ -x "${PKG_DEB:-/nonexistent}" ]]; then
+    echo "==> Packaging .deb (unified)…"
+    export GTK41_SRC="${PUB_LINUX_MODERN}"
+    export GTK40_SRC="${PUB_LINUX_LEGACY}"
+    export LAUNCHER_SRC="${PUB_LINUX_LAUNCHER}"
+    export APP_VERSION="${VERSION}"
+    bash "${PKG_DEB}"
+    echo "✔ .deb packaging done."
+    echo
+  else
+    echo "[INFO] Debian packer script not present (${PKG_DEB}); skip."
+  fi
+}
+
+# ---- Optional Windows packaging (won't block Linux unless STRICT_WINDOWS=1) ----
+package_windows() {
   echo "==> Publishing Windows payloads (Modern, Legacy, Launcher)…"
   publish_windows "${PROJ_MODERN}"
   publish_windows "${PROJ_LEGACY}"
@@ -220,7 +225,7 @@ if [[ "${BUILD_WINDOWS:-1}" == "1" ]]; then
   check_exists "${PUB_WIN_LAUNCHER}" "Windows Launcher publish dir"
 
   # NSIS installer (unified)
-  if [[ -x "${PKG_NSIS:-/nonexistent}" ]]; then
+  if [[ "${BUILD_WINDOWS_NSIS}" == "1" && -x "${PKG_NSIS:-/nonexistent}" ]]; then
     echo "==> Packaging NSIS (unified)…"
     export WIN_MODERN_SRC="${PUB_WIN_MODERN}"
     export WIN_LEGACY_SRC="${PUB_WIN_LEGACY}"
@@ -230,11 +235,11 @@ if [[ "${BUILD_WINDOWS:-1}" == "1" ]]; then
     echo "✔ NSIS packaging done."
     echo
   else
-    echo "[INFO] NSIS packer script not present (${PKG_NSIS}); skip."
+    echo "[INFO] NSIS packer disabled or not present (${PKG_NSIS}); skip."
   fi
 
   # Windows ZIP (unified)
-  if [[ -x "${PKG_WINZIP:-/nonexistent}" ]]; then
+  if [[ "${BUILD_WINDOWS_ZIP}" == "1" && -x "${PKG_WINZIP:-/nonexistent}" ]]; then
     echo "==> Packaging Windows ZIP (unified)…"
     export WIN_MODERN_SRC="${PUB_WIN_MODERN}"
     export WIN_LEGACY_SRC="${PUB_WIN_LEGACY}"
@@ -244,7 +249,24 @@ if [[ "${BUILD_WINDOWS:-1}" == "1" ]]; then
     echo "✔ Windows ZIP packaging done."
     echo
   else
-    echo "[INFO] Windows ZIP packer not present (${PKG_WINZIP}); skip."
+    echo "[INFO] Windows ZIP packer disabled or not present (${PKG_WINZIP}); skip."
+  fi
+}
+
+# ---- drive the flow ----
+package_linux
+
+if [[ "${BUILD_WINDOWS}" == "1" ]]; then
+  if [[ "${STRICT_WINDOWS}" == "1" ]]; then
+    package_windows
+  else
+    set +e
+    package_windows
+    win_rc=$?
+    set -e
+    if (( win_rc != 0 )); then
+      echo "[WARN] Windows packaging failed (rc=$win_rc) but STRICT_WINDOWS=0 so continuing."
+    fi
   fi
 fi
 
