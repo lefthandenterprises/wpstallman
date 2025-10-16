@@ -1,24 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- compatibility shim: accept both old and new env var names ---
-# New names exported by release_all.sh:
-#   GTK41_SRC, GTK40_SRC, LAUNCHER_SRC, VERSION
-# Old names this packer historically expected:
-#   PUBLISH_DIR_GTK41, PUBLISH_DIR_GTK40, PUBLISH_DIR_LAUNCHER, APP_VERSION
+# ──────────────────────────────────────────────────────────────
+# Load shared metadata (dotenv)
+# ──────────────────────────────────────────────────────────────
+PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || realpath "$(dirname "$0")/../..")}"
+META_FILE="${META_FILE:-${PROJECT_ROOT}/build/package/release.meta}"
+if [[ -f "$META_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$META_FILE"
+  set +a
+else
+  echo "[WARN] No metadata file at ${META_FILE}; using script defaults."
+fi
 
+# ──────────────────────────────────────────────────────────────
+# Compatibility shim (new vars from release_all, legacy fallbacks)
+# ──────────────────────────────────────────────────────────────
 : "${PUBLISH_DIR_GTK41:=${GTK41_SRC:-}}"
 : "${PUBLISH_DIR_GTK40:=${GTK40_SRC:-}}"
 : "${PUBLISH_DIR_LAUNCHER:=${LAUNCHER_SRC:-}}"
 : "${APP_VERSION:=${APP_VERSION:-${VERSION:-}}}"
 
-# Basic validation (don’t require both variants, but do require at least one)
 if [[ -z "${PUBLISH_DIR_GTK41}" && -z "${PUBLISH_DIR_GTK40}" ]]; then
   echo "[ERR ] No payloads found. Set PUBLISH_DIR_GTK41 and/or PUBLISH_DIR_GTK40." >&2
   exit 1
 fi
 
-# Directory checks (only if provided)
 for _v in PUBLISH_DIR_GTK41 PUBLISH_DIR_GTK40 PUBLISH_DIR_LAUNCHER; do
   _p="${!_v:-}"
   if [[ -n "${_p}" && ! -d "${_p}" ]]; then
@@ -27,81 +36,50 @@ for _v in PUBLISH_DIR_GTK41 PUBLISH_DIR_GTK40 PUBLISH_DIR_LAUNCHER; do
   fi
 done
 
-# Optional debug dump
 if [[ "${DEBUG_APPIMAGE:-0}" == "1" ]]; then
-  echo "[DBG ] APP_VERSION=${APP_VERSION}"
-  echo "[DBG ] PUBLISH_DIR_GTK41=${PUBLISH_DIR_GTK41}"
-  echo "[DBG ] PUBLISH_DIR_GTK40=${PUBLISH_DIR_GTK40}"
-  echo "[DBG ] PUBLISH_DIR_LAUNCHER=${PUBLISH_DIR_LAUNCHER}"
+  echo "[DBG] APP_VERSION=${APP_VERSION}"
+  echo "[DBG] PUBLISH_DIR_GTK41=${PUBLISH_DIR_GTK41}"
+  echo "[DBG] PUBLISH_DIR_GTK40=${PUBLISH_DIR_GTK40}"
+  echo "[DBG] PUBLISH_DIR_LAUNCHER=${PUBLISH_DIR_LAUNCHER}"
 fi
-# --- end compatibility shim ---
 
-
-# ───────────────────────────────
+# ──────────────────────────────────────────────────────────────
 # Pretty logging
-# ───────────────────────────────
+# ──────────────────────────────────────────────────────────────
 note() { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
 warn() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
 die()  { printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
 
-# ───────────────────────────────
-# Repo layout & identity
-# ───────────────────────────────
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-ROOT="${ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$ROOT"
-
+# ──────────────────────────────────────────────────────────────
+# Identity (from release.meta; provide sane defaults)
+# ──────────────────────────────────────────────────────────────
 : "${APP_ID:=com.wpstallman.app}"
-: "${APP_NAME:="W. P. Stallman"}"
-: "${MAIN_BIN:=WPStallman.GUI}"
-
-# AppStream / publisher metadata (override with env if you like)
+: "${APP_NAME:=W.P. Stallman}"
 : "${APP_SUMMARY:=Packaging tools for WordPress modules}"
 : "${APP_HOMEPAGE:=https://lefthandenterprises.com/projects/wpstallman}"
-: "${APP_DEVELOPER:=Patrick Driscoll}"
+: "${APP_DEVELOPER:=Left Hand Enterprises, LLC}"
 : "${APP_LICENSE:=MIT}"
+: "${METADATA_LICENSE:=CC0-1.0}"     # license for the AppStream XML
+: "${APP_SUFFIX:=-unified}"
 
-
-# Optional suffix to label the build (e.g., -unified, -nightly, etc.)
-: "${APP_SUFFIX:="-unified"}"
-
-# Projects / publish defaults (you can override via env)
-: "${GUI_CSPROJ:=src/WPStallman.GUI/WPStallman.GUI.csproj}"
-: "${TFM_LIN_GUI:=net8.0}"
-: "${RID_LIN:=linux-x64}"
-
-# Try to auto-locate payloads if not provided:
-# GTK 4.1 payload (24.04+ baseline)
-: "${PUBLISH_DIR_GTK41:=}"
-if [[ -z "${PUBLISH_DIR_GTK41}" ]]; then
-  for cand in \
-    "$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish" \
-    "$ROOT/artifacts/publish-gtk4.1" \
-    "$ROOT/src/WPStallman.GUI.GTK41/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish"
-  do [[ -d "$cand" ]] && PUBLISH_DIR_GTK41="$cand" && break; done
+# Try to resolve version if still not set
+if [[ -z "${APP_VERSION:-}" ]]; then
+  get_msbuild_prop() { dotnet msbuild "$1" -nologo -getProperty:"$2" 2>/dev/null | tr -d '\r' | tail -n1; }
+  get_version_from_props() {
+    local props="${PROJECT_ROOT}/Directory.Build.props"
+    [[ -f "$props" ]] && grep -oP '(?<=<Version>).*?(?=</Version>)' "$props" | head -n1 || true
+  }
+  APP_VERSION="$(get_msbuild_prop "${PROJECT_ROOT}/src/WPStallman.GUI/WPStallman.GUI.csproj" "Version" || true)"
+  [[ -n "$APP_VERSION" && "$APP_VERSION" != "*Undefined*" ]] || APP_VERSION="$(get_version_from_props)"
+  [[ -n "$APP_VERSION" ]] || die "Could not resolve Version from MSBuild or Directory.Build.props"
 fi
+export APP_VERSION
+note "Version: $APP_VERSION"
 
-# GTK 4.0 payload (22.04 baseline)
-: "${PUBLISH_DIR_GTK40:=}"
-if [[ -z "${PUBLISH_DIR_GTK40}" ]]; then
-  for cand in \
-    "$ROOT/artifacts/publish-gtk4.0" \
-    "$ROOT/src/WPStallman.GUI.GTK40/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish"
-  do [[ -d "$cand" ]] && PUBLISH_DIR_GTK40="$cand" && break; done
-fi
-
-# You need at least one payload; ideally both.
-[[ -d "${PUBLISH_DIR_GTK41:-/nonexistent}" || -d "${PUBLISH_DIR_GTK40:-/nonexistent}" ]] \
-  || die "No payloads found. Set PUBLISH_DIR_GTK41 and/or PUBLISH_DIR_GTK40."
-
-# ---- robust path resolution (works from any cwd, even via symlinks) ----
-# Requires bash
-if [ -z "${BASH_SOURCE[0]}" ]; then
-  echo "[ERROR] This script must be run with bash, not sh." >&2
-  exit 1
-fi
-
-# Resolve this script's physical directory
+# ──────────────────────────────────────────────────────────────
+# Resolve helper path (once) and source it
+# ──────────────────────────────────────────────────────────────
+# Physical dir of this script (resolves symlinks)
 __src="${BASH_SOURCE[0]}"
 while [ -h "$__src" ]; do
   __dir="$(cd -P "$(dirname "$__src")" && pwd)"
@@ -110,28 +88,21 @@ while [ -h "$__src" ]; do
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$__src")" && pwd)"
 
-# Try to detect repo root (optional)
 REPO_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null || echo "")"
 
-# Candidate locations for the helper (first existing wins)
 HELPER_CANDIDATES=(
-  "${APPSTREAM_HELPERS_PATH:-}"                    # explicit override wins
-  "${SCRIPT_DIR}/appstream_helpers.sh"             # same dir as this script
-  "${SCRIPT_DIR}/../appstream_helpers.sh"          # one level up
-  "${SCRIPT_DIR}/../../appstream_helpers.sh"       # two levels up
+  "${APPSTREAM_HELPERS_PATH:-}"
+  "${SCRIPT_DIR}/appstream_helpers.sh"
+  "${SCRIPT_DIR}/../appstream_helpers.sh"
+  "${SCRIPT_DIR}/../../appstream_helpers.sh"
   "${REPO_ROOT:+${REPO_ROOT}/build/package/appstream_helpers.sh}"
-  "${REPO_ROOT:+${REPO_ROOT}/appstream_helpers.sh}"
 )
 
 APPSTREAM_HELPERS=""
 for cand in "${HELPER_CANDIDATES[@]}"; do
-  if [[ -n "$cand" && -f "$cand" ]]; then
-    APPSTREAM_HELPERS="$cand"
-    break
-  fi
+  if [[ -n "$cand" && -f "$cand" ]]; then APPSTREAM_HELPERS="$cand"; break; fi
 done
 
-# Debug: set DEBUG_HELPERS=1 to print how we resolved paths
 if [[ "${DEBUG_HELPERS:-0}" = "1" ]]; then
   echo "[DBG] PWD=$(pwd)"
   echo "[DBG] SCRIPT_DIR=$SCRIPT_DIR"
@@ -140,107 +111,71 @@ if [[ "${DEBUG_HELPERS:-0}" = "1" ]]; then
   echo "[DBG] Selected: $APPSTREAM_HELPERS"
 fi
 
-if [[ -z "$APPSTREAM_HELPERS" ]]; then
-  echo "[ERROR] appstream_helpers.sh not found. Set APPSTREAM_HELPERS_PATH to an absolute path." >&2
-  exit 1
-fi
-
+[[ -n "$APPSTREAM_HELPERS" ]] || die "appstream_helpers.sh not found. Set APPSTREAM_HELPERS_PATH to an absolute path."
 # shellcheck disable=SC1090
 source "$APPSTREAM_HELPERS"
 
+# Make sure helpers see the right metadata (env → used by write_appstream)
+export APP_ID APP_NAME APP_VERSION APP_SUMMARY APP_HOMEPAGE APP_DEVELOPER APP_LICENSE METADATA_LICENSE
 
-# ───────────────────────────────
-# Version resolver (Directory.Build.props / MSBuild)
-# ───────────────────────────────
-get_msbuild_prop() {
-  local proj="$1" prop="$2"
-  dotnet msbuild "$proj" -nologo -getProperty:"$prop" 2>/dev/null | tr -d '\r' | tail -n1
-}
-get_version_from_props() {
-  local props="$ROOT/Directory.Build.props"
-  [[ -f "$props" ]] || { echo ""; return; }
-  grep -oP '(?<=<Version>).*?(?=</Version>)' "$props" | head -n1
-}
-resolve_app_version() {
-  local v=""
-  v="$(get_msbuild_prop "$GUI_CSPROJ" "Version")"
-  if [[ -z "$v" || "$v" == "*Undefined*" ]]; then
-    v="$(get_version_from_props)"
-  fi
-  echo "$v"
-}
-APP_VERSION="${APP_VERSION_OVERRIDE:-$(resolve_app_version)}"
-[[ -n "$APP_VERSION" ]] || die "Could not resolve Version from MSBuild or Directory.Build.props"
-export APP_VERSION
-note "Version: $APP_VERSION"
-
-# ───────────────────────────────
-# Output dirs
-# ───────────────────────────────
-: "${ARTIFACTS_DIR:=artifacts}"
-: "${BUILDDIR:=$ARTIFACTS_DIR/build}"
-: "${OUTDIR:=$ARTIFACTS_DIR/packages}"
+# ──────────────────────────────────────────────────────────────
+# Layout / staging
+# ──────────────────────────────────────────────────────────────
+ROOT="${PROJECT_ROOT}"
+ARTIFACTS_DIR="${ARTIFACTS_DIR:-${ROOT}/artifacts}"
+BUILDDIR="${BUILDDIR:-${ARTIFACTS_DIR}/build}"
+OUTDIR="${OUTDIR:-${ARTIFACTS_DIR}/packages}"
 mkdir -p "$BUILDDIR" "$OUTDIR"
 
 APPDIR="$BUILDDIR/AppDir"
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/lib/$APP_ID" "$APPDIR/usr/share/applications"
 
-# ───────────────────────────────
-# Stage payloads
-# ───────────────────────────────
 stage_payload() {
   local src="$1" subdir="$2"
   [[ -d "$src" ]] || return 1
-  note "Staging $subdir payload from: $src"
-  mkdir -p "$APPDIR/usr/lib/$APP_ID/$subdir"
-  rsync -a --delete "$src/" "$APPDIR/usr/lib/$APP_ID/$subdir/"
-  # Ensure native lib is present
-  if [[ ! -f "$APPDIR/usr/lib/$APP_ID/$subdir/libPhotino.Native.so" ]]; then
-    warn "[$subdir] libPhotino.Native.so not found in publish; GUI may fail if host lacks WebKitGTK."
+  note "Staging $subdir from: $src"
+  local dest="$APPDIR/usr/lib/$APP_ID/$subdir"
+  mkdir -p "$dest"
+  rsync -a --delete "$src/" "$dest/"
+  # Check either so name
+  local so=""
+  if [[ -f "$dest/libPhotino.Native.so" ]]; then so="$dest/libPhotino.Native.so"; fi
+  if [[ -z "$so" && -f "$dest/Photino.Native.so" ]]; then so="$dest/Photino.Native.so"; fi
+  if [[ -n "$so" ]]; then
+    note "ldd on $(basename "$so") ($subdir):"
+    ldd "$so" | sed 's/^/  /' || true
+  else
+    warn "[$subdir] No Photino native .so found; GUI may fail on clean systems."
   fi
-  return 0
 }
 
-HAVE_41=0
-HAVE_40=0
-if [[ -n "${PUBLISH_DIR_GTK41:-}" && -d "$PUBLISH_DIR_GTK41" ]]; then
-  stage_payload "$PUBLISH_DIR_GTK41" "gtk4.1" && HAVE_41=1
-fi
-if [[ -n "${PUBLISH_DIR_GTK40:-}" && -d "$PUBLISH_DIR_GTK40" ]]; then
-  stage_payload "$PUBLISH_DIR_GTK40" "gtk4.0" && HAVE_40=1
-fi
-(( HAVE_41 == 1 || HAVE_40 == 1 )) || die "Staging failed; no payload copied."
+HAVE_41=0; HAVE_40=0
+[[ -n "${PUBLISH_DIR_GTK41:-}" && -d "$PUBLISH_DIR_GTK41" ]] && { stage_payload "$PUBLISH_DIR_GTK41" "gtk4.1" && HAVE_41=1; }
+[[ -n "${PUBLISH_DIR_GTK40:-}" && -d "$PUBLISH_DIR_GTK40" ]] && { stage_payload "$PUBLISH_DIR_GTK40" "gtk4.0" && HAVE_40=1; }
+(( HAVE_41 || HAVE_40 )) || die "Staging failed; no payload copied."
 
-# ───────────────────────────────
-# Choose an icon and copy to AppDir root
-# ───────────────────────────────
+# ──────────────────────────────────────────────────────────────
+# Icon selection
+# ──────────────────────────────────────────────────────────────
 pick_icon() {
   local base="$1"
   local candidates=(
     "$base/wwwroot/img/WPS-256.png"
+    "$base/wwwroot/img/WPS-512.png"
     "$base/wwwroot/img/WPS.png"
-    "$base/wwwroot/img/wpst-256.png"
   )
   for c in "${candidates[@]}"; do [[ -f "$c" ]] && echo "$c" && return 0; done
   return 1
 }
 ICON_SRC=""
-if (( HAVE_41 )); then
-  ICON_SRC="$(pick_icon "$APPDIR/usr/lib/$APP_ID/gtk4.1")" || true
-fi
-if [[ -z "$ICON_SRC" && $HAVE_40 -eq 1 ]]; then
-  ICON_SRC="$(pick_icon "$APPDIR/usr/lib/$APP_ID/gtk4.0")" || true
-fi
-if [[ -n "$ICON_SRC" ]]; then
-  cp -f "$ICON_SRC" "$APPDIR/${APP_ID}.png"
-else
-  warn "Icon not found in payloads; AppImage will use a generic icon."
-fi
+(( HAVE_41 )) && ICON_SRC="$(pick_icon "$APPDIR/usr/lib/$APP_ID/gtk4.1")" || true
+[[ -z "$ICON_SRC" && $HAVE_40 -eq 1 ]] && ICON_SRC="$(pick_icon "$APPDIR/usr/lib/$APP_ID/gtk4.0")" || true
+[[ -n "$ICON_SRC" ]] && cp -f "$ICON_SRC" "$APPDIR/${APP_ID}.png" || warn "Icon not found; using generic."
 
-# ───────────────────────────────
-# Create AppRun (runtime selector)
-# ───────────────────────────────
+# ──────────────────────────────────────────────────────────────
+# AppRun (selector prefers gtk4.1 on glibc ≥ 2.38)
+# ──────────────────────────────────────────────────────────────
 cat > "$APPDIR/AppRun" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -251,9 +186,7 @@ gtk41_dir="$APPROOT/gtk4.1"
 gtk40_dir="$APPROOT/gtk4.0"
 target_dir=""
 
-version_ge() { # compare dotted versions (e.g., 2.39 >= 2.38)
-  [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]
-}
+version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]; }
 
 glibc_ver="$(ldd --version 2>/dev/null | awk 'NR==1{print $NF}')"
 have_gtk41_libs="no"
@@ -263,7 +196,6 @@ elif [[ -e /lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0 || -e /usr/lib/x86_64-li
   have_gtk41_libs="yes"
 fi
 
-# Prefer gtk4.1 when host glibc >= 2.38 and libs exist; else fall back
 if [[ -d "$gtk41_dir" ]] && [[ "$have_gtk41_libs" == "yes" ]] && version_ge "${glibc_ver:-0}" "2.38"; then
   target_dir="$gtk41_dir"
 elif [[ -d "$gtk40_dir" ]]; then
@@ -281,18 +213,16 @@ export LD_LIBRARY_PATH="$target_dir:${LD_LIBRARY_PATH:-}"
 exec "$target_dir/WPStallman.GUI" "${@:-}"
 EOF
 chmod +x "$APPDIR/AppRun"
-
-# Create symlink for Exec target
 ln -sf "./AppRun" "$APPDIR/usr/bin/${APP_ID}"
 
-# ───────────────────────────────
-# Desktop file (includes AppImage version)
-# ───────────────────────────────
+# ──────────────────────────────────────────────────────────────
+# Desktop entry
+# ──────────────────────────────────────────────────────────────
 cat > "$APPDIR/${APP_ID}.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=${APP_NAME}
-Comment=WPStallman
+Comment=${APP_SUMMARY}
 Exec=${APP_ID}
 Icon=${APP_ID}
 Categories=Utility;
@@ -300,96 +230,23 @@ StartupWMClass=WPStallman.GUI
 X-AppImage-Version=${APP_VERSION}
 EOF
 
-# Identity
-APP_ID="com.wpstallman.app"
-APP_NAME="W.P. Stallman"
-APP_VERSION="1.0.0"
-
-# publisher/licensing (what we decided)
-APP_DEVELOPER="Left Hand Enterprises, LLC"
-APP_LICENSE="MIT"           # software license
-METADATA_LICENSE="CC0-1.0"  # license for the AppStream XML
-
-# optional URLs
-APP_URL_BUGS="https://github.com/lefthandenterprises/wpstallman/issues"
-APP_URL_HELP=""
-
-# --- resolve this script's directory (works when called from anywhere) ---
-_get_script_dir() {
-  local src="${BASH_SOURCE[0]}"
-  local dir
-  while [ -h "$src" ]; do
-    dir="$(cd -P "$(dirname "$src")" && pwd)"
-    src="$(readlink "$src")"
-    [[ $src != /* ]] && src="$dir/$src"
-  done
-  cd -P "$(dirname "$src")" && pwd
-}
-SCRIPT_DIR="$(_get_script_dir)"
-
-# --- locate appstream_helpers.sh robustly ---
-# You can override via env: APPSTREAM_HELPERS_PATH=/abs/path/to/appstream_helpers.sh
-HELPER_CANDIDATES=(
-  "${APPSTREAM_HELPERS_PATH:-}"
-  "${SCRIPT_DIR}/appstream_helpers.sh"             # same dir as this script
-  "${SCRIPT_DIR}/../appstream_helpers.sh"          # one level up
-  "${SCRIPT_DIR}/../../appstream_helpers.sh"       # two levels up (repo root)
-)
-APPSTREAM_HELPERS=""
-for cand in "${HELPER_CANDIDATES[@]}"; do
-  if [[ -n "$cand" && -f "$cand" ]]; then
-    APPSTREAM_HELPERS="$cand"
-    break
-  fi
-done
-if [[ -z "$APPSTREAM_HELPERS" ]]; then
-  echo "[ERROR] appstream_helpers.sh not found. Set APPSTREAM_HELPERS_PATH to an absolute path." >&2
-  exit 1
-fi
-
-# shellcheck source=/dev/null
-source "$APPSTREAM_HELPERS"
-
-# Write metainfo into AppDir + (optionally) copy .desktop
+# ──────────────────────────────────────────────────────────────
+# AppStream metadata (helpers write + validate)
+# ──────────────────────────────────────────────────────────────
 write_appstream "$APPDIR"
-validate_desktop_and_metainfo "$APPDIR"   # optional but helpful
+validate_desktop_and_metainfo "$APPDIR" || true
 
-# Optional validation (best-effort; won’t fail the build)
-if command -v desktop-file-validate >/dev/null 2>&1; then
-  desktop-file-validate "$APPDIR/${APP_ID}.desktop" || warn "desktop-file-validate warnings"
-fi
-if command -v appstreamcli >/dev/null 2>&1; then
-  appstreamcli validate --no-net "$APPDIR/usr/share/metainfo/${APP_ID}.metainfo.xml" \
-    || warn "appstreamcli validation warnings"
-fi
+# Extra validation if tools exist
+command -v desktop-file-validate >/dev/null 2>&1 && desktop-file-validate "$APPDIR/${APP_ID}.desktop" || true
+command -v appstreamcli >/dev/null 2>&1 && appstreamcli validate --no-net "$APPDIR/usr/share/metainfo/${APP_ID}.metainfo.xml" || true
 
-
-# ───────────────────────────────
-# Diagnostics (print ldd for each payload if present)
-# ───────────────────────────────
-print_ldd() {
-  local sub="$1"
-  local so="$APPDIR/usr/lib/$APP_ID/$sub/libPhotino.Native.so"
-  if [[ -f "$so" ]]; then
-    note "ldd on Photino native ($sub payload):"
-    ldd "$so" | sed 's/^/  /' || true
-  else
-    warn "No libPhotino.Native.so found under $sub payload."
-  fi
-}
-(( HAVE_41 )) && print_ldd "gtk4.1"
-(( HAVE_40 )) && print_ldd "gtk4.0"
-
-# ───────────────────────────────
-# Build the AppImage
-# ───────────────────────────────
-OUTFILE="$OUTDIR/WPStallman-${APP_VERSION}-x86_64${APP_SUFFIX}.AppImage"
+# ──────────────────────────────────────────────────────────────
+# Build AppImage
+# ──────────────────────────────────────────────────────────────
+OUTFILE="${OUTDIR}/WPStallman-${APP_VERSION}-x86_64${APP_SUFFIX}.AppImage"
 note "Building AppImage → $OUTFILE"
-
 export APPIMAGE_EXTRACT_AND_RUN=${APPIMAGE_EXTRACT_AND_RUN:-1}
 command -v appimagetool >/dev/null 2>&1 || die "appimagetool is not in PATH."
-
 appimagetool "$APPDIR" "$OUTFILE"
 chmod +x "$OUTFILE"
-
 note "AppImage built: $OUTFILE"

@@ -1,129 +1,160 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ───────────────────────────────
+# ──────────────────────────────────────────────────────────────
+# Load release metadata (dotenv)
+# ──────────────────────────────────────────────────────────────
+PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || realpath "$(dirname "$0")/../..")}"
+META_FILE="${META_FILE:-${PROJECT_ROOT}/build/package/release.meta}"
+if [[ -f "$META_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$META_FILE"
+  set +a
+else
+  echo "[WARN] No metadata file at ${META_FILE}; using script defaults."
+fi
+
 # Pretty logging
-# ───────────────────────────────
 note() { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
 warn() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
 die()  { printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
 
-# ───────────────────────────────
-# Repo layout & inputs (adjust if needed)
-# ───────────────────────────────
-ROOT="${ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$ROOT"
+# ──────────────────────────────────────────────────────────────
+# Inputs from release_all.sh (Windows publishes)
+# ──────────────────────────────────────────────────────────────
+: "${WIN_MODERN_SRC:=}"    # e.g., src/WPStallman.GUI.Modern/bin/Release/net8.0-windows/win-x64/publish
+: "${WIN_LEGACY_SRC:=}"    # e.g., src/WPStallman.GUI.Legacy/bin/Release/net8.0-windows/win-x64/publish
+: "${WIN_LAUNCHER_SRC:=}"  # e.g., src/WPStallman.Launcher/bin/Release/net8.0-windows/win-x64/publish
 
-: "${GUI_CSPROJ:=src/WPStallman.GUI/WPStallman.GUI.csproj}"
-: "${CLI_CSPROJ:=src/WPStallman.CLI/WPStallman.CLI.csproj}"
-
-# Windows targets
-: "${TFM_WIN_GUI:=net8.0-windows}"
-: "${TFM_WIN_CLI:=net8.0}"
-: "${RID_WIN:=win-x64}"
-
-# Output dirs
-: "${ARTIFACTS_DIR:=artifacts}"
-: "${BUILDDIR:=$ARTIFACTS_DIR/build/winzip}"
-: "${OUTDIR:=$ARTIFACTS_DIR/packages}"
-mkdir -p "$BUILDDIR" "$OUTDIR"
-
-# Optional suffix for filename (e.g., -portable, -beta)
-: "${APP_SUFFIX:=}"
-
-# ───────────────────────────────
-# Version resolver (Directory.Build.props / MSBuild)
-# ───────────────────────────────
-get_msbuild_prop() {
-  local proj="$1" prop="$2"
-  dotnet msbuild "$proj" -nologo -getProperty:"$prop" 2>/dev/null | tr -d '\r' | tail -n1
-}
-get_version_from_props() {
-  local props="$ROOT/Directory.Build.props"
+# Version: prefer env (release_all sets APP_VERSION); fall back to props
+resolve_version_from_props() {
+  local props="${PROJECT_ROOT}/Directory.Build.props"
   [[ -f "$props" ]] || { echo ""; return; }
   grep -oP '(?<=<Version>).*?(?=</Version>)' "$props" | head -n1
 }
-resolve_app_version() {
-  local v=""
-  v="$(get_msbuild_prop "$GUI_CSPROJ" "Version")"
-  if [[ -z "$v" || "$v" == "*Undefined*" ]]; then
-    v="$(get_version_from_props)"
-  fi
-  echo "$v"
-}
-APP_VERSION="${APP_VERSION_OVERRIDE:-$(resolve_app_version)}"
-[[ -n "$APP_VERSION" ]] || die "Could not resolve Version from MSBuild or Directory.Build.props"
-export APP_VERSION
-note "Version: $APP_VERSION"
+APP_VERSION="${APP_VERSION:-$(resolve_version_from_props)}"
+[[ -n "${APP_VERSION}" ]] || die "APP_VERSION is not set and could not be resolved."
 
-# ───────────────────────────────
-# Build / publish (Windows, single-file GUI; CLI optional)
-# ───────────────────────────────
-note "Restoring…"
-dotnet restore
+# Metadata defaults
+: "${APP_NAME:=W.P. Stallman}"
+: "${APP_ID:=com.wpstallman.app}"
+: "${WINZIP_BASENAME:=WPStallman-Windows}"
+: "${HOMEPAGE_URL:=https://example.com}"
+: "${PUBLISHER_NAME:=Left Hand Enterprises, LLC}"
 
-note "Publishing Windows GUI → $TFM_WIN_GUI / $RID_WIN"
-dotnet publish "$GUI_CSPROJ" -c Release -r "$RID_WIN" -f "$TFM_WIN_GUI" \
-  -p:SelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
-  -p:EnableWindowsTargeting=true
+# Layout & outputs
+ARTIFACTS_DIR="${ARTIFACTS_DIR:-${PROJECT_ROOT}/artifacts}"
+OUTDIR="${OUTDIR:-${ARTIFACTS_DIR}/packages}"
+WORKDIR="${WORKDIR:-${ARTIFACTS_DIR}/build/winzip}"
+STAGE_ROOT="${WORKDIR}/${WINZIP_BASENAME}-${APP_VERSION}"
+mkdir -p "${OUTDIR}" "${WORKDIR}"
 
-GUI_PUB="$ROOT/src/$(basename "${GUI_CSPROJ%/*.csproj}")/bin/Release/${TFM_WIN_GUI}/${RID_WIN}/publish"
-[[ -d "$GUI_PUB" ]] || die "Windows GUI publish folder not found: $GUI_PUB"
+note "Version: ${APP_VERSION}"
+note "Staging to: ${STAGE_ROOT}"
 
-CLI_PUB=""
-if [[ -f "$CLI_CSPROJ" ]]; then
-  note "Publishing Windows CLI → $TFM_WIN_CLI / $RID_WIN"
-  if dotnet publish "$CLI_CSPROJ" -c Release -r "$RID_WIN" -f "$TFM_WIN_CLI" \
-       -p:SelfContained=true -p:PublishSingleFile=true -p:EnableWindowsTargeting=true; then
-    CLI_PUB="$ROOT/src/$(basename "${CLI_CSPROJ%/*.csproj}")/bin/Release/${TFM_WIN_CLI}/${RID_WIN}/publish"
+# ──────────────────────────────────────────────────────────────
+# Guard: at least one payload is required
+# ──────────────────────────────────────────────────────────────
+if [[ -z "${WIN_MODERN_SRC}" && -z "${WIN_LEGACY_SRC}" && -z "${WIN_LAUNCHER_SRC}" ]]; then
+  die "No Windows payloads provided. Set WIN_MODERN_SRC and/or WIN_LEGACY_SRC and WIN_LAUNCHER_SRC."
+fi
+[[ -n "${WIN_MODERN_SRC}"   && -d "${WIN_MODERN_SRC}"   ]] || [[ -z "${WIN_MODERN_SRC}"   ]] || die "WIN_MODERN_SRC not found: ${WIN_MODERN_SRC}"
+[[ -n "${WIN_LEGACY_SRC}"   && -d "${WIN_LEGACY_SRC}"   ]] || [[ -z "${WIN_LEGACY_SRC}"   ]] || die "WIN_LEGACY_SRC not found: ${WIN_LEGACY_SRC}"
+[[ -n "${WIN_LAUNCHER_SRC}" && -d "${WIN_LAUNCHER_SRC}" ]] || [[ -z "${WIN_LAUNCHER_SRC}" ]] || die "WIN_LAUNCHER_SRC not found: ${WIN_LAUNCHER_SRC}"
+
+# Clean stage
+rm -rf "${STAGE_ROOT}"
+mkdir -p "${STAGE_ROOT}"
+
+# ──────────────────────────────────────────────────────────────
+# Stage launcher (root)
+# ──────────────────────────────────────────────────────────────
+if [[ -n "${WIN_LAUNCHER_SRC}" ]]; then
+  # Prefer WPStallman.Launcher.exe; fall back to any *.exe
+  launcher_exe=""
+  if compgen -G "${WIN_LAUNCHER_SRC}/WPStallman.Launcher.exe" > /dev/null; then
+    launcher_exe="${WIN_LAUNCHER_SRC}/WPStallman.Launcher.exe"
   else
-    warn "Windows CLI publish failed or project missing; continuing without CLI."
+    launcher_exe="$(find "${WIN_LAUNCHER_SRC}" -maxdepth 1 -type f -iname '*.exe' | head -n1 || true)"
   fi
+
+  if [[ -n "${launcher_exe}" ]]; then
+    note "Copying launcher: $(basename "${launcher_exe}")"
+    install -m 0644 "${launcher_exe}" "${STAGE_ROOT}/WPStallman.Launcher.exe"
+    # include any native DLLs next to the launcher if present
+    shopt -s nullglob
+    for n in "${WIN_LAUNCHER_SRC}"/*.dll; do
+      cp -a "$n" "${STAGE_ROOT}/"
+    done
+    shopt -u nullglob
+  else
+    warn "No launcher .exe found in ${WIN_LAUNCHER_SRC}; ZIP will not include a launcher."
+  fi
+else
+  warn "WIN_LAUNCHER_SRC not set; ZIP will not include a launcher."
 fi
 
-# ───────────────────────────────
-# Stage files for zipping
-# ───────────────────────────────
-STAGE="$BUILDDIR/WPStallman-${APP_VERSION}-win-x64"
-rm -rf "$STAGE"
-mkdir -p "$STAGE"
-
-note "Staging GUI payload…"
-rsync -a "$GUI_PUB/" "$STAGE/"
-
-if [[ -n "$CLI_PUB" && -d "$CLI_PUB" ]]; then
-  note "Adding CLI payload…"
-  mkdir -p "$STAGE/cli"
-  rsync -a "$CLI_PUB/" "$STAGE/cli/"
+# ──────────────────────────────────────────────────────────────
+# Stage payloads (Modern/Legacy)
+# ──────────────────────────────────────────────────────────────
+if [[ -n "${WIN_MODERN_SRC}" ]]; then
+  note "Staging Modern → gtk4.1/"
+  mkdir -p "${STAGE_ROOT}/gtk4.1"
+  rsync -a --delete "${WIN_MODERN_SRC}/" "${STAGE_ROOT}/gtk4.1/"
 fi
 
-# Optional readme
-cat > "$STAGE/README.txt" <<EOF
-W. P. Stallman (Windows Portable)
-Version: ${APP_VERSION}
+if [[ -n "${WIN_LEGACY_SRC}" ]]; then
+  note "Staging Legacy → gtk4.0/"
+  mkdir -p "${STAGE_ROOT}/gtk4.0"
+  rsync -a --delete "${WIN_LEGACY_SRC}/" "${STAGE_ROOT}/gtk4.0/"
+fi
 
-Contents:
-- GUI:   WPStallman.GUI.exe (self-contained, portable)
-- CLI:   (optional) in .\cli\
+# ──────────────────────────────────────────────────────────────
+# Ancillary files: LICENSE, README
+# ──────────────────────────────────────────────────────────────
+# Try to include a LICENSE if present in repo
+if [[ -f "${PROJECT_ROOT}/LICENSE" ]]; then
+  cp -a "${PROJECT_ROOT}/LICENSE" "${STAGE_ROOT}/LICENSE.txt"
+elif [[ -f "${PROJECT_ROOT}/LICENSE.txt" ]]; then
+  cp -a "${PROJECT_ROOT}/LICENSE.txt" "${STAGE_ROOT}/LICENSE.txt"
+fi
 
-Notes:
-- Requires Windows 10/11 x64.
-- Extract and run WPStallman.GUI.exe
+# Generate a small README with metadata
+cat > "${STAGE_ROOT}/README.txt" <<EOF
+${APP_NAME} (${APP_VERSION}) — Windows portable ZIP
+Publisher: ${PUBLISHER_NAME}
+Homepage : ${HOMEPAGE_URL}
+
+Contents
+--------
+- WPStallman.Launcher.exe  -> entry point
+- gtk4.1\\                  -> Modern UI payload (if present)
+- gtk4.0\\                  -> Legacy UI payload (if present)
+
+Notes
+-----
+- Requires Microsoft Edge WebView2 Runtime on Windows.
+- Run WPStallman.Launcher.exe to start the app.
 EOF
 
-# ───────────────────────────────
-# Zip it
-# ───────────────────────────────
-ZIP_FILE="$OUTDIR/WPStallman-${APP_VERSION}-win-x64${APP_SUFFIX}.zip"
-rm -f "$ZIP_FILE"
+# ──────────────────────────────────────────────────────────────
+# Create ZIP
+# ──────────────────────────────────────────────────────────────
+OUT_ZIP="${OUTDIR}/${WINZIP_BASENAME}-${APP_VERSION}.zip"
+rm -f "${OUT_ZIP}"
 
-note "Creating zip → $ZIP_FILE"
-if command -v 7z >/dev/null 2>&1; then
-  (cd "$BUILDDIR" && 7z a -tzip -mx=9 "$ZIP_FILE" "$(basename "$STAGE")" >/dev/null)
-elif command -v zip >/dev/null 2>&1; then
-  (cd "$BUILDDIR" && zip -r -9 "$ZIP_FILE" "$(basename "$STAGE")" >/dev/null)
-else
-  die "Neither 7z nor zip found. Install p7zip-full or zip."
-fi
+(
+  cd "${WORKDIR}"
+  if command -v zip >/dev/null 2>&1; then
+    note "Zipping with zip → ${OUT_ZIP}"
+    zip -r -q "${OUT_ZIP}" "$(basename "${STAGE_ROOT}")"
+  elif command -v 7z >/dev/null 2>&1; then
+    note "Zipping with 7z  → ${OUT_ZIP}"
+    7z a -tzip -r -bd "${OUT_ZIP}" "$(basename "${STAGE_ROOT}")" >/dev/null
+  else
+    die "Neither 'zip' nor '7z' is available to create ${OUT_ZIP}"
+  fi
+)
 
-note "Windows zip built: $ZIP_FILE"
+note "ZIP created: ${OUT_ZIP}"

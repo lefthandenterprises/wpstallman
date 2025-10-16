@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Package Credits</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; margin: 2rem; }
+  h1 { margin-top: 0; }
+  .muted { opacity: 0.75; font-size: 0.9rem; }
+  table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+  th, td { border-bottom: 1px solid #ccc; padding: 0.5rem 0.75rem; text-align: left; vertical-align: top; }
+  th { position: sticky; top: 0; background: inherit; }
+  a { text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  input[type="search"] { padding: 0.4rem 0.6rem; width: 320px; max-width: 100%; }
+  .nowrap { white-space: nowrap; }
+</style>
+<!-- KnockoutJS (CDN) loaded deferred -->
+<script src="https://cdn.jsdelivr.net/npm/knockout@3.5.1/build/output/knockout-latest.js" defer></script>
+<script>
+  // Inline data (generated + detected)
+  var initialPackages = [
+    {"name":"GtkSharp","version":"3.24.24.95","license":"(Unknown)","licenseLink":"","link":"https://github.com/GtkSharp/GtkSharp"},{"name":"LiteDB","version":"5.0.21","license":"MIT","licenseLink":"https://spdx.org/licenses/MIT.html","link":"https://www.litedb.org/"},{"name":"MySqlConnector","version":"2.4.0","license":"MIT","licenseLink":"https://spdx.org/licenses/MIT.html","link":"https://mysqlconnector.net/"},{"name":"Photino.NET","version":"4.0.16","license":"Apache-2.0","licenseLink":"https://spdx.org/licenses/Apache-2.0.html","link":"https://github.com/tryphotino/photino.NET"},{"name":"System.CommandLine","version":"2.0.0-beta4","license":"(Unknown)","licenseLink":"","link":"https://www.nuget.org/packages/System.CommandLine/2.0.0-beta4"},{"name":"KnockoutJS","version":"3.5.1","license":"MIT","licenseLink":"https://spdx.org/licenses/MIT.html","link":"https://knockoutjs.com/"},{"name":"Bootstrap","version":"5.3.3","license":"MIT","licenseLink":"https://spdx.org/licenses/MIT.html","link":"https://getbootstrap.com/"},{"name":"JSZip","version":"3.10.1","license":"MIT","licenseLink":"https://spdx.org/licenses/MIT.html","link":"https://github.com/Stuk/jszip"}
+  ];
+
+  // Sort by name (case-insensitive)
+  initialPackages.sort(function (a, b) {
+    return (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" });
+  });  
+
+  function PackageVM(items) {
+    var self = this;
+    self.query = ko.observable("");
+    self.packages = ko.observableArray(items || []);
+    self.filtered = ko.computed(function () {
+      var q = (self.query() || "").toLowerCase().trim();
+      if (!q) return self.packages();
+      return ko.utils.arrayFilter(self.packages(), function (p) {
+        return (p.name && p.name.toLowerCase().indexOf(q) >= 0)
+            || (p.version && p.version.toLowerCase().indexOf(q) >= 0)
+            || (p.license && p.license.toLowerCase().indexOf(q) >= 0);
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var viewModel = new PackageVM(initialPackages);
+    ko.applyBindings(viewModel);
+  });
+</script>
+</head>
+<body>
+  <h1>Package Credits</h1>
+  <div class="muted">This page lists NuGet packages and detected frontend libraries found in this repository.</div>
+
+  <div style="margin-top:1rem;">
+    <input type="search" placeholder="Filter by name, version, or license…" data-bind="textInput: query" />
+    <span class="muted" data-bind="text: filtered().length + ' of ' + packages().length + ' shown'"></span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Package</th>
+        <th class="nowrap">Version</th>
+        <th>License</th>
+      </tr>
+    </thead>
+    <tbody data-bind="foreach: filtered">
+      <tr>
+        <td>
+          <a data-bind="attr: { href: link, target: '_blank', rel: 'noopener noreferrer' }, text: name"></a>
+        </td>
+        <td class="nowrap" data-bind="text: version || '—'"></td>
+        <td>
+          <span data-bind="if: licenseLink">
+            <a data-bind="attr: { href: licenseLink, target: '_blank', rel: 'noopener noreferrer' }, text: license"></a>
+          </span>
+          <span data-bind="ifnot: licenseLink" data-bind="text: license || '(Unknown)'"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="muted" style="margin-top:1rem;">
+    Tip: edit the detector table inside the script (name|license|licenseLink|projectLink|fileSubstr|srcSubstr) to add more libraries.
+  </p>
+</body>
+</html>

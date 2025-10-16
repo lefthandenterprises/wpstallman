@@ -7,6 +7,18 @@ set -euo pipefail
 # Linux builds run in Docker by default; Windows builds run on host.
 # Linux packaging (AppImage, .deb) is independent from Windows.
 
+# --- load release metadata (dotenv) ---
+PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || realpath "$(dirname "$0")/../..")}"
+META_FILE="${META_FILE:-${PROJECT_ROOT}/build/package/release.meta}"
+if [[ -f "$META_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$META_FILE"
+  set +a
+else
+  echo "[WARN] No metadata file at ${META_FILE}; using script defaults."
+fi
+
 # ---- knobs ----
 USE_DOCKER="${USE_DOCKER:-1}"               # 1 = build Linux in Docker, 0 = host
 BUILD_WINDOWS="${BUILD_WINDOWS:-1}"         # 1 = also build Windows artifacts

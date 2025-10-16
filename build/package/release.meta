@@ -1,0 +1,40 @@
+# ===== App / Org (shared) =====
+APP_ID="com.wpstallman.app"                         # reverse-DNS id
+APP_NAME="W.P. Stallman"                            # display name
+APP_SHORTDESC="Packaging tools for WordPress modules"
+HOMEPAGE_URL="https://lefthandenterprises.com/projects/wpstallman"
+
+PUBLISHER_NAME="Left Hand Enterprises, LLC"
+PUBLISHER_EMAIL="maintainers@lefthandenterprises.com"
+LICENSE_ID="MIT"                                    # SPDX id (MIT, Apache-2.0, etc.)
+
+# Optional “long” descriptions can come from files (leave blank to skip)
+APPSTREAM_DESCRIPTION_FILE="build/package/descriptions/appstream.md"
+DEB_LONGDESC_FILE="build/package/descriptions/deb.md"
+NSIS_LONGDESC_FILE="build/package/descriptions/nsis.txt"
+
+# ===== AppStream (AppImage metadata) =====
+APPSTREAM_CATEGORIES="Utility;Development;"
+APPSTREAM_KEYWORDS="WordPress;packaging;AppImage;deb;installer;"
+APPSTREAM_PROJECT_GROUP="Left Hand Enterprises"
+APPSTREAM_URL_ISSUES=""                             # optional
+APPSTREAM_URL_DONATION=""                           # optional
+APPSTREAM_CONTENT_RATING=""                         # optional: OARS xml path if you use it
+APPSTREAM_METADATA_LICENSE="FSFAP"                  # license of the metadata itself
+
+# ===== Debian (.deb) =====
+DEB_PACKAGE="wpstallman"
+DEB_SECTION="utils"
+DEB_PRIORITY="optional"
+DEB_ARCH="amd64"
+# “Either-or” deps to cover both WebKitGTK baselines + core libs:
+DEB_DEPENDS="libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, \
+ libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, \
+ libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, libasound2"
+
+# ===== Windows (NSIS / ZIP) =====
+NSIS_COMPANY_NAME="${PUBLISHER_NAME}"
+NSIS_PRODUCT_NAME="${APP_NAME}"
+NSIS_URL="${HOMEPAGE_URL}"
+NSIS_GUID="{FAD6F1E7-1C1F-4E16-9F5B-8C6A0C13A2A1}"  # generate once; keep stable
+WINZIP_BASENAME="WPStallman-Windows"
