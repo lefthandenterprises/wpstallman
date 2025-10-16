@@ -8,6 +8,16 @@
   !include "${INCLUDE_META}"
 !endif
 
+!ifdef ICON_FILE
+  !define MUI_ICON "${ICON_FILE}"
+  Icon "${ICON_FILE}"
+!endif
+!ifdef UNICON_FILE
+  !define MUI_UNICON "${UNICON_FILE}"
+  UninstallIcon "${UNICON_FILE}"
+!endif
+
+
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "x64.nsh"
@@ -59,9 +69,9 @@
   !define OUT_EXE "WPStallman-${APP_VERSION}-setup-win-x64.exe"
 !endif
 
-; Entry executable inside install dir (use launcher by default)
+; Entry executable inside install dir (use GUI by default)
 !ifndef APP_EXE
-  !define APP_EXE "WPStallman.Launcher.exe"
+  !define APP_EXE "WPStallman.GUI.exe"
 !endif
 
 ; Additional identity bits

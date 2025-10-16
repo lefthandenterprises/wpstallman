@@ -27,6 +27,11 @@ if [[ -f "$META_FILE" ]]; then set -a; source "$META_FILE"; set +a; else echo "[
 : "${NSIS_URL:=${HOMEPAGE_URL}}"
 : "${NSIS_GUID:={FAD6F1E7-1C1F-4E16-9F5B-8C6A0C13A2A1}}"
 
+: "${NSIS_ICON_FILE:=${PROJECT_ROOT}/WPStallman.Assets/logo/WPS.ico}"
+: "${NSIS_UNICON_FILE:=${NSIS_ICON_FILE}}"
+
+
+
 # Paths
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-${PROJECT_ROOT}/artifacts}"
 OUTDIR="${OUTDIR:-${ARTIFACTS_DIR}/packages}"
@@ -110,11 +115,17 @@ VI_VERSION="$(echo "$APP_VERSION" | sed 's/[^0-9.].*$//' | awk -F. '{printf "%d.
 OUT_EXE="${OUTDIR}/WPStallman-${APP_VERSION}-setup-win-x64.exe"
 note "Building NSIS → $OUT_EXE"
 
+NSIS_ICON_FILE="${PROJECT_ROOT}/src/WPStallman.Assets/logo/WPS.ico"
+NSIS_UNICON_FILE="${PROJECT_ROOT}/src/WPStallman.Assets/logo/WPS.ico"
+
 makensis -V4 -NOCD \
   -DINCLUDE_META="${META_INC}" \
   -DAPP_STAGE="${STAGE}" \
   -DOUT_EXE="${OUT_EXE}" \
   -DVI_VERSION="${VI_VERSION}" \
+  -DICON_FILE="${NSIS_ICON_FILE}" \
+  -DUNICON_FILE="${NSIS_UNICON_FILE}" \
   "$NSI" > "${BUILDDIR}/makensis.log"
+
 
 note "NSIS built: ${OUT_EXE}"

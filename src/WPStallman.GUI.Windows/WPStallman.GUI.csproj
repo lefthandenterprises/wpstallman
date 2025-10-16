@@ -29,7 +29,7 @@
   <!-- Windows GUI: hide console + embed icon (from centralized Assets) -->
   <PropertyGroup Condition="'$(TargetFramework)'=='net8.0-windows'">
     <OutputType>WinExe</OutputType>
-    <ApplicationIcon>$(WwwRootDir)\img\WPS.ico</ApplicationIcon>
+    <ApplicationIcon>../WPStallman.Assets/logo/WPS.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- Non-Windows GUI: still an executable (not a class library) -->
@@ -41,17 +41,16 @@
   <!-- Also ensure WinExe when building on Windows without specifying TFM -->
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <OutputType>WinExe</OutputType>
-    <ApplicationIcon>$(WwwRootDir)\img\WPS.ico</ApplicationIcon>
+    <ApplicationIcon>../WPStallman.Assets/logo/WPS.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- REMOVE stale per-project wwwroot copying: Directory.Build.props handles it.
        (Intentionally no <Content Include="wwwroot\**\*"> here.) -->
 
   <!-- macOS packaging inputs: use centralized .icns; Info.plist stays in repo -->
-  <ItemGroup>
-    <None Include="$(WwwRootDir)\img\WPS.icns" Condition="Exists('$(WwwRootDir)\img\WPS.icns')" />
-    <None Include="platforms/macos/Info.plist" Condition="Exists('platforms/macos/Info.plist')" />
-  </ItemGroup>
+  <!-- <ItemGroup>
+    <ApplicationIcon>src/WPStallman.Assets/logo/WPS.ico</ApplicationIcon>
+  </ItemGroup> -->
 
   <ItemGroup>
     <PackageReference Include="GtkSharp" Version="3.24.24.95" />
