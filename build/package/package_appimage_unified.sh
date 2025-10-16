@@ -131,6 +131,21 @@ APPDIR="$BUILDDIR/AppDir"
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/lib/$APP_ID" "$APPDIR/usr/share/applications"
 
+# Copy the AppImage debug runner into packages (once)
+DEBUG_RUNNER_SRC="$ROOT/build/package/run-wpst-debug.sh"
+DEBUG_RUNNER_DST="$OUTDIR/run-wpst-debug.sh"
+if [[ -f "$DEBUG_RUNNER_SRC" ]]; then
+  if [[ ! -f "$DEBUG_RUNNER_DST" ]]; then
+    install -Dm755 "$DEBUG_RUNNER_SRC" "$DEBUG_RUNNER_DST"
+    note "Placed debug runner at: $DEBUG_RUNNER_DST"
+  else
+    note "Debug runner already present: $DEBUG_RUNNER_DST"
+  fi
+else
+  warn "Debug runner not found at: $DEBUG_RUNNER_SRC"
+fi
+
+
 stage_payload() {
   local src="$1" subdir="$2"
   [[ -d "$src" ]] || return 1

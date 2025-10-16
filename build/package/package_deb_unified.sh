@@ -187,10 +187,27 @@ chmod 0755 "$DEB_ROOT/DEBIAN/postinst"
 # ───────────────────────────────
 # Build the .deb
 # ───────────────────────────────
-OUTDIR="${OUTDIR:-$ARTIFACTS_DIR/packages}"
-mkdir -p "$OUTDIR"
-DEB_FILE="$OUTDIR/wpstallman_${APP_VERSION}_amd64${APP_SUFFIX}.deb"
+# ── normalize perms inside the staging tree ──
+# dirs 0755, executables 0755, regular files 0644
+find "$DEB_ROOT" -type d  -exec chmod 0755 {} +
+find "$DEB_ROOT" -type f  -name "*.sh" -exec chmod 0755 {} +
+find "$DEB_ROOT/usr/bin" -type f -exec chmod 0755 {} + 2>/dev/null || true
+find "$DEB_ROOT" -type f ! -perm -111 -exec chmod 0644 {} +
 
-note "Building .deb → $DEB_FILE"
-fakeroot dpkg-deb --build "$DEB_ROOT" "$DEB_FILE"
-note ".deb built: $DEB_FILE"
+# control files: 0644 (scripts 0755 if you add any)
+find "$DEB_ROOT/DEBIAN" -type f -exec chmod 0644 {} +
+for s in postinst prerm postrm preinst; do
+  [[ -f "$DEB_ROOT/DEBIAN/$s" ]] && chmod 0755 "$DEB_ROOT/DEBIAN/$s"
+done
+
+# ── build with fakeroot so metadata looks “rooty” without sudo ──
+OUT_DEB="$OUTDIR/wpstallman_${APP_VERSION}_${DEB_ARCH}.deb"
+mkdir -p "$OUTDIR"
+fakeroot dpkg-deb --build "$DEB_ROOT" "$OUT_DEB"
+
+# ensure the resulting file is readable by non-root
+chmod 0644 "$OUT_DEB"
+# (optional) if any step used sudo earlier, take ownership back:
+chown "$USER:$USER" "$OUT_DEB" || true
+
+note "Built .deb: $OUT_DEB"
