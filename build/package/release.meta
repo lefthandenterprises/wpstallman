@@ -1,11 +1,11 @@
 # ===== App / Org (shared) =====
 APP_ID="com.wpstallman.app"                         # reverse-DNS id
 APP_NAME="W.P. Stallman"                            # display name
-APP_SHORTDESC="Packaging tools for WordPress modules"
+APP_SHORTDESC="Database script packaging tools for WordPress plugins"
 HOMEPAGE_URL="https://lefthandenterprises.com/projects/wpstallman"
 
 PUBLISHER_NAME="Left Hand Enterprises, LLC"
-PUBLISHER_EMAIL="maintainers@lefthandenterprises.com"
+PUBLISHER_EMAIL="patrick@lefthandenterprises.com"
 LICENSE_ID="MIT"                                    # SPDX id (MIT, Apache-2.0, etc.)
 
 # Optional “long” descriptions can come from files (leave blank to skip)
@@ -31,6 +31,15 @@ DEB_ARCH="amd64"
 DEB_DEPENDS="libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, \
  libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, \
  libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, libasound2"
+
+ # ===== Windows build inputs =====
+GUI_CSPROJ_WIN="src/WPStallman.GUI.Windows/WPStallman.GUI.csproj"
+TFM_WIN_GUI="net8.0-windows"
+RID_WIN="win-x64"
+
+# Optional: single-file/self-contained defaults
+WIN_SELF_CONTAINED="true"
+WIN_SINGLE_FILE="true"
 
 # ===== Windows (NSIS / ZIP) =====
 NSIS_COMPANY_NAME="${PUBLISHER_NAME}"

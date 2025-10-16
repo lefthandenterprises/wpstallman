@@ -148,6 +148,20 @@ if [[ -n "${PUBLISH_DIR_LAUNCHER:-}" ]]; then
   fi
 fi
 
+# ── compute Installed-Size (KiB) excluding DEBIAN ──
+calc_installed_size_kib() {
+  # Portable way (works even if 'du --exclude' isn't available)
+  # Sums apparent sizes of all staged files except the DEBIAN control dir.
+  ( cd "$DEB_ROOT" \
+    && find . -path ./DEBIAN -prune -o -type f -print0 \
+    | du -c -k --files0-from=- 2>/dev/null \
+    | awk '/total$/ {print $1}' )
+}
+
+INSTALLED_SIZE_KIB="$(calc_installed_size_kib)"
+: "${INSTALLED_SIZE_KIB:=0}"   # fallback safety
+
+
 # ───────────────────────────────
 # Control metadata (from release.meta)
 # ───────────────────────────────
@@ -167,6 +181,7 @@ Section: ${DEB_SECTION}
 Priority: ${DEB_PRIORITY}
 Architecture: ${DEB_ARCH}
 Maintainer: ${PUBLISHER_NAME} <${PUBLISHER_EMAIL}>
+Installed-Size: ${INSTALLED_SIZE_KIB}
 Homepage: ${HOMEPAGE_URL}
 Depends: ${shlibs:+${shlibs}, }${DEB_DEPENDS}
 Description: ${APP_SHORTDESC}

@@ -1,59 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ──────────────────────────────────────────────────────────────
-# Load release metadata (dotenv)
-# ──────────────────────────────────────────────────────────────
+# ── Load metadata (dotenv) ────────────────────────────────────
 PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || realpath "$(dirname "$0")/../..")}"
 META_FILE="${META_FILE:-${PROJECT_ROOT}/build/package/release.meta}"
-if [[ -f "$META_FILE" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$META_FILE"
-  set +a
-else
-  echo "[WARN] No metadata file at ${META_FILE}; using script defaults."
-fi
+if [[ -f "$META_FILE" ]]; then set -a; source "$META_FILE"; set +a; else echo "[WARN] No metadata at ${META_FILE}; using defaults."; fi
 
-# ──────────────────────────────────────────────────────────────
-# Pretty logging + guards
-# ──────────────────────────────────────────────────────────────
-note(){ printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
-warn(){ printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
-die(){  printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
+# Projects (Windows GUI mandatory; CLI optional)
+: "${GUI_CSPROJ_WIN:=src/WPStallman.GUI.Windows/WPStallman.GUI.Windows.csproj}"
+: "${CLI_CSPROJ_WIN:=src/WPStallman.CLI/WPStallman.CLI.csproj}"
 
-require_vars() {
-  local missing=0
-  for v in "$@"; do
-    if [[ -z "${!v:-}" ]]; then
-      echo "[ERR ] Missing required metadata: $v" >&2
-      missing=1
-    fi
-  done
-  (( missing == 0 )) || exit 1
-}
+# Windows publish settings
+: "${TFM_WIN_GUI:=net8.0-windows}"
+: "${TFM_WIN_CLI:=net8.0}"
+: "${RID_WIN:=win-x64}"
+: "${WIN_SELF_CONTAINED:=true}"
+: "${WIN_SINGLE_FILE:=true}"
 
-# ──────────────────────────────────────────────────────────────
-# Inputs from release_all.sh
-# ──────────────────────────────────────────────────────────────
-: "${WIN_MODERN_SRC:=}"     # src/WPStallman.GUI.Modern/bin/.../publish (optional)
-: "${WIN_LEGACY_SRC:=}"     # src/WPStallman.GUI.Legacy/bin/.../publish (optional)
-: "${WIN_LAUNCHER_SRC:=}"   # src/WPStallman.Launcher/bin/.../publish (recommended)
-
-# Read version (prefer env from release_all)
-resolve_version_from_props() {
-  local props="${PROJECT_ROOT}/Directory.Build.props"
-  [[ -f "$props" ]] || { echo ""; return; }
-  grep -oP '(?<=<Version>).*?(?=</Version>)' "$props" | head -n1
-}
-APP_VERSION="${APP_VERSION:-$(resolve_version_from_props)}"
-[[ -n "${APP_VERSION}" ]] || die "APP_VERSION is not set and could not be resolved."
-
-# Company/product defaults from release.meta
+# Identity (from meta, with fallbacks)
 : "${APP_NAME:=W.P. Stallman}"
 : "${APP_ID:=com.wpstallman.app}"
 : "${PUBLISHER_NAME:=Left Hand Enterprises, LLC}"
-: "${HOMEPAGE_URL:=https://example.com}"
+: "${HOMEPAGE_URL:=https://lefthandenterprises.com/projects/wpstallman}"
 : "${NSIS_COMPANY_NAME:=${PUBLISHER_NAME}}"
 : "${NSIS_PRODUCT_NAME:=${APP_NAME}}"
 : "${NSIS_URL:=${HOMEPAGE_URL}}"
@@ -64,70 +32,57 @@ ARTIFACTS_DIR="${ARTIFACTS_DIR:-${PROJECT_ROOT}/artifacts}"
 OUTDIR="${OUTDIR:-${ARTIFACTS_DIR}/packages}"
 BUILDDIR="${BUILDDIR:-${ARTIFACTS_DIR}/build/nsis}"
 STAGE="${BUILDDIR}/stage"
-mkdir -p "${OUTDIR}" "${BUILDDIR}"
+mkdir -p "$OUTDIR" "$BUILDDIR"
+
+note(){ printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
+warn(){ printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
+die(){  printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
+
+# Resolve version
+resolve_version(){ local p="$PROJECT_ROOT/Directory.Build.props"; [[ -f "$p" ]] && grep -oP '(?<=<Version>).*?(?=</Version>)' "$p" | head -n1 || true; }
+APP_VERSION="${APP_VERSION:-$(resolve_version)}"; [[ -n "$APP_VERSION" ]] || die "APP_VERSION not found."
+note "Version: $APP_VERSION"
 
 # NSIS script
 NSI="${NSI:-${PROJECT_ROOT}/build/package/installer.nsi}"
 [[ -f "$NSI" ]] || die "Missing NSIS script: $NSI"
+command -v makensis >/dev/null 2>&1 || die "makensis not found (sudo apt install nsis)."
 
-# Ensure makensis
-command -v makensis >/dev/null 2>&1 || die "makensis not found. Install NSIS (ex: sudo apt install nsis)."
+# Absolutize project paths
+case "$GUI_CSPROJ_WIN" in /*) GUI_PROJ="$GUI_CSPROJ_WIN";; *) GUI_PROJ="$PROJECT_ROOT/$GUI_CSPROJ_WIN";; esac
+[[ -f "$GUI_PROJ" ]] || die "Missing Windows GUI project: $GUI_PROJ"
+case "${CLI_CSPROJ_WIN:-}" in "") ;; /*) CLI_PROJ="$CLI_CSPROJ_WIN";; *) CLI_PROJ="$PROJECT_ROOT/$CLI_CSPROJ_WIN";; esac
+[[ -n "${CLI_PROJ:-}" && ! -f "$CLI_PROJ" ]] && { warn "CLI project not found at $CLI_PROJ; continuing without CLI."; CLI_PROJ=""; }
 
-note "Version: ${APP_VERSION}"
+# Publish GUI
+note "Publishing GUI → $TFM_WIN_GUI / $RID_WIN"
+dotnet publish "$GUI_PROJ" -c Release -r "$RID_WIN" -f "$TFM_WIN_GUI" \
+  -p:SelfContained=$WIN_SELF_CONTAINED -p:PublishSingleFile=$WIN_SINGLE_FILE \
+  -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableWindowsTargeting=true
 
-# ──────────────────────────────────────────────────────────────
-# Validate inputs
-# ──────────────────────────────────────────────────────────────
-if [[ -z "${WIN_MODERN_SRC}" && -z "${WIN_LEGACY_SRC}" && -z "${WIN_LAUNCHER_SRC}" ]]; then
-  die "No Windows payloads provided. Set WIN_MODERN_SRC and/or WIN_LEGACY_SRC and WIN_LAUNCHER_SRC."
-fi
-[[ -z "${WIN_MODERN_SRC}"   || -d "${WIN_MODERN_SRC}"   ]] || die "WIN_MODERN_SRC not found: ${WIN_MODERN_SRC}"
-[[ -z "${WIN_LEGACY_SRC}"   || -d "${WIN_LEGACY_SRC}"   ]] || die "WIN_LEGACY_SRC not found: ${WIN_LEGACY_SRC}"
-[[ -z "${WIN_LAUNCHER_SRC}" || -d "${WIN_LAUNCHER_SRC}" ]] || die "WIN_LAUNCHER_SRC not found: ${WIN_LAUNCHER_SRC}"
+GUI_PUB="$(dirname "$GUI_PROJ")/bin/Release/${TFM_WIN_GUI}/${RID_WIN}/publish"
+[[ -d "$GUI_PUB" ]] || die "GUI publish folder missing: $GUI_PUB"
 
-# ──────────────────────────────────────────────────────────────
-# Stage files for installer
-# Layout:
-#   stage/
-#     WPStallman.Launcher.exe   (if provided)
-#     gtk4.1/                   (Modern payload)
-#     gtk4.0/                   (Legacy payload)
-#     LICENSE.txt (optional)
-# ──────────────────────────────────────────────────────────────
-rm -rf "${STAGE}"
-mkdir -p "${STAGE}"
-
-# Launcher
-if [[ -n "${WIN_LAUNCHER_SRC}" ]]; then
-  launcher_exe=""
-  if compgen -G "${WIN_LAUNCHER_SRC}/WPStallman.Launcher.exe" > /dev/null; then
-    launcher_exe="${WIN_LAUNCHER_SRC}/WPStallman.Launcher.exe"
+# Publish CLI (optional)
+CLI_PUB=""
+if [[ -n "${CLI_PROJ:-}" ]]; then
+  note "Publishing CLI → $TFM_WIN_CLI / $RID_WIN"
+  if dotnet publish "$CLI_PROJ" -c Release -r "$RID_WIN" -f "$TFM_WIN_CLI" \
+       -p:SelfContained=$WIN_SELF_CONTAINED -p:PublishSingleFile=$WIN_SINGLE_FILE \
+       -p:EnableWindowsTargeting=true; then
+    CLI_PUB="$(dirname "$CLI_PROJ")/bin/Release/${TFM_WIN_CLI}/${RID_WIN}/publish"
   else
-    launcher_exe="$(find "${WIN_LAUNCHER_SRC}" -maxdepth 1 -type f -iname '*.exe' | head -n1 || true)"
-  fi
-  if [[ -n "${launcher_exe}" ]]; then
-    note "Including launcher: $(basename "${launcher_exe}")"
-    install -m 0644 "${launcher_exe}" "${STAGE}/WPStallman.Launcher.exe"
-    shopt -s nullglob
-    for n in "${WIN_LAUNCHER_SRC}"/*.dll; do cp -a "$n" "${STAGE}/"; done
-    shopt -u nullglob
-  else
-    warn "No .exe found in WIN_LAUNCHER_SRC; installer will not include a launcher."
+    warn "CLI publish failed; installer will not contain CLI."
   fi
 fi
 
-# Modern payload
-if [[ -n "${WIN_MODERN_SRC}" ]]; then
-  note "Staging Modern payload → gtk4.1/"
-  mkdir -p "${STAGE}/gtk4.1"
-  rsync -a --delete "${WIN_MODERN_SRC}/" "${STAGE}/gtk4.1/"
-fi
+# Stage for NSIS
+rm -rf "$STAGE"; mkdir -p "$STAGE"
+rsync -a --delete "$GUI_PUB/" "$STAGE/"
 
-# Legacy payload
-if [[ -n "${WIN_LEGACY_SRC}" ]]; then
-  note "Staging Legacy payload → gtk4.0/"
-  mkdir -p "${STAGE}/gtk4.0"
-  rsync -a --delete "${WIN_LEGACY_SRC}/" "${STAGE}/gtk4.0/"
+if [[ -n "$CLI_PUB" && -d "$CLI_PUB" ]]; then
+  mkdir -p "$STAGE/cli"
+  rsync -a --delete "$CLI_PUB/" "$STAGE/cli/"
 fi
 
 # LICENSE (optional)
@@ -137,9 +92,7 @@ elif [[ -f "${PROJECT_ROOT}/LICENSE.txt" ]]; then
   cp -a "${PROJECT_ROOT}/LICENSE.txt" "${STAGE}/LICENSE.txt"
 fi
 
-# ──────────────────────────────────────────────────────────────
-# Generate NSIS meta include (keeps installer.nsi clean)
-# ──────────────────────────────────────────────────────────────
+# Inject NSIS meta
 META_INC="${BUILDDIR}/nsis-meta.nsi"
 cat > "${META_INC}" <<EOF
 !define COMPANY_NAME "${NSIS_COMPANY_NAME}"
@@ -150,13 +103,10 @@ cat > "${META_INC}" <<EOF
 !define APP_ID "${APP_ID}"
 EOF
 
-# Also compute VIProductVersion (must be 4-part numeric)
+# 4-part numeric for VIProductVersion
 VI_VERSION="$(echo "$APP_VERSION" | sed 's/[^0-9.].*$//' | awk -F. '{printf "%d.%d.%d.%d", $1,$2,$3, ($4==""?0:$4)}')"
 [[ -n "$VI_VERSION" ]] || VI_VERSION="1.0.0.0"
 
-# ──────────────────────────────────────────────────────────────
-# Run NSIS
-# ──────────────────────────────────────────────────────────────
 OUT_EXE="${OUTDIR}/WPStallman-${APP_VERSION}-setup-win-x64.exe"
 note "Building NSIS → $OUT_EXE"
 
@@ -165,6 +115,6 @@ makensis -V4 -NOCD \
   -DAPP_STAGE="${STAGE}" \
   -DOUT_EXE="${OUT_EXE}" \
   -DVI_VERSION="${VI_VERSION}" \
-  "${NSI}" > "${BUILDDIR}/makensis.log"
+  "$NSI" > "${BUILDDIR}/makensis.log"
 
 note "NSIS built: ${OUT_EXE}"
