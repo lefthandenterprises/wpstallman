@@ -84,7 +84,7 @@ PUB_WIN_LAUNCHER="${LAUNCHER_DIR}/bin/Release/${TFM_WIN}/${RID_WIN}/publish"
 PKG_APPIMAGE="${PKG_DIR}/package_appimage_unified.sh"
 PKG_DEB="${PKG_DIR}/package_deb_unified.sh"
 PKG_NSIS="${PKG_DIR}/package_nsis.sh"
-PKG_WINZIP="${PKG_DIR}/package_winzip.sh"
+PKG_WINZIP="${PKG_DIR}/package_zip.sh"
 
 # ---- version resolution ----
 VERSION="${VERSION:-}"
