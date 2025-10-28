@@ -1,267 +1,170 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ──────────────────────────────────────────────────────────────
-# Load shared metadata (dotenv)
-# ──────────────────────────────────────────────────────────────
-PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || realpath "$(dirname "$0")/../..")}"
-META_FILE="${META_FILE:-${PROJECT_ROOT}/build/package/release.meta}"
-if [[ -f "$META_FILE" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$META_FILE"
-  set +a
-else
-  echo "[WARN] No metadata file at ${META_FILE}; using script defaults."
+ROOT="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../.."
+cd "$ROOT"
+
+# --- meta ---
+META="${META:-$ROOT/release.meta}"
+if [[ -f "$META" ]]; then
+  set -a; source "$META"; set +a
 fi
 
-# ──────────────────────────────────────────────────────────────
-# Compatibility shim (new vars from release_all, legacy fallbacks)
-# ──────────────────────────────────────────────────────────────
-: "${PUBLISH_DIR_GTK41:=${GTK41_SRC:-}}"
-: "${PUBLISH_DIR_GTK40:=${GTK40_SRC:-}}"
-: "${PUBLISH_DIR_LAUNCHER:=${LAUNCHER_SRC:-}}"
-: "${APP_VERSION:=${APP_VERSION:-${VERSION:-}}}"
+# Use release meta or fallback
+APPVER="${APPVER:-0.0.0}"
+APPNAME="${APP_NAME:-W. P. Stallman}"
+APP_ID="${APP_ID:-com.wpstallman.app}"
 
-if [[ -z "${PUBLISH_DIR_GTK41}" && -z "${PUBLISH_DIR_GTK40}" ]]; then
-  echo "[ERR ] No payloads found. Set PUBLISH_DIR_GTK41 and/or PUBLISH_DIR_GTK40." >&2
-  exit 1
-fi
+# Clean basename for output filename only (not for desktop/icon IDs!)
+BASENAME_CLEAN="$(echo "$APPNAME" | tr -cd '[:alnum:]._-' | sed 's/[.]*$//')"
+[[ -n "$BASENAME_CLEAN" ]] || BASENAME_CLEAN="WPStallman"
 
-for _v in PUBLISH_DIR_GTK41 PUBLISH_DIR_GTK40 PUBLISH_DIR_LAUNCHER; do
-  _p="${!_v:-}"
-  if [[ -n "${_p}" && ! -d "${_p}" ]]; then
-    echo "[ERR ] ${_v} path does not exist: ${_p}" >&2
-    exit 1
+MOD="$ROOT/artifacts/modern-gtk41/publish-gtk41"
+LEG="$ROOT/artifacts/legacy-gtk40/publish-gtk40"
+OUT="$ROOT/artifacts/packages"
+# Prefer artifacts/build/AppDir if present; else use build/AppDir
+APPDIR="${APPDIR:-}"
+if [[ -z "${APPDIR}" ]]; then
+  if [[ -d "$ROOT/artifacts/build/AppDir" ]]; then
+    APPDIR="$ROOT/artifacts/build/AppDir"
+  else
+    APPDIR="$ROOT/build/AppDir"
   fi
-done
-
-if [[ "${DEBUG_APPIMAGE:-0}" == "1" ]]; then
-  echo "[DBG] APP_VERSION=${APP_VERSION}"
-  echo "[DBG] PUBLISH_DIR_GTK41=${PUBLISH_DIR_GTK41}"
-  echo "[DBG] PUBLISH_DIR_GTK40=${PUBLISH_DIR_GTK40}"
-  echo "[DBG] PUBLISH_DIR_LAUNCHER=${PUBLISH_DIR_LAUNCHER}"
 fi
 
-# ──────────────────────────────────────────────────────────────
-# Pretty logging
-# ──────────────────────────────────────────────────────────────
-note() { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
-warn() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
-die()  { printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
+[[ -d "$MOD" ]] || { echo "[ERR] missing $MOD"; exit 2; }
+[[ -d "$LEG" ]] || { echo "[ERR] missing $LEG"; exit 2; }
 
-# ──────────────────────────────────────────────────────────────
-# Identity (from release.meta; provide sane defaults)
-# ──────────────────────────────────────────────────────────────
-: "${APP_ID:=com.wpstallman.app}"
-: "${APP_NAME:=W.P. Stallman}"
-: "${APP_SUMMARY:=Packaging tools for WordPress modules}"
-: "${APP_HOMEPAGE:=https://lefthandenterprises.com/projects/wpstallman}"
-: "${APP_DEVELOPER:=Left Hand Enterprises, LLC}"
-: "${APP_LICENSE:=MIT}"
-: "${METADATA_LICENSE:=CC0-1.0}"     # license for the AppStream XML
-: "${APP_SUFFIX:=-unified}"
-
-# Try to resolve version if still not set
-if [[ -z "${APP_VERSION:-}" ]]; then
-  get_msbuild_prop() { dotnet msbuild "$1" -nologo -getProperty:"$2" 2>/dev/null | tr -d '\r' | tail -n1; }
-  get_version_from_props() {
-    local props="${PROJECT_ROOT}/Directory.Build.props"
-    [[ -f "$props" ]] && grep -oP '(?<=<Version>).*?(?=</Version>)' "$props" | head -n1 || true
-  }
-  APP_VERSION="$(get_msbuild_prop "${PROJECT_ROOT}/src/WPStallman.GUI/WPStallman.GUI.csproj" "Version" || true)"
-  [[ -n "$APP_VERSION" && "$APP_VERSION" != "*Undefined*" ]] || APP_VERSION="$(get_version_from_props)"
-  [[ -n "$APP_VERSION" ]] || die "Could not resolve Version from MSBuild or Directory.Build.props"
-fi
-export APP_VERSION
-note "Version: $APP_VERSION"
-
-# ──────────────────────────────────────────────────────────────
-# Resolve helper path (once) and source it
-# ──────────────────────────────────────────────────────────────
-# Physical dir of this script (resolves symlinks)
-__src="${BASH_SOURCE[0]}"
-while [ -h "$__src" ]; do
-  __dir="$(cd -P "$(dirname "$__src")" && pwd)"
-  __src="$(readlink "$__src")"
-  [[ "$__src" != /* ]] && __src="$__dir/$__src"
-done
-SCRIPT_DIR="$(cd -P "$(dirname "$__src")" && pwd)"
-
-REPO_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null || echo "")"
-
-HELPER_CANDIDATES=(
-  "${APPSTREAM_HELPERS_PATH:-}"
-  "${SCRIPT_DIR}/appstream_helpers.sh"
-  "${SCRIPT_DIR}/../appstream_helpers.sh"
-  "${SCRIPT_DIR}/../../appstream_helpers.sh"
-  "${REPO_ROOT:+${REPO_ROOT}/build/package/appstream_helpers.sh}"
-)
-
-APPSTREAM_HELPERS=""
-for cand in "${HELPER_CANDIDATES[@]}"; do
-  if [[ -n "$cand" && -f "$cand" ]]; then APPSTREAM_HELPERS="$cand"; break; fi
-done
-
-if [[ "${DEBUG_HELPERS:-0}" = "1" ]]; then
-  echo "[DBG] PWD=$(pwd)"
-  echo "[DBG] SCRIPT_DIR=$SCRIPT_DIR"
-  echo "[DBG] REPO_ROOT=$REPO_ROOT"
-  printf '[DBG] Candidates:\n'; printf '  - %s\n' "${HELPER_CANDIDATES[@]}"
-  echo "[DBG] Selected: $APPSTREAM_HELPERS"
-fi
-
-[[ -n "$APPSTREAM_HELPERS" ]] || die "appstream_helpers.sh not found. Set APPSTREAM_HELPERS_PATH to an absolute path."
-# shellcheck disable=SC1090
-source "$APPSTREAM_HELPERS"
-
-# Make sure helpers see the right metadata (env → used by write_appstream)
-export APP_ID APP_NAME APP_VERSION APP_SUMMARY APP_HOMEPAGE APP_DEVELOPER APP_LICENSE METADATA_LICENSE
-
-# ──────────────────────────────────────────────────────────────
-# Layout / staging
-# ──────────────────────────────────────────────────────────────
-ROOT="${PROJECT_ROOT}"
-ARTIFACTS_DIR="${ARTIFACTS_DIR:-${ROOT}/artifacts}"
-BUILDDIR="${BUILDDIR:-${ARTIFACTS_DIR}/build}"
-OUTDIR="${OUTDIR:-${ARTIFACTS_DIR}/packages}"
-mkdir -p "$BUILDDIR" "$OUTDIR"
-
-APPDIR="$BUILDDIR/AppDir"
 rm -rf "$APPDIR"
-mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/lib/$APP_ID" "$APPDIR/usr/share/applications"
+mkdir -p "$APPDIR/usr/lib/$APP_ID" "$OUT"
 
-# Copy the AppImage debug runner into packages (once)
-DEBUG_RUNNER_SRC="$ROOT/build/package/run-wpst-debug.sh"
-DEBUG_RUNNER_DST="$OUTDIR/run-wpst-debug.sh"
-if [[ -f "$DEBUG_RUNNER_SRC" ]]; then
-  if [[ ! -f "$DEBUG_RUNNER_DST" ]]; then
-    install -Dm755 "$DEBUG_RUNNER_SRC" "$DEBUG_RUNNER_DST"
-    note "Placed debug runner at: $DEBUG_RUNNER_DST"
-  else
-    note "Debug runner already present: $DEBUG_RUNNER_DST"
-  fi
-else
-  warn "Debug runner not found at: $DEBUG_RUNNER_SRC"
-fi
+# 1) Copy payloads
+cp -a "$MOD" "$APPDIR/usr/lib/$APP_ID/gtk4.1"
+cp -a "$LEG" "$APPDIR/usr/lib/$APP_ID/gtk4.0"
 
-
-stage_payload() {
-  local src="$1" subdir="$2"
-  [[ -d "$src" ]] || return 1
-  note "Staging $subdir from: $src"
-  local dest="$APPDIR/usr/lib/$APP_ID/$subdir"
-  mkdir -p "$dest"
-  rsync -a --delete "$src/" "$dest/"
-  # Check either so name
-  local so=""
-  if [[ -f "$dest/libPhotino.Native.so" ]]; then so="$dest/libPhotino.Native.so"; fi
-  if [[ -z "$so" && -f "$dest/Photino.Native.so" ]]; then so="$dest/Photino.Native.so"; fi
-  if [[ -n "$so" ]]; then
-    note "ldd on $(basename "$so") ($subdir):"
-    ldd "$so" | sed 's/^/  /' || true
-  else
-    warn "[$subdir] No Photino native .so found; GUI may fail on clean systems."
-  fi
+# 2) Normalize Photino native name + hoist
+normalize_photino() {
+  local vdir="$1"; local src=""
+  for cand in \
+    "$vdir/runtimes/linux-x64/native/libPhotino.Native.so" \
+    "$vdir/runtimes/linux-x64/native/Photino.Native.so" \
+    "$vdir/libPhotino.Native.so" \
+    "$vdir/Photino.Native.so"
+  do [[ -f "$cand" ]] && { src="$cand"; break; }; done
+  [[ -n "$src" ]] && cp -a "$src" "$vdir/libPhotino.Native.so" || echo "[WARN] no Photino native in $vdir"
 }
+normalize_photino "$APPDIR/usr/lib/$APP_ID/gtk4.1"
+normalize_photino "$APPDIR/usr/lib/$APP_ID/gtk4.0"
 
-HAVE_41=0; HAVE_40=0
-[[ -n "${PUBLISH_DIR_GTK41:-}" && -d "$PUBLISH_DIR_GTK41" ]] && { stage_payload "$PUBLISH_DIR_GTK41" "gtk4.1" && HAVE_41=1; }
-[[ -n "${PUBLISH_DIR_GTK40:-}" && -d "$PUBLISH_DIR_GTK40" ]] && { stage_payload "$PUBLISH_DIR_GTK40" "gtk4.0" && HAVE_40=1; }
-(( HAVE_41 || HAVE_40 )) || die "Staging failed; no payload copied."
-
-# ──────────────────────────────────────────────────────────────
-# Icon selection
-# ──────────────────────────────────────────────────────────────
-pick_icon() {
-  local base="$1"
-  local candidates=(
-    "$base/wwwroot/img/WPS-256.png"
-    "$base/wwwroot/img/WPS-512.png"
-    "$base/wwwroot/img/WPS.png"
-  )
-  for c in "${candidates[@]}"; do [[ -f "$c" ]] && echo "$c" && return 0; done
-  return 1
-}
-ICON_SRC=""
-(( HAVE_41 )) && ICON_SRC="$(pick_icon "$APPDIR/usr/lib/$APP_ID/gtk4.1")" || true
-[[ -z "$ICON_SRC" && $HAVE_40 -eq 1 ]] && ICON_SRC="$(pick_icon "$APPDIR/usr/lib/$APP_ID/gtk4.0")" || true
-[[ -n "$ICON_SRC" ]] && cp -f "$ICON_SRC" "$APPDIR/${APP_ID}.png" || warn "Icon not found; using generic."
-
-# ──────────────────────────────────────────────────────────────
-# AppRun (selector prefers gtk4.1 on glibc ≥ 2.38)
-# ──────────────────────────────────────────────────────────────
-cat > "$APPDIR/AppRun" <<'EOF'
+# 3) AppRun (verbose, glibc gate, CLI/env overrides)
+cat > "$APPDIR/AppRun" << 'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-HERE="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
-APPROOT="$HERE/usr/lib/com.wpstallman.app"
+APPDIR="$(cd -- "$(dirname "$0")" && pwd)"
+APPROOT=""
+for d in "$APPDIR"/usr/lib/*; do [[ -d "$d/gtk4.1" || -d "$d/gtk4.0" ]] && { APPROOT="$d"; break; }; done
+log(){ printf '[AppRun] %s\n' "$*"; }
 
-gtk41_dir="$APPROOT/gtk4.1"
-gtk40_dir="$APPROOT/gtk4.0"
-target_dir=""
+# Accept env and CLI overrides
+FORCED="${WPStallman_FORCE_VARIANT:-}"
+for arg in "$@"; do case "$arg" in --variant=gtk4.0|--gtk4.0) FORCED="gtk4.0";; --variant=gtk4.1|--gtk4.1) FORCED="gtk4.1";; esac; done
+if [[ -n "$FORCED" ]]; then if [[ -d "$APPROOT/$FORCED" ]]; then PICK="$FORCED"; log "Forced variant: $FORCED"; else log "Forced '$FORCED' missing at $APPROOT/$FORCED"; FORCED=""; fi; fi
 
-version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]; }
-
-glibc_ver="$(ldd --version 2>/dev/null | awk 'NR==1{print $NF}')"
-have_gtk41_libs="no"
-if ldconfig -p 2>/dev/null | grep -q 'libwebkit2gtk-4\.1\.so\.0'; then
-  have_gtk41_libs="yes"
-elif [[ -e /lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0 || -e /usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0 ]]; then
-  have_gtk41_libs="yes"
-fi
-
-if [[ -d "$gtk41_dir" ]] && [[ "$have_gtk41_libs" == "yes" ]] && version_ge "${glibc_ver:-0}" "2.38"; then
-  target_dir="$gtk41_dir"
-elif [[ -d "$gtk40_dir" ]]; then
-  target_dir="$gtk40_dir"
-elif [[ -d "$gtk41_dir" ]]; then
-  target_dir="$gtk41_dir"
-fi
-
-if [[ -z "$target_dir" ]]; then
-  echo "No suitable GUI payload found." >&2
-  exit 1
-fi
-
-export LD_LIBRARY_PATH="$target_dir:${LD_LIBRARY_PATH:-}"
-exec "$target_dir/WPStallman.GUI" "${@:-}"
-EOF
+has41(){ { /sbin/ldconfig -p 2>/dev/null || /usr/sbin/ldconfig -p 2>/dev/null || true; } | grep -q 'libwebkit2gtk-4\.1\.so'; }
+glibc(){ local r v; r="$(getconf GNU_LIBC_VERSION 2>/dev/null || true)"; v="${r##* }"; [[ -n "$v" ]] && echo "$v" || echo "0.0"; }
+ge238(){ awk 'BEGIN{split("'"$(glibc)"'",h,"."); if ((h[1]>2)|| (h[1]==2 && h[2]>=38)) exit 0; exit 1;}'; }
+buildld(){ local b="$1" o=""; for d in "$b" "$b/runtimes/linux-x64/native" "$b/native" "$b/lib"; do [[ -d "$d" ]] && case ":$o:" in *":$d:"*) ;; *) o="${o:+$o:}$d";; esac; done; echo "$o"; }
+if [[ -z "${PICK:-}" ]]; then H="$(glibc)"; H41=0; has41 && H41=1; GE=1; ge238 || GE=0; log "Host glibc: $H ; has 4.1: $H41 ; glibc>=2.38: $GE"
+  if [[ $H41 -eq 1 && $GE -eq 1 ]]; then PICK=gtk4.1; elif [[ -d "$APPROOT/gtk4.0" ]] && [[ $GE -eq 0 || $H41 -eq 0 ]]; then PICK=gtk4.0; elif [[ -d "$APPROOT/gtk4.1" ]]; then PICK=gtk4.1; else PICK=""; fi; fi
+[[ -n "$PICK" ]] || { cat <<'MSG'
+W. P. Stallman needs WebKitGTK:
+Ubuntu 24.04+/Mint 22:  sudo apt install libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0
+Ubuntu 22.04/Mint 21 :  sudo apt install libwebkit2gtk-4.0-37 libjavascriptcoregtk-4.0-18
+MSG
+  exit 127; }
+PAYDIR="$APPROOT/$PICK"; export DOTNET_BUNDLE_EXTRACT_BASE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/WPStallman/dotnet_bundle"
+export LD_LIBRARY_PATH="$(buildld "$PAYDIR")${LD_LIBRARY_PATH+:${LD_LIBRARY_PATH}}"
+log "Variant picked: $PICK"; log "LD_LIBRARY_PATH:"; printf '  %s\n' $(echo "$LD_LIBRARY_PATH" | tr ':' ' ')
+if [[ -x "$APPROOT/WPStallman.Launcher" ]]; then exec "$APPROOT/WPStallman.Launcher" "$@"; fi
+if [[ -x "$PAYDIR/WPStallman.GUI" ]]; then exec "$PAYDIR/WPStallman.GUI" "$@"; elif [[ -f "$PAYDIR/WPStallman.GUI.dll" ]]; then exec dotnet "$PAYDIR/WPStallman.GUI.dll" "$@"; else echo "[ERR] no GUI entry in $PAYDIR"; ls -l "$PAYDIR"; exit 67; fi
+SH
 chmod +x "$APPDIR/AppRun"
-ln -sf "./AppRun" "$APPDIR/usr/bin/${APP_ID}"
 
-# ──────────────────────────────────────────────────────────────
-# Desktop entry
-# ──────────────────────────────────────────────────────────────
-cat > "$APPDIR/${APP_ID}.desktop" <<EOF
+# 4) Desktop + icon (root-level .desktop required)
+DESKTOP_ID="${APP_ID}.desktop"                  # <-- stable desktop id
+DESKTOP_ROOT="$APPDIR/$DESKTOP_ID"
+
+# Use full APP_ID for Icon= (matches hicolor install and AppStream)
+ICON_BASENAME="${APP_ID}"
+
+mkdir -p "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
+
+cat > "$DESKTOP_ROOT" <<EOF
 [Desktop Entry]
+Name=${APPNAME}
+Comment=${APP_SHORTDESC:-Document your entire MySQL database in Markdown format}
+Exec=AppRun
+Icon=${ICON_BASENAME}
 Type=Application
-Name=${APP_NAME}
-Comment=${APP_SUMMARY}
-Exec=${APP_ID}
-Icon=${APP_ID}
-Categories=Utility;
-StartupWMClass=WPStallman.GUI
-X-AppImage-Version=${APP_VERSION}
+Categories=Development;Database;
+Terminal=false
 EOF
 
-# ──────────────────────────────────────────────────────────────
-# AppStream metadata (helpers write + validate)
-# ──────────────────────────────────────────────────────────────
-write_appstream "$APPDIR"
-validate_desktop_and_metainfo "$APPDIR" || true
+# Try to source a 256px icon from the payloads; fallback to APP_ICON_SRC
+ICON_SRC=""
+for cand in \
+  "$APPDIR/usr/lib/$APP_ID/gtk4.1/wwwroot/img/WPS-256.png" \
+  "$APPDIR/usr/lib/$APP_ID/gtk4.0/wwwroot/img/WPS-256.png" \
+  "$ROOT/${APP_ICON_SRC:-}"
+do
+  [[ -f "$cand" ]] && { ICON_SRC="$cand"; break; }
+done
 
-# Extra validation if tools exist
-command -v desktop-file-validate >/dev/null 2>&1 && desktop-file-validate "$APPDIR/${APP_ID}.desktop" || true
-command -v appstreamcli >/dev/null 2>&1 && appstreamcli validate --no-net "$APPDIR/usr/share/metainfo/${APP_ID}.metainfo.xml" || true
+if [[ -n "$ICON_SRC" ]]; then
+  # ensure 256x256 if ImageMagick is available
+  if command -v identify >/dev/null 2>&1; then
+    sz="$(identify -format '%wx%h' "$ICON_SRC" 2>/dev/null || echo '')"
+    if [[ "$sz" != "256x256" ]]; then
+      convert "$ICON_SRC" -resize 256x256 "$APPDIR/${ICON_BASENAME}.png"
+    else
+      cp -a "$ICON_SRC" "$APPDIR/${ICON_BASENAME}.png"
+    fi
+  else
+    cp -a "$ICON_SRC" "$APPDIR/${ICON_BASENAME}.png"
+  fi
+  cp -a "$APPDIR/${ICON_BASENAME}.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/${ICON_BASENAME}.png"
+else
+  echo "[WARN] No icon found for AppDir; Icon=${ICON_BASENAME}"
+fi
 
-# ──────────────────────────────────────────────────────────────
-# Build AppImage
-# ──────────────────────────────────────────────────────────────
-OUTFILE="${OUTDIR}/WPStallman-${APP_VERSION}-x86_64${APP_SUFFIX}.AppImage"
-note "Building AppImage → $OUTFILE"
-export APPIMAGE_EXTRACT_AND_RUN=${APPIMAGE_EXTRACT_AND_RUN:-1}
-command -v appimagetool >/dev/null 2>&1 || die "appimagetool is not in PATH."
-appimagetool "$APPDIR" "$OUTFILE"
-chmod +x "$OUTFILE"
-note "AppImage built: $OUTFILE"
+cp -a "$DESKTOP_ROOT" "$APPDIR/usr/share/applications/$DESKTOP_ID"
+
+# 5) AppStream: generate and install into AppDir/usr/share/metainfo
+export APPDIR   # let the generator know where to write
+GEN="$ROOT/build/package/generate_appstream.sh"
+if [[ -x "$GEN" ]]; then
+  echo "[INFO] Generating AppStream metadata..."
+  "$GEN"
+  META_FILE="$APPDIR/usr/share/metainfo/${APP_ID}.metainfo.xml"
+  if [[ -f "$META_FILE" ]]; then
+    echo "[OK] AppStream present: $META_FILE"
+  else
+    echo "[ERR] AppStream generation ran but file missing: $META_FILE"; exit 3
+  fi
+else
+  echo "[ERR] Missing generator: $GEN"
+  echo "      Create it (or make it executable) and rerun."
+  exit 3
+fi
+
+# 6) appimagetool & pack
+AIT="$ROOT/tools/appimagetool-x86_64.AppImage"
+if [[ ! -x "$AIT" ]]; then
+  mkdir -p "$ROOT/tools"
+  curl -L -o "$AIT" https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+  chmod +x "$AIT"
+fi
+OUTFILE="$OUT/${BASENAME_CLEAN}-${APPVER}-x86_64-unified.AppImage"
+"$AIT" "$APPDIR" "$OUTFILE"
+( cd "$OUT" && sha256sum "$(basename "$OUTFILE")" > "$(basename "$OUTFILE").sha256" )
+echo "[OK] AppImage -> $OUTFILE"

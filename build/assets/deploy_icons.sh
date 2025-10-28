@@ -16,14 +16,14 @@ mkdir -p "$DST"
 echo "==> Copying icons from $SRC to $DST"
 
 # Copy all sizes
-if compgen -G "$SRC/WPS-*.png" > /dev/null; then
-  cp "$SRC"/WPS-*.png "$DST"/
+if compgen -G "$SRC/APP-*.png" > /dev/null; then
+  cp "$SRC"/APP-*.png "$DST"/
 else
-  echo "[WARN] No WPS-*.png files found in $SRC"
+  echo "[WARN] No APP-*.png files found in $SRC"
 fi
 
 # Copy ICO and ICNS (if present)
-for f in "$SRC/WPS.ico" "$SRC/WPS.icns"; do
+for f in "$SRC/app.ico" "$SRC/app.icns"; do
   if [[ -f "$f" ]]; then
     cp "$f" "$DST"/
   else

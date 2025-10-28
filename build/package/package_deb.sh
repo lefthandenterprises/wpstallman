@@ -1,182 +1,241 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ───────────────────────────────
-# Pretty logging
-# ───────────────────────────────
-note() { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
-warn() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
-die()  { printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
+# --- Resolve repo root ---
+ROOT="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../.."
 
-# ───────────────────────────────
-# Repo layout & inputs (adjust if needed)
-# ───────────────────────────────
-ROOT="${ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$ROOT"
+echo "[INFO] ROOT: $ROOT"
 
-: "${GUI_CSPROJ:=src/WPStallman.GUI/WPStallman.GUI.csproj}"
-: "${TFM_LIN_GUI:=net8.0}"
-: "${RID_LIN:=linux-x64}"
-
-PUB_LIN_GUI="$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish"
-[[ -d "$PUB_LIN_GUI" ]] || die "Linux GUI publish folder not found: $PUB_LIN_GUI (run package_all.sh first)"
-
-# App identity
-: "${APP_ID:=com.wpstallman.app}"
-: "${APP_NAME:="W. P. Stallman"}"
-: "${MAIN_BIN:=WPStallman.GUI}"
-
-# Output paths
-: "${ARTIFACTS_DIR:=artifacts}"
-: "${BUILDDIR:=$ARTIFACTS_DIR/build}"
-: "${OUTDIR:=$ARTIFACTS_DIR/packages}"
-DEB_ROOT="$BUILDDIR/deb"
-mkdir -p "$BUILDDIR" "$OUTDIR"
-rm -rf "$DEB_ROOT"
-mkdir -p "$DEB_ROOT"
-
-# Optional suffix to label baseline (e.g., -gtk4.0 / -gtk4.1)
-: "${APP_SUFFIX:=}"
-
-# ───────────────────────────────
-# Version resolver (Directory.Build.props / MSBuild)
-# ───────────────────────────────
-get_msbuild_prop() {
-  local proj="$1" prop="$2"
-  dotnet msbuild "$proj" -nologo -getProperty:"$prop" 2>/dev/null | tr -d '\r' | tail -n1
-}
-get_version_from_props() {
-  local props="$ROOT/Directory.Build.props"
-  [[ -f "$props" ]] || { echo ""; return; }
-  grep -oP '(?<=<Version>).*?(?=</Version>)' "$props" | head -n1
-}
-resolve_app_version() {
-  local v=""
-  v="$(get_msbuild_prop "$GUI_CSPROJ" "Version")"
-  if [[ -z "$v" || "$v" == "*Undefined*" ]]; then
-    v="$(get_version_from_props)"
-  fi
-  echo "$v"
-}
-APP_VERSION="${APP_VERSION_OVERRIDE:-$(resolve_app_version)}"
-[[ -n "$APP_VERSION" ]] || die "Could not resolve Version from MSBuild or Directory.Build.props"
-export APP_VERSION
-note "Version: $APP_VERSION"
-
-# ───────────────────────────────
-# Default runtime dependencies (24.04+ GTK 4.1 baseline)
-# Override via:  DEB_DEPENDS="..." build/package/package_deb.sh
-# ───────────────────────────────
-: "${DEB_DEPENDS:=libc6 (>= 2.38), libstdc++6 (>= 13), libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, libjavascriptcoregtk-4.1-0, libwebkit2gtk-4.1-0}"
-
-# For a Mint/22.04 (GTK 4.0) build, you could run:
-#   DEB_DEPENDS="libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, libjavascriptcoregtk-4.0-18, libwebkit2gtk-4.0-37" \
-#   APP_SUFFIX="-gtk4.0" build/package/package_deb.sh
-
-# ───────────────────────────────
-# Layout the package filesystem
-# ───────────────────────────────
-install -d "$DEB_ROOT/DEBIAN"
-install -d "$DEB_ROOT/usr/bin"
-install -d "$DEB_ROOT/usr/lib/$APP_ID"
-install -d "$DEB_ROOT/usr/share/applications"
-install -d "$DEB_ROOT/usr/share/icons/hicolor/256x256/apps"
-
-# Stage payload
-note "Staging publish → $DEB_ROOT/usr/lib/$APP_ID"
-rsync -a --delete "$PUB_LIN_GUI/" "$DEB_ROOT/usr/lib/$APP_ID/"
-
-# Ensure native lib is present (non–single-file expected)
-if [[ ! -f "$DEB_ROOT/usr/lib/$APP_ID/libPhotino.Native.so" ]]; then
-  warn "Missing libPhotino.Native.so in publish; attempting to copy from bin/Release…"
-  if [[ -f "$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/libPhotino.Native.so" ]]; then
-    cp -f "$ROOT/src/WPStallman.GUI/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/libPhotino.Native.so" "$DEB_ROOT/usr/lib/$APP_ID/"
-    note "Copied libPhotino.Native.so from bin/Release."
-  else
-    warn "Still no libPhotino.Native.so; the package may fail at runtime on a clean system."
-  fi
+# --- Try to source release metadata if present (names, ids, etc.) ---
+META="${META:-$ROOT/build/package/release.meta}"
+if [[ -f "$META" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  set -a; source "$META"; set +a
+  echo "[INFO] Loaded release meta: $META"
+else
+  echo "[WARN] No release.meta found at $META"
 fi
 
-# Launcher shim in /usr/bin
-cat > "$DEB_ROOT/usr/bin/wpstallman" <<'EOF'
+# --- Optionally source path metadata from release_all.sh (if created) ---
+PATHS_META="$ROOT/artifacts/build/paths.meta"
+if [[ -f "$PATHS_META" ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$PATHS_META"
+  echo "[INFO] Loaded paths meta: $PATHS_META"
+fi
+
+# --- Canonical staging dir for Linux payload (must match release_all.sh) ---
+APPDIR="${APPDIR:-"$ROOT/artifacts/build/AppDir"}"
+echo "[INFO] APPDIR: $APPDIR"
+
+# --- Inputs with sensible defaults if not provided by META ---
+APP_NAME_META="${APP_NAME_META:-WPStallman}"
+APP_ID_META="${APP_ID_META:-com.wpstallman.app}"
+APP_SHORTDESC_META="${APP_SHORTDESC_META:-Document your entire MySQL database in MarkDown format}"
+APPVER="${APPVER:-${APP_VERSION_META:-0.0.0}}"
+
+# --- Debian build roots ---
+DEB_STAGE="${DEB_STAGE:-"$ROOT/artifacts/build/debroot"}"
+PKG_OUT_DIR="${PKG_OUT_DIR:-"$ROOT/artifacts/packages/deb"}"
+mkdir -p "$DEB_STAGE" "$PKG_OUT_DIR"
+
+echo "[INFO] DEB_STAGE:   $DEB_STAGE"
+echo "[INFO] PKG_OUT_DIR: $PKG_OUT_DIR"
+
+# --- Debian package identifiers ---
+# Debian "Package" name should be lowercase/simple.
+PKG_NAME="${PKG_NAME:-wpstallman}"
+ARCH="${ARCH:-amd64}"
+
+# --- Clean stage root ---
+rm -rf "$DEB_STAGE"
+mkdir -p \
+  "$DEB_STAGE/DEBIAN" \
+  "$DEB_STAGE/usr/bin" \
+  "$DEB_STAGE/usr/lib/$APP_ID_META" \
+  "$DEB_STAGE/usr/share/applications" \
+  "$DEB_STAGE/usr/share/icons/hicolor/256x256/apps"
+
+# --- Verify payload exists in APPDIR (what release_all.sh should have staged) ---
+PAYLOAD_DIR="$APPDIR/usr/lib/$APP_ID_META"
+if [[ ! -d "$PAYLOAD_DIR" ]]; then
+  echo "[ERR] Expected payload dir not found: $PAYLOAD_DIR" >&2
+  echo "      Make sure release_all.sh staged files into APPDIR before running this." >&2
+  exit 1
+fi
+
+echo "[INFO] Copying payload from: $PAYLOAD_DIR"
+rsync -a --delete "$PAYLOAD_DIR/" "$DEB_STAGE/usr/lib/$APP_ID_META/"
+
+# --- .desktop file: use the one generated by release_all.sh in APPDIR ---
+DESKTOP_SRC="${DESKTOP_PATH:-"$APPDIR/usr/share/applications/wpstallman.desktop"}"
+echo "[INFO] Looking for .desktop at: $DESKTOP_SRC"
+
+if [[ ! -f "$DESKTOP_SRC" ]]; then
+  echo "[ERR] Missing .desktop at: $DESKTOP_SRC" >&2
+  echo "      Ensure release_all.sh generated it (and APPDIR is correct)." >&2
+  exit 1
+fi
+
+cp "$DESKTOP_SRC" "$DEB_STAGE/usr/share/applications/"
+echo "[OK] .desktop copied to deb stage:"
+ls -l "$DEB_STAGE/usr/share/applications/wpstallman.desktop"
+echo "[SNIP] .desktop preview:"
+head -n 8 "$DEB_STAGE/usr/share/applications/wpstallman.desktop" || true
+
+# --- Ensure icon basename matches .desktop Icon= and exists in both places ---
+# We standardize on Icon=$APP_ID_META (e.g. com.wpstallman.app)
+echo "[INFO] Normalizing .desktop Icon= to: $APP_ID_META"
+sed -i -E "s/^Icon=.*/Icon=$APP_ID_META/" "$DEB_STAGE/usr/share/applications/wpstallman.desktop"
+
+# Candidate icon sources (highest to lowest priority)
+ICON_SRC=""
+for cand in \
+  "$ROOT/artifacts/icons/256/${APP_ID_META}.png" \
+  "$ROOT/artifacts/icons/${APP_ID_META}.png" \
+  "$ROOT/src/WPStallman.Assets/wwwroot/img/${APP_ID_META}.png" \
+  "$ROOT/src/WPStallman.Assets/Logo/logo-256.png" \
+  "$ROOT/src/WPStallman.Assets/Logo/logo-large.png" \
+  "$ROOT/src/WPStallman.Assets/Logo/${APP_ID_META}.svg" \
+  "$ROOT/artifacts/icons/scalable/${APP_ID_META}.svg"
+do
+  [[ -f "$cand" ]] && { ICON_SRC="$cand"; break; }
+done
+
+if [[ -z "$ICON_SRC" ]]; then
+  echo "[ERR] No icon source found for $APP_ID_META."
+  echo "      Put a 256x256 PNG at one of:"
+  echo "        - artifacts/icons/256/${APP_ID_META}.png"
+  echo "        - src/WPStallman.Assets/wwwroot/img/${APP_ID_META}.png"
+  echo "      or provide an SVG at:"
+  echo "        - artifacts/icons/scalable/${APP_ID_META}.svg"
+  exit 1
+fi
+
+# Prepare output locations
+APPDIR_ICON="$APPDIR/${APP_ID_META}.png"
+DEB_ICON="$DEB_STAGE/usr/share/icons/hicolor/256x256/apps/${APP_ID_META}.png"
+
+mkdir -p "$(dirname "$DEB_ICON")"
+
+# Helper: ensure a 256x256 PNG exists at a path
+ensure_256_png() {
+  local src="$1" out="$2"
+  local ext="${src##*.}"
+  if [[ "${ext,,}" == "png" ]]; then
+    # Check size; if not 256, resize
+    if command -v identify >/dev/null 2>&1; then
+      sz="$(identify -format '%wx%h' "$src" 2>/dev/null || echo '')"
+      if [[ "$sz" != "256x256" ]]; then
+        echo "[INFO] Resizing PNG from $sz to 256x256: $out"
+        convert "$src" -resize 256x256 "$out"
+      else
+        cp -f "$src" "$out"
+      fi
+    else
+      echo "[WARN] ImageMagick not installed; copying PNG as-is."
+      cp -f "$src" "$out"
+    fi
+  else
+    # Assume SVG or other vector—rasterize to 256
+    if command -v convert >/dev/null 2>&1; then
+      echo "[INFO] Rasterizing $ext to 256x256 PNG: $out"
+      convert -background none -density 384 "$src" -resize 256x256 "$out"
+    else
+      echo "[ERR] Need ImageMagick 'convert' to rasterize $src to PNG."
+      exit 1
+    fi
+  fi
+}
+
+# Create both outputs
+ensure_256_png "$ICON_SRC" "$APPDIR_ICON"
+ensure_256_png "$ICON_SRC" "$DEB_ICON"
+
+echo "[OK] Icon staged:"
+echo "  - AppDir: $APPDIR_ICON"
+echo "  - Deb:    $DEB_ICON"
+
+
+# --- Icon (optional): if a 256px app icon exists in APPDIR root, install it ---
+# Commonly AppImage AppDir has an icon like 'com.wpstallman.app.png'.
+ICON_CANDIDATE="$APPDIR/$(basename "$APP_ID_META").png"
+if [[ -f "$ICON_CANDIDATE" ]]; then
+  cp "$ICON_CANDIDATE" "$DEB_STAGE/usr/share/icons/hicolor/256x256/apps/${PKG_NAME}.png"
+  echo "[OK] Installed icon: $DEB_STAGE/usr/share/icons/hicolor/256x256/apps/${PKG_NAME}.png"
+else
+  echo "[WARN] No 256px icon found at: $ICON_CANDIDATE"
+fi
+
+# --- Create a simple launcher in /usr/bin ---
+# This avoids hard-coding the ELF name; we invoke the app from its lib dir.
+LAUNCHER="$DEB_STAGE/usr/bin/$PKG_NAME"
+cat > "$LAUNCHER" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-APPDIR="/usr/lib/com.wpstallman.app"
-export LD_LIBRARY_PATH="$APPDIR:${LD_LIBRARY_PATH:-}"
-exec "$APPDIR/WPStallman.GUI" "${@:-}"
-EOF
-chmod +x "$DEB_ROOT/usr/bin/wpstallman"
+APP_ID="__APP_ID__"
+HERE="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIBDIR="/usr/lib/${APP_ID}"
 
-# Copy icon (prefer 256px)
-ICON_SRC="$DEB_ROOT/usr/lib/$APP_ID/wwwroot/img/WPS-256.png"
-if [[ ! -f "$ICON_SRC" ]]; then
-  for alt in "$DEB_ROOT/usr/lib/$APP_ID/wwwroot/img/WPS.png" \
-             "$DEB_ROOT/usr/lib/$APP_ID/wwwroot/img/wpst-256.png"; do
-    [[ -f "$alt" ]] && ICON_SRC="$alt" && break
-  done
-fi
-if [[ -f "$ICON_SRC" ]]; then
-  cp -f "$ICON_SRC" "$DEB_ROOT/usr/share/icons/hicolor/256x256/apps/${APP_ID}.png"
+# Prefer the main GUI binary if it exists; fallback to AppRun if present.
+if [[ -x "${LIBDIR}/WPStallman.GUI" ]]; then
+  exec "${LIBDIR}/WPStallman.GUI" "$@"
+elif [[ -x "${LIBDIR}/AppRun" ]]; then
+  exec "${LIBDIR}/AppRun" "$@"
 else
-  warn "Icon not found in wwwroot/img; desktop entry will use a generic icon."
+  echo "Unable to locate executable in ${LIBDIR} (tried WPStallman.GUI, AppRun)" >&2
+  exit 1
+fi
+EOF
+sed -i "s|__APP_ID__|$APP_ID_META|g" "$LAUNCHER"
+chmod 0755 "$LAUNCHER"
+echo "[OK] Installed launcher: /usr/bin/$PKG_NAME"
+
+# --- Build Maintainer string (Name <email>) with fallbacks ---
+MAINTAINER_STR=""
+if [[ -n "${DEB_MAINTAINER_META:-}" ]]; then
+  MAINTAINER_STR="$DEB_MAINTAINER_META"
+elif [[ -n "${APP_VENDOR_META:-}" && -n "${APP_VENDOR_EMAIL:-}" ]]; then
+  MAINTAINER_STR="${APP_VENDOR_META} <${APP_VENDOR_EMAIL}>"
+elif [[ -n "${APP_VENDOR_META:-}" ]]; then
+  # no email provided; add a placeholder so lintian flags it clearly
+  MAINTAINER_STR="${APP_VENDOR_META} <placeholder@example.com>"
+else
+  MAINTAINER_STR="Unknown Maintainer <placeholder@example.com>"
 fi
 
-# Desktop entry
-cat > "$DEB_ROOT/usr/share/applications/${APP_ID}.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Name=${APP_NAME}
-Comment=WPStallman
-Exec=wpstallman
-Icon=${APP_ID}
-Categories=Utility;
-StartupWMClass=WPStallman.GUI
-EOF
-
-# ───────────────────────────────
-# Control metadata
-# ───────────────────────────────
-CONTROL_FILE="$DEB_ROOT/DEBIAN/control"
+# --- Control file ---
+CONTROL_FILE="$DEB_STAGE/DEBIAN/control"
 cat > "$CONTROL_FILE" <<EOF
-Package: wpstallman
-Version: ${APP_VERSION}
+Package: $PKG_NAME
+Version: $APPVER
 Section: utils
 Priority: optional
-Architecture: amd64
-Maintainer: Patrick Driscoll <patrick@lefthandenterprises.com>
-Depends: ${DEB_DEPENDS}
-Description: W. P. Stallman – desktop app (Photino.NET)
- A cross-platform desktop app using Photino.NET.
+Architecture: $ARCH
+Maintainer: $MAINTAINER_STR
+Depends: libc6 (>= 2.31)
+Description: ${APP_SHORTDESC_META}
 EOF
 
-# Optional: postinst to refresh icon cache / desktop database
-cat > "$DEB_ROOT/DEBIAN/postinst" <<'EOF'
-#!/bin/sh
-set -e
-if command -v update-icon-caches >/dev/null 2>&1; then update-icon-caches /usr/share/icons/hicolor || true; fi
-if command -v gtk-update-icon-cache >/dev/null 2>&1; then gtk-update-icon-cache -f /usr/share/icons/hicolor || true; fi
-if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database -q /usr/share/applications || true; fi
-exit 0
-EOF
-chmod 0755 "$DEB_ROOT/DEBIAN/postinst"
+# Note: leading space before Depends is intentional to keep a single-line field
+sed -i 's/^ Description:/Description:/g' "$CONTROL_FILE"
 
-# ───────────────────────────────
-# Diagnostics: show native deps
-# ───────────────────────────────
-if [[ -f "$DEB_ROOT/usr/lib/$APP_ID/libPhotino.Native.so" ]]; then
-  note "ldd on Photino native (.deb payload):"
-  ldd "$DEB_ROOT/usr/lib/$APP_ID/libPhotino.Native.so" | sed 's/^/  /' || true
-  # Only warn on GTK baseline mismatch; don't fail builds on host glibc checks.
-  if ldd "$DEB_ROOT/usr/lib/$APP_ID/libPhotino.Native.so" | grep -q 'libwebkit2gtk-4\.0'; then
-    warn "Photino.Native links to WebKitGTK 4.0; your Depends currently target GTK 4.1."
-    warn "Set DEB_DEPENDS to 4.0 libs and add APP_SUFFIX='-gtk4.0' if this is a 22.04 build."
-  fi
-fi
+echo "[INFO] Control file:"
+cat "$CONTROL_FILE"
 
-# ───────────────────────────────
-# Build the .deb
-# ───────────────────────────────
-DEB_FILE="$OUTDIR/wpstallman_${APP_VERSION}_amd64${APP_SUFFIX}.deb"
-note "Building .deb → $DEB_FILE"
-fakeroot dpkg-deb --build "$DEB_ROOT" "$DEB_FILE"
-note ".deb built: $DEB_FILE"
+# --- Permissions for DEBIAN dir ---
+chmod 0755 "$DEB_STAGE/DEBIAN"
+
+# --- Build .deb ---
+OUT_DEB_CAP="${APP_NAME_META}_${APPVER}_${ARCH}.deb"
+OUT_DEB_LOW="${PKG_NAME}_${APPVER}_${ARCH}.deb"
+
+dpkg-deb --build "$DEB_STAGE" "$PKG_OUT_DIR/$OUT_DEB_CAP"
+# Optionally also produce a lowercase-named variant for scripting convenience
+cp -f "$PKG_OUT_DIR/$OUT_DEB_CAP" "$PKG_OUT_DIR/$OUT_DEB_LOW" || true
+
+echo "[OK] Built:"
+ls -lh "$PKG_OUT_DIR/$OUT_DEB_CAP" || true
+ls -lh "$PKG_OUT_DIR/$OUT_DEB_LOW"  || true
+
+echo "[DONE] Debian package created in: $PKG_OUT_DIR"

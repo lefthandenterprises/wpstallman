@@ -1,228 +1,255 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ──────────────────────────────────────────────────────────────
-# Load release metadata (dotenv) from build/package/release.meta
-# ──────────────────────────────────────────────────────────────
-PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || realpath "$(dirname "$0")/../..")}"
-META_FILE="${META_FILE:-${PROJECT_ROOT}/build/package/release.meta}"
-if [[ -f "$META_FILE" ]]; then
-  set -a
+# package_deb_unified.sh
+# Unified Debian packager for W. P. Stallman
+# - Uses build/package/release.meta (falls back to ./release.meta)
+# - Stages under build/debroot and builds a .deb in artifacts/packages/deb
+# - Layout: /usr/lib/<APP_ID>/{gtk4.1,gtk4.0}, /usr/bin/<pkg>, .desktop, icon, AppStream, docs
+# - Fixes common lintian issues (maintainer, depends, perms, docs, optional manpage)
+
+# -------- Resolve ROOT --------
+ROOT="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../.."
+cd "$ROOT"
+
+# -------- Load metadata --------
+META="${META:-$ROOT/build/package/release.meta}"
+[[ -f "$META" ]] || META="$ROOT/release.meta"
+if [[ -f "$META" ]]; then
   # shellcheck disable=SC1090
-  source "$META_FILE"
-  set +a
+  set -a; source "$META"; set +a
 else
-  echo "[WARN] No metadata file at ${META_FILE}; using script defaults."
+  echo "[ERR] release.meta not found (looked in build/package/ and repo root)."; exit 2
 fi
 
-# Required metadata for this packer
-require_vars() {
-  local missing=0
-  for v in "$@"; do
-    if [[ -z "${!v:-}" ]]; then
-      echo "[ERR ] Missing required metadata: $v" >&2
-      missing=1
-    fi
-  done
-  (( missing == 0 )) || exit 1
+# -------- Inputs / Defaults from meta --------
+APPVER="${APPVER:-${APP_VERSION_META:-0.0.0}}"
+APP_ID="${APP_ID:-${APP_ID_META:-com.wpstallman.app}}"         # reverse-DNS id
+APP_NAME_DISP="${APP_NAME:-${APP_NAME_META:-W. P. Stallman}}" # display name (can have spaces)
+PKG_NAME="${DEB_PACKAGE:-${APP_NAME_SHORT:-wpstallman}}"        # Debian package name (lowercase)
+PKG_NAME="${PKG_NAME,,}"
+
+DEB_SECTION="${DEB_SECTION:-utils}"
+DEB_PRIORITY="${DEB_PRIORITY:-optional}"
+DEB_ARCH="${DEB_ARCH:-amd64}"
+
+# Maintainer (prefer explicit; else compose Name <email>)
+if [[ -n "${DEB_MAINTAINER_META:-}" ]]; then
+  DEB_MAINTAINER="$DEB_MAINTAINER_META"
+
+  # Try to derive vendor name/email from DEB_MAINTAINER_META for docs
+  VENDOR_NAME="${DEB_MAINTAINER_META%%<*}"
+  VENDOR_NAME="$(echo "${VENDOR_NAME:-}" | sed 's/[[:space:]]*$//')"   # trim
+  VENDOR_MAIL="${DEB_MAINTAINER_META##*<}"
+  VENDOR_MAIL="${VENDOR_MAIL%>*}"
+else
+  VENDOR_NAME="${APP_VENDOR_META:-${PUBLISHER_NAME:-Left Hand Enterprises, LLC}}"
+  VENDOR_MAIL="${APP_VENDOR_EMAIL:-${PUBLISHER_EMAIL:-support@lefthandenterprises.com}}"
+  DEB_MAINTAINER="${VENDOR_NAME} <${VENDOR_MAIL}>"
+fi
+
+# FINAL SAFETY NETS (avoid set -u explosions later)
+VENDOR_NAME="${VENDOR_NAME:-${APP_VENDOR_META:-${PUBLISHER_NAME:-Left Hand Enterprises, LLC}}}"
+VENDOR_MAIL="${VENDOR_MAIL:-${APP_VENDOR_EMAIL:-${PUBLISHER_EMAIL:-support@lefthandenterprises.com}}}"
+
+
+# Summary/Description (short line; no trailing period recommended)
+SHORTDESC="${APP_SHORTDESC:-Document your entire MySQL database in Markdown format}"
+SHORTDESC="$(echo "$SHORTDESC" | sed 's/[[:space:]]\+$//')"
+
+# Depends (exact string from meta, otherwise a safe baseline)
+DEPS_RAW="${DEB_DEPENDS:-}"
+if [[ -z "$DEPS_RAW" ]]; then
+  DEPS_RAW="libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, \
+ libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, \
+ libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, libasound2"
+fi
+# Normalize spaces/commas for cleaner control field
+DEPS="$(echo "$DEPS_RAW" | sed 's/[[:space:]]\+/ /g; s/ ,/,/g')"
+
+# Payload inputs (already published binaries)
+PUBLISH_DIR_GTK41="${PUBLISH_DIR_GTK41:-$ROOT/artifacts/modern-gtk41/publish-gtk41}"
+PUBLISH_DIR_GTK40="${PUBLISH_DIR_GTK40:-$ROOT/artifacts/legacy-gtk40/publish-gtk40}"
+[[ -d "$PUBLISH_DIR_GTK41" ]] || { echo "[ERR] No payload at $PUBLISH_DIR_GTK41"; exit 1; }
+[[ -d "$PUBLISH_DIR_GTK40" ]] || { echo "[ERR] No payload at $PUBLISH_DIR_GTK40"; exit 1; }
+
+# -------- Output locations --------
+OUT_DIR="$ROOT/artifacts/packages/deb"
+APPDIR="$ROOT/build/debroot"
+PAYROOT_REL="/usr/lib/${APP_ID}"
+PAYROOT="$APPDIR${PAYROOT_REL}"
+
+rm -rf "$APPDIR"
+mkdir -p "$OUT_DIR" "$APPDIR/DEBIAN" "$PAYROOT"
+
+# -------- Stage payloads --------
+cp -a "$PUBLISH_DIR_GTK41" "$PAYROOT/gtk4.1"
+cp -a "$PUBLISH_DIR_GTK40" "$PAYROOT/gtk4.0"
+
+# Normalize Photino native name in both variants (best-effort; ignore if missing)
+normalize_photino() {
+  local vdir="$1" src=""
+  for cand in \
+    "$vdir/runtimes/linux-x64/native/libPhotino.Native.so" \
+    "$vdir/runtimes/linux-x64/native/Photino.Native.so" \
+    "$vdir/libPhotino.Native.so" \
+    "$vdir/Photino.Native.so"
+  do [[ -f "$cand" ]] && { src="$cand"; break; }; done
+  [[ -n "$src" ]] && cp -a "$src" "$vdir/libPhotino.Native.so" || true
 }
-require_vars APP_ID APP_NAME PUBLISHER_NAME PUBLISHER_EMAIL HOMEPAGE_URL DEB_PACKAGE DEB_SECTION DEB_PRIORITY DEB_ARCH
+normalize_photino "$PAYROOT/gtk4.1"
+normalize_photino "$PAYROOT/gtk4.0"
 
-# ───────────────────────────────
-# Compatibility shim for inputs
-# ───────────────────────────────
-: "${PUBLISH_DIR_GTK41:=${GTK41_SRC:-}}"
-: "${PUBLISH_DIR_GTK40:=${GTK40_SRC:-}}"
-: "${PUBLISH_DIR_LAUNCHER:=${LAUNCHER_SRC:-}}"
-: "${APP_VERSION:=${APP_VERSION:-${VERSION:-}}}"
+# -------- Launcher in /usr/bin --------
+mkdir -p "$APPDIR/usr/bin"
+cat > "$APPDIR/usr/bin/${PKG_NAME}" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+APPROOT="/usr/lib/com.wpstallman.app"
 
-APP_VERSION_RAW="${APP_VERSION}"
-APP_VERSION_DEB="${APP_VERSION_RAW#v}"
-APP_VERSION_DEB="${APP_VERSION_DEB#V}"
+# Prefer gtk4.1 on hosts that have it and glibc>=2.38
+has41(){ { /sbin/ldconfig -p 2>/dev/null || /usr/sbin/ldconfig -p 2>/dev/null || true; } | grep -q 'libwebkit2gtk-4\.1\.so'; }
+glibc(){ local r v; r="$(getconf GNU_LIBC_VERSION 2>/dev/null || true)"; v="${r##* }"; [[ -n "$v" ]] && echo "$v" || echo "0.0"; }
+ge238(){ awk 'BEGIN{split("'"$(glibc)"'",h,"."); if ((h[1]>2)|| (h[1]==2 && h[2]>=38)) exit 0; exit 1;}'; }
 
-
-if [[ -z "${PUBLISH_DIR_GTK41}" && -z "${PUBLISH_DIR_GTK40}" ]]; then
-  echo "[ERR ] No payloads found. Set PUBLISH_DIR_GTK41 and/or PUBLISH_DIR_GTK40." >&2
-  exit 1
+pick=""
+if has41 && ge238; then
+  pick="gtk4.1"
+elif [[ -d "$APPROOT/gtk4.0" ]]; then
+  pick="gtk4.0"
+else
+  pick="gtk4.1"
 fi
 
-for _v in PUBLISH_DIR_GTK41 PUBLISH_DIR_GTK40 PUBLISH_DIR_LAUNCHER; do
-  _p="${!_v:-}"
-  if [[ -n "${_p}" && ! -d "${_p}" ]]; then
-    echo "[ERR ] ${_v} path does not exist: ${_p}" >&2
-    exit 1
-  fi
+export DOTNET_BUNDLE_EXTRACT_BASE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/WPStallman/dotnet_bundle"
+
+buildld(){ local b="$1" o=""; for d in "$b" "$b/runtimes/linux-x64/native" "$b/native" "$b/lib"; do [[ -d "$d" ]] && case ":$o:" in *":$d:"*) ;; *) o="${o:+$o:}$d";; esac; done; echo "$o"; }
+export LD_LIBRARY_PATH="$(buildld "$APPROOT/$pick")${LD_LIBRARY_PATH+:${LD_LIBRARY_PATH}}"
+
+if [[ -x "$APPROOT/WPStallman.Launcher" ]]; then exec "$APPROOT/WPStallman.Launcher" "$@"; fi
+if [[ -x "$APPROOT/$pick/WPStallman.GUI" ]]; then exec "$APPROOT/$pick/WPStallman.GUI" "$@"; fi
+if [[ -f "$APPROOT/$pick/WPStallman.GUI.dll" ]]; then exec dotnet "$APPROOT/$pick/WPStallman.GUI.dll" "$@"; fi
+echo "WPStallman could not find a GUI entry under $APPROOT/$pick" >&2; exit 67
+SH
+chmod 0755 "$APPDIR/usr/bin/${PKG_NAME}"
+
+# -------- .desktop --------
+mkdir -p "$APPDIR/usr/share/applications"
+DESKTOP_ID="${APP_ID}.desktop"
+cat > "$APPDIR/usr/share/applications/${DESKTOP_ID}" <<EOF
+[Desktop Entry]
+Name=${APP_NAME_DISP}
+Comment=${SHORTDESC}
+Exec=${PKG_NAME} %F
+Icon=${APP_ID}
+Terminal=false
+Type=Application
+Categories=Development;Database;
+EOF
+
+# -------- Icons (256x256 minimum) --------
+mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
+ICON_SRC=""
+for cand in \
+  "$PAYROOT/gtk4.1/wwwroot/img/app-icon-256.png" \
+  "$PAYROOT/gtk4.0/wwwroot/img/app-icon-256.png" \
+  "$ROOT/${APP_ICON_SRC:-}"
+do
+  [[ -f "$cand" ]] && { ICON_SRC="$cand"; break; }
 done
-
-if [[ "${DEBUG_DEB:-0}" == "1" ]]; then
-  echo "[DBG] APP_VERSION=${APP_VERSION}"
-  echo "[DBG] PUBLISH_DIR_GTK41=${PUBLISH_DIR_GTK41}"
-  echo "[DBG] PUBLISH_DIR_GTK40=${PUBLISH_DIR_GTK40}"
-  echo "[DBG] PUBLISH_DIR_LAUNCHER=${PUBLISH_DIR_LAUNCHER}"
-fi
-
-# --- defaults for paths / identity (safe for `set -u`) ---
-: "${APP_SUFFIX:=}"                       # e.g., "-unified" or ""
-# normalize: if non-empty and missing leading '-', add it
-if [[ -n "$APP_SUFFIX" && "$APP_SUFFIX" != -* ]]; then
-  APP_SUFFIX="-$APP_SUFFIX"
-fi
-
-: "${APP_ID:=com.wpstallman.app}"
-: "${APP_NAME:=W. P. Stallman}"
-
-: "${ARTIFACTS_DIR:=${PROJECT_ROOT}/artifacts}"
-: "${BUILDDIR:=${ARTIFACTS_DIR}/build}"
-: "${OUTDIR:=${ARTIFACTS_DIR}/packages}"
-: "${DEB_ROOT:=${PROJECT_ROOT}/build/debroot}"
-mkdir -p "$ARTIFACTS_DIR" "$BUILDDIR" "$OUTDIR" "$DEB_ROOT"
-
-# dependency vars (don’t rely on debhelper substvars)
-: "${DEB_DEPENDS:=libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37}"
-: "${MISC_DEPENDS:=}"
-: "${SHLIBS_DEPENDS:=}"
-
-
-# If you’re not using debhelper’s substvars, make these no-ops so
-# “Depends:” lines don’t explode under `set -u`.
-: "${DEB_DEPENDS:=libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37}"
-: "${MISC_DEPENDS:=}"
-: "${SHLIBS_DEPENDS:=}"
-
-
-# ───────────────────────────────
-# Helpers
-# ───────────────────────────────
-note() { echo "[INFO] $*"; }
-warn() { echo "[WARN] $*" >&2; }
-
-# Accept both possible Photino native names
-has_photino_native() {
-  local d="$1"
-  [[ -f "$d/libPhotino.Native.so" || -f "$d/Photino.Native.so" ]]
-}
-
-# Stage one payload into deb root
-DEB_ROOT="${DEB_ROOT:-"${PROJECT_ROOT}/build/debroot"}"
-APP_LIB_ROOT="$DEB_ROOT/usr/lib/$APP_ID"
-
-stage_payload() {
-  local src="$1" dest_sub="$2"
-  [[ -d "$src" ]] || return 1
-
-  local dest="$APP_LIB_ROOT/$dest_sub"
-  note "Staging $dest_sub from: $src"
-  install -d "$dest"
-  rsync -a --delete "$src/" "$dest/"
-
-  # find Photino .so and ldd it (either filename)
-  local so=""
-  if [[ -f "$dest/libPhotino.Native.so" ]]; then
-    so="$dest/libPhotino.Native.so"
-  elif [[ -f "$dest/Photino.Native.so" ]]; then
-    so="$dest/Photino.Native.so"
-  fi
-  if [[ -n "$so" ]]; then
-    note "ldd on Photino native ($dest_sub): $(basename "$so")"
-    ldd "$so" | sed 's/^/  /' || true
+if [[ -n "$ICON_SRC" ]]; then
+  # If ImageMagick present, ensure 256x256; else copy as-is
+  if command -v identify >/dev/null 2>&1; then
+    sz="$(identify -format '%wx%h' "$ICON_SRC" 2>/dev/null || echo '')"
+    if [[ "$sz" != "256x256" ]]; then
+      convert "$ICON_SRC" -resize 256x256 "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_ID}.png"
+    else
+      cp -a "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_ID}.png"
+    fi
   else
-    warn "[$dest_sub] No Photino native .so found (looked for libPhotino.Native.so or Photino.Native.so)."
+    cp -a "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_ID}.png"
   fi
-}
-
-# ───────────────────────────────
-# Start fresh deb root and stage
-# ───────────────────────────────
-rm -rf "$DEB_ROOT"
-install -d "$DEB_ROOT/DEBIAN" "$DEB_ROOT/usr/bin" "$APP_LIB_ROOT/gtk4.1" "$APP_LIB_ROOT/gtk4.0"
-
-# Stage payloads
-[[ -n "${PUBLISH_DIR_GTK41:-}" ]]   && stage_payload "${PUBLISH_DIR_GTK41}" "gtk4.1"
-[[ -n "${PUBLISH_DIR_GTK40:-}" ]]   && stage_payload "${PUBLISH_DIR_GTK40}" "gtk4.0"
-if [[ -n "${PUBLISH_DIR_LAUNCHER:-}" ]]; then
-  # launcher goes to /usr/bin
-  if [[ -x "${PUBLISH_DIR_LAUNCHER}/WPStallman.Launcher" ]]; then
-    install -m 0755 "${PUBLISH_DIR_LAUNCHER}/WPStallman.Launcher" "$DEB_ROOT/usr/bin/WPStallman"
-  else
-    warn "Launcher binary not found in ${PUBLISH_DIR_LAUNCHER}"
-  fi
+else
+  echo "[WARN] No icon source found; Icon=${APP_ID}"
 fi
 
-# ── compute Installed-Size (KiB) excluding DEBIAN ──
-calc_installed_size_kib() {
-  # Portable way (works even if 'du --exclude' isn't available)
-  # Sums apparent sizes of all staged files except the DEBIAN control dir.
-  ( cd "$DEB_ROOT" \
-    && find . -path ./DEBIAN -prune -o -type f -print0 \
-    | du -c -k --files0-from=- 2>/dev/null \
-    | awk '/total$/ {print $1}' )
-}
+# -------- AppStream (if already generated in AppDir stage) --------
+if [[ -f "$ROOT/artifacts/build/AppDir/usr/share/metainfo/${APP_ID}.metainfo.xml" ]]; then
+  mkdir -p "$APPDIR/usr/share/metainfo"
+  cp -a "$ROOT/artifacts/build/AppDir/usr/share/metainfo/${APP_ID}.metainfo.xml" \
+        "$APPDIR/usr/share/metainfo/${APP_ID}.metainfo.xml"
+fi
 
-INSTALLED_SIZE_KIB="$(calc_installed_size_kib)"
-: "${INSTALLED_SIZE_KIB:=0}"   # fallback safety
+# -------- Basic docs (copyright + changelog) --------
+DOCDIR="$APPDIR/usr/share/doc/$PKG_NAME"
+mkdir -p "$DOCDIR"
+
+cat > "$DOCDIR/copyright" <<EOF
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: ${APP_NAME_DISP}
+Upstream-Contact: ${VENDOR_MAIL}
+Source: ${HOMEPAGE_URL:-https://lefthandenterprises.com/#/projects/dr-sql-md}
+
+Files: *
+Copyright: $(date +%Y) ${VENDOR_NAME}
+License: ${LICENSE_ID:-MIT}
+ This software is licensed under the ${LICENSE_ID:-MIT} license.
+EOF
+
+# create plain text first
+cat > "$DOCDIR/changelog.Debian" <<EOF
+${PKG_NAME} (${APPVER}) stable; urgency=medium
+
+  * Initial packaging of unified GTK 4.1/4.0 build.
+
+ -- ${DEB_MAINTAINER}  $(date -R)
+EOF
+
+# gzip in-place (overwrites if exists)
+gzip -n --best -f "$DOCDIR/changelog.Debian"
 
 
-# ───────────────────────────────
-# Control metadata (from release.meta)
-# ───────────────────────────────
-# curated deps for both WebKitGTK baselines (from metadata)
-: "${DEB_DEPENDS:=libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, libasound2, \
-libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, \
-libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37}"
+# -------- (Optional) Tiny manpage to silence binary-without-manpage --------
+MANDIR="$APPDIR/usr/share/man/man1"
+mkdir -p "$MANDIR"
+cat > "$MANDIR/${PKG_NAME}.1" <<'EOF'
+.TH DRSQ LMD 1 "User Commands"
+.SH NAME
+wpstallman \- document MySQL/MariaDB schemas to Markdown
+.SH SYNOPSIS
+.B wpstallman
+.RI [ options ]
+.SH DESCRIPTION
+Launches the Dr. SQL, M.D. GUI.
+EOF
+gzip -f "$MANDIR/${PKG_NAME}.1"
 
-# If you also compute shlibs via dpkg-shlibdeps, put the value (not the key=val) here.
-shlibs="${shlibs:-}"
+# -------- Permissions tidy (common lintian nits) --------
+# Executables
+find "$APPDIR/usr" -type f -path "*/gtk4.*/*" -name "WPStallman.GUI" -exec chmod 0755 {} +
+find "$APPDIR/usr/bin" -type f -exec chmod 0755 {} +
+# .so libraries should not be executable
+find "$APPDIR/usr" -type f -name "*.so" -exec chmod 0644 {} +
+# Common non-ELF types: ensure no exec bit
+find "$APPDIR/usr" -type f \( -name "*.dll" -o -name "*.pdb" -o -name "*.xml" -o -name "*.json" -o -name "*.md" -o -name "*.txt" \) -exec chmod 0644 {} + || true
+# Dirs readable
+find "$APPDIR/usr" -type d -exec chmod 0755 {} +
 
-CONTROL_FILE="$DEB_ROOT/DEBIAN/control"
-cat > "$CONTROL_FILE" <<EOF
-Package: ${DEB_PACKAGE}
-Version: ${APP_VERSION_DEB}
+# -------- Control file (omit Installed-Size; let dpkg compute) --------
+cat > "$APPDIR/DEBIAN/control" <<EOF
+Package: ${PKG_NAME}
+Version: ${APPVER}
 Section: ${DEB_SECTION}
 Priority: ${DEB_PRIORITY}
 Architecture: ${DEB_ARCH}
-Maintainer: ${PUBLISHER_NAME} <${PUBLISHER_EMAIL}>
-Installed-Size: ${INSTALLED_SIZE_KIB}
-Homepage: ${HOMEPAGE_URL}
-Depends: ${shlibs:+${shlibs}, }${DEB_DEPENDS}
-Description: ${APP_SHORTDESC}
-$( [[ -f "${DEB_LONGDESC_FILE:-}" ]] && sed 's/^/ /' "${DEB_LONGDESC_FILE}" )
+Maintainer: ${DEB_MAINTAINER}
+Depends: ${DEPS}
+Description: ${SHORTDESC}
+ ${APP_NAME_DISP} generates clean, navigable Markdown docs for MySQL/MariaDB schemas, tables, views, routines, triggers, and relationships.
 EOF
+chmod 0644 "$APPDIR/DEBIAN/control"
 
-
-# Optional postinst to refresh caches
-cat > "$DEB_ROOT/DEBIAN/postinst" <<'EOF'
-#!/bin/sh
-set -e
-if command -v gtk-update-icon-cache >/dev/null 2>&1; then gtk-update-icon-cache -f /usr/share/icons/hicolor || true; fi
-if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database -q /usr/share/applications || true; fi
-exit 0
-EOF
-chmod 0755 "$DEB_ROOT/DEBIAN/postinst"
-
-# ───────────────────────────────
-# Build the .deb
-# ───────────────────────────────
-# ── normalize perms inside the staging tree ──
-# dirs 0755, executables 0755, regular files 0644
-find "$DEB_ROOT" -type d  -exec chmod 0755 {} +
-find "$DEB_ROOT" -type f  -name "*.sh" -exec chmod 0755 {} +
-find "$DEB_ROOT/usr/bin" -type f -exec chmod 0755 {} + 2>/dev/null || true
-find "$DEB_ROOT" -type f ! -perm -111 -exec chmod 0644 {} +
-
-# control files: 0644 (scripts 0755 if you add any)
-find "$DEB_ROOT/DEBIAN" -type f -exec chmod 0644 {} +
-for s in postinst prerm postrm preinst; do
-  [[ -f "$DEB_ROOT/DEBIAN/$s" ]] && chmod 0755 "$DEB_ROOT/DEBIAN/$s"
-done
-
-# ── build with fakeroot so metadata looks “rooty” without sudo ──
-OUT_DEB="$OUTDIR/wpstallman_${APP_VERSION}_${DEB_ARCH}.deb"
-mkdir -p "$OUTDIR"
-fakeroot dpkg-deb --build "$DEB_ROOT" "$OUT_DEB"
-
-# ensure the resulting file is readable by non-root
-chmod 0644 "$OUT_DEB"
-# (optional) if any step used sudo earlier, take ownership back:
-chown "$USER:$USER" "$OUT_DEB" || true
-
-note "Built .deb: $OUT_DEB"
+# -------- Build .deb --------
+OUT_DEB="$OUT_DIR/${PKG_NAME}_${APPVER}_${DEB_ARCH}.deb"
+dpkg-deb --build --root-owner-group "$APPDIR" "$OUT_DEB"
+echo "[OK] Created .deb at $OUT_DEB"

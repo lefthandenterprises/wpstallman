@@ -2,7 +2,7 @@
 # appstream_helpers.sh — legacy-compatible for AppStream 0.15.x
 
 : "${APP_ID:?Set APP_ID (e.g., com.wpstallman.app)}"
-: "${APP_NAME:?Set APP_NAME (e.g., W.P. Stallman)}"
+: "${APP_NAME:?Set APP_NAME (e.g., W. P. Stallman)}"
 : "${APP_VERSION:=1.0.0}"
 : "${APP_RELEASE_DATE:=$(date +%F)}"   # e.g., 2025-10-14
 
@@ -14,8 +14,8 @@
 
 # Product info
 : "${APP_SUMMARY:=Packaging tools for WordPress modules}"
-: "${APP_DESCRIPTION:=W.P. Stallman packages WordPress modules into AppImage, .deb, and Windows installers and generates release manifests.}"
-: "${APP_HOMEPAGE:=https://lefthandenterprises.com/projects/wpstallman}"
+: "${APP_DESCRIPTION:=W. P. Stallman packages WordPress modules into AppImage, .deb, and Windows installers and generates release manifests.}"
+: "${APP_HOMEPAGE:=https://lefthandenterprises.com/#/projects/wpstallman}"
 
 # Optional extra URLs (leave blank if unused)
 : "${APP_URL_HELP:=}"
@@ -101,7 +101,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     --validate) validate_desktop_and_metainfo "${APPDIR:?set APPDIR}";;
     *)
       echo "Usage:" >&2
-      echo "  APPDIR=/path APP_ID=com.wpstallman.app APP_NAME='W.P. Stallman' APP_VERSION=1.0.0 \\" >&2
+      echo "  APPDIR=/path APP_ID=com.wpstallman.app APP_NAME='W. P. Stallman' APP_VERSION=1.0.0 \\" >&2
       echo "    APP_HOMEPAGE=https://... APP_DEVELOPER='Left Hand Enterprises, LLC' \\" >&2
       echo "    $0 --write|--validate" >&2
       exit 2

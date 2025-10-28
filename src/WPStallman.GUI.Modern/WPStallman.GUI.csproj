@@ -29,7 +29,7 @@
   <!-- Windows GUI: hide console + embed icon (from centralized Assets) -->
   <PropertyGroup Condition="'$(TargetFramework)'=='net8.0-windows'">
     <OutputType>WinExe</OutputType>
-    <ApplicationIcon>$(WwwRootDir)\img\WPS.ico</ApplicationIcon>
+    <ApplicationIcon>$(WwwRootDir)\img\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- Non-Windows GUI: still an executable (not a class library) -->
@@ -41,7 +41,7 @@
   <!-- Also ensure WinExe when building on Windows without specifying TFM -->
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <OutputType>WinExe</OutputType>
-    <ApplicationIcon>$(WwwRootDir)\img\WPS.ico</ApplicationIcon>
+    <ApplicationIcon>$(WwwRootDir)\img\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- REMOVE stale per-project wwwroot copying: Directory.Build.props handles it.
@@ -49,7 +49,7 @@
 
   <!-- macOS packaging inputs: use centralized .icns; Info.plist stays in repo -->
   <ItemGroup>
-    <None Include="$(WwwRootDir)\img\WPS.icns" Condition="Exists('$(WwwRootDir)\img\WPS.icns')" />
+    <None Include="$(WwwRootDir)\img\app.icns" Condition="Exists('$(WwwRootDir)\img\app.icns')" />
     <None Include="platforms/macos/Info.plist" Condition="Exists('platforms/macos/Info.plist')" />
   </ItemGroup>
 
@@ -80,8 +80,8 @@
     </ItemGroup>
     <Copy SourceFiles="@(_PublishedFiles)" DestinationFiles="@(_PublishedFiles->'$(MacAppDir)/Contents/MacOS/%(RecursiveDir)%(Filename)%(Extension)')" />
 
-    <!-- Copy centralized WPS.icns into Resources (if present) -->
-    <Copy SourceFiles="$(WwwRootDir)/img/WPS.icns" DestinationFiles="$(MacAppDir)/Contents/Resources/WPS.icns" Condition="Exists('$(WwwRootDir)/img/WPS.icns')" />
+    <!-- Copy centralized app.icns into Resources (if present) -->
+    <Copy SourceFiles="$(WwwRootDir)/img/app.icns" DestinationFiles="$(MacAppDir)/Contents/Resources/app.icns" Condition="Exists('$(WwwRootDir)/img/app.icns')" />
 
     <!-- Copy Info.plist into Contents (if present) -->
     <Copy SourceFiles="platforms/macos/Info.plist" DestinationFiles="$(MacAppDir)/Contents/Info.plist" Condition="Exists('platforms/macos/Info.plist')" />
@@ -97,9 +97,9 @@
 
   <Target Name="SyncIcons" BeforeTargets="Build;Publish" Condition="Exists('$(IconSourceDir)') AND Exists('$(IconDestDir)')">
     <ItemGroup>
-      <_IconFiles Include="$(IconSourceDir)\WPS-*.png" />
-      <_IconFiles Include="$(IconSourceDir)\WPS.ico" />
-      <_IconFiles Include="$(IconSourceDir)\WPS.icns" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-*.png" />
+      <_IconFiles Include="$(IconSourceDir)\app.ico" />
+      <_IconFiles Include="$(IconSourceDir)\app.icns" />
     </ItemGroup>
 
     <Message Text="Syncing icons: @(_IconFiles) -&gt; $(IconDestDir)" Importance="Low" />

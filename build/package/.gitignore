@@ -1,0 +1,16 @@
+# Ignore everything in this folder (files)
+*
+
+# Re-allow directories so negations below can match files within them
+!*/
+
+# Always keep this ignore file itself
+!.gitignore
+
+# Keep these file types anywhere under build/package/
+!**/*.sh
+!**/*.nsi
+!**/*.meta
+
+# Keep this specific file if it lives here
+!LICENSE.txt

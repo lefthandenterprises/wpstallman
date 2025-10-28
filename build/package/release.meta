@@ -1,49 +1,36 @@
-# ===== App / Org (shared) =====
-APP_ID="com.wpstallman.app"                         # reverse-DNS id
-APP_NAME="W.P. Stallman"                            # display name
-APP_SHORTDESC="Database script packaging tools for WordPress plugins"
-HOMEPAGE_URL="https://lefthandenterprises.com/projects/wpstallman"
+# ===== App / Org =====
+APP_ID="com.wpstallman.app"
+APP_NAME="W.P. Stallman"
+APP_NAME_SHORT="wpstallman"
+APP_SHORTDESC="WordPress scaffolding &amp; packaging toolkit"
+APP_DESC="W.P. Stallman is a toolkit designed for WordPress developers to easily scaffold, package, and deploy WordPress plugins and projects."
+HOMEPAGE_URL="https://lefthandenterprises.com/#/projects/wpstallman"
+APP_ICON_SRC="$ROOT/src/WPStallman.Assets/logo/app-icon-256.png"
+
 
 PUBLISHER_NAME="Left Hand Enterprises, LLC"
 PUBLISHER_EMAIL="patrick@lefthandenterprises.com"
-LICENSE_ID="MIT"                                    # SPDX id (MIT, Apache-2.0, etc.)
+LICENSE_ID="MIT"
 
-# Optional “long” descriptions can come from files (leave blank to skip)
-APPSTREAM_DESCRIPTION_FILE="build/package/descriptions/appstream.md"
-DEB_LONGDESC_FILE="build/package/descriptions/deb.md"
-NSIS_LONGDESC_FILE="build/package/descriptions/nsis.txt"
+# ===== Versioning =====
+# Prefer Directory.Build.props; this is a fallback/default
+APP_VERSION="${APP_VERSION:-$(grep -m1 -oP '(?<=<Version>)[^<]+' "$ROOT/Directory.Build.props" 2>/dev/null || echo 1.0.0)}"
+APP_VER_SUFFIX="${APP_VER_SUFFIX:-}"
 
-# ===== AppStream (AppImage metadata) =====
-APPSTREAM_CATEGORIES="Utility;Development;"
-APPSTREAM_KEYWORDS="WordPress;packaging;AppImage;deb;installer;"
-APPSTREAM_PROJECT_GROUP="Left Hand Enterprises"
-APPSTREAM_URL_ISSUES=""                             # optional
-APPSTREAM_URL_DONATION=""                           # optional
-APPSTREAM_CONTENT_RATING=""                         # optional: OARS xml path if you use it
-APPSTREAM_METADATA_LICENSE="FSFAP"                  # license of the metadata itself
+# ===== Build Settings =====
+DOCKERFILE_MODERN="$ROOT/Dockerfile.modern"
+DOCKERFILE_LEGACY="$ROOT/Dockerfile.legacy"
+IMAGE_NAME_MODERN="wpstallman-modern-sdk"
+IMAGE_NAME_LEGACY="wpstallman-legacy-sdk"
 
-# ===== Debian (.deb) =====
-DEB_PACKAGE="wpstallman"
-DEB_SECTION="utils"
-DEB_PRIORITY="optional"
-DEB_ARCH="amd64"
-# “Either-or” deps to cover both WebKitGTK baselines + core libs:
-DEB_DEPENDS="libgtk-3-0, libnotify4, libgdk-pixbuf-2.0-0, libnss3, \
- libjavascriptcoregtk-4.1-0 | libjavascriptcoregtk-4.0-18, \
- libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, libasound2"
+# ===== .NET =====
+TFM="net8.0"
+RID="linux-x64"
+CONF="Release"
 
- # ===== Windows build inputs =====
-GUI_CSPROJ_WIN="src/WPStallman.GUI.Windows/WPStallman.GUI.csproj"
-TFM_WIN_GUI="net8.0-windows"
-RID_WIN="win-x64"
+# ===== Outputs =====
+APP_IMAGE_DIR="$ROOT/artifacts/packages/appimage"
+OUT_DIR="$ROOT/artifacts/packages/zip"
 
-# Optional: single-file/self-contained defaults
-WIN_SELF_CONTAINED="true"
-WIN_SINGLE_FILE="true"
-
-# ===== Windows (NSIS / ZIP) =====
-NSIS_COMPANY_NAME="${PUBLISHER_NAME}"
-NSIS_PRODUCT_NAME="${APP_NAME}"
-NSIS_URL="${HOMEPAGE_URL}"
-NSIS_GUID="{FAD6F1E7-1C1F-4E16-9F5B-8C6A0C13A2A1}"  # generate once; keep stable
-WINZIP_BASENAME="WPStallman-Windows"
+# ===== Misc =====
+BUILD_NUMBER="${BUILD_NUMBER:-$(date +%Y%m%d%H%M)}"

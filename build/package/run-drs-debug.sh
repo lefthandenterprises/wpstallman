@@ -32,7 +32,7 @@ fi
 chmod +x "$APPIMG" 2>/dev/null || true
 
 TS="$(date +%Y%m%d-%H%M%S)"
-LOG="$DIR/wpst-appimage-debug-$TS.log"
+LOG="$DIR/drs-appimage-debug-$TS.log"
 
 # Debug env
 export APPIMAGE_DEBUG=1

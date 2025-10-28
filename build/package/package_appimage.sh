@@ -86,8 +86,8 @@ fi
 ICON_SRC="$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS-256.png"
 if [[ ! -f "$ICON_SRC" ]]; then
   # Try a couple alternative names
-  for alt in "$APPDIR/usr/lib/$APP_ID/wwwroot/img/WPS.png" \
-             "$APPDIR/usr/lib/$APP_ID/wwwroot/img/wpst-256.png"; do
+  for alt in "$APPDIR/usr/lib/$APP_ID/wwwroot/img/DRS.png" \
+             "$APPDIR/usr/lib/$APP_ID/wwwroot/img/drsql-256.png"; do
     [[ -f "$alt" ]] && ICON_SRC="$alt" && break
   done
 fi

@@ -107,7 +107,7 @@ do [[ -d "$c" ]] && GTK41_SRC="$c" && break; done
 
 [[ -n "${GTK40_SRC:-}" ]] || for c in \
   "$ROOT/src/WPStallman.GUI.Legacy/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish" \
-  "$ROOT/src/WPStallman.GUI.GTK40/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish" \
+  "$ROOT/src/DrSQLMD.GUI.GTK40/bin/Release/${TFM_LIN_GUI}/${RID_LIN}/publish" \
   "$ROOT/artifacts/publish-gtk4.0"
 do [[ -d "$c" ]] && GTK40_SRC="$c" && break; done
 

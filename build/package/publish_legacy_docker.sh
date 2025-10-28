@@ -1,24 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- Locate repo root robustly ---
-if git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
-  ROOT="$git_root"
-else
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Optional: force cache-busting when FLUSH_DOCKER_CACHE=1
+if [[ "${FLUSH_DOCKER_CACHE:-0}" -eq 1 ]]; then
+  echo "[INFO] FLUSH_DOCKER_CACHE=1 → pruning BuildKit cache and removing local SDK image"
+  docker buildx prune --all --force || true
+  # Remove the specific SDK image tag for this lane
+  docker rmi -f "${IMAGE_NAME:-wpstallman-modern-sdk}" 2>/dev/null || true
 fi
 
-DOCKERFILE="${DOCKERFILE:-$ROOT/Dockerfile.legacy}"
-IMAGE_NAME="${IMAGE_NAME:-wpstallman-legacy-sdk}"
 
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/meta_set_vars.sh"
+
+DOCKERFILE="${DOCKERFILE:-$DOCKERFILE_LEGACY}"
+IMAGE_NAME="${IMAGE_NAME:-wpstallman-legacy:jammy}"
 PROJECT="${PROJECT:-$ROOT/src/WPStallman.GUI.Legacy/WPStallman.GUI.csproj}"
+PROJECT_IN_CONTAINER="${PROJECT/#$ROOT/\/src}"
 TFM="${TFM:-net8.0}"
 RID="${RID:-linux-x64}"
 CONF="${CONF:-Release}"
-
-# Container path for the project
-PROJECT_IN_CONTAINER="${PROJECT/#$ROOT/\/src}"
 
 echo "ROOT        = $ROOT"
 echo "DOCKERFILE  = $DOCKERFILE"
@@ -28,29 +32,39 @@ echo "CONFIG      = $CONF"
 
 [[ -f "$PROJECT" ]] || { echo "ERROR: project not found: $PROJECT"; exit 2; }
 
-# --- Build tool image (cached) ---
 docker build -f "$DOCKERFILE" -t "$IMAGE_NAME" "$ROOT"
 
-# --- Publish in container ---
+if [[ -n "${LEGACY_PNET:-}" || -n "${LEGACY_PNATIVE:-}" ]]; then
+  echo "[INFO] Trying Photino.NET=${LEGACY_PNET:-<default>}, Photino.Native=${LEGACY_PNATIVE:-<default>}"
+fi
+
 docker run --rm \
+  -e DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
+  -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+  -e NUGET_PACKAGES=/root/.nuget/packages \
+  -v "$HOME/.nuget/packages":/root/.nuget/packages \
   -v "$ROOT":/src \
   -w /src \
   "$IMAGE_NAME" \
   bash -lc "
     echo 'Container glibc:' \$(getconf GNU_LIBC_VERSION);
-    dotnet restore \"$PROJECT_IN_CONTAINER\";
-    dotnet publish \"$PROJECT_IN_CONTAINER\" -c \"$CONF\" -f \"$TFM\" -r \"$RID\";
+    dotnet restore \"$PROJECT_IN_CONTAINER\" -r \"$RID\";
+    dotnet publish \"$PROJECT_IN_CONTAINER\" -c \"$CONF\" -f \"$TFM\" -r \"$RID\" --no-restore;
   "
 
 PUB_DIR="$ROOT/src/WPStallman.GUI.Legacy/bin/$CONF/$TFM/$RID/publish"
-
-# --- Sanity checks ---
 [[ -f "$PUB_DIR/WPStallman.GUI" ]] || { echo 'ERROR: Legacy binary missing'; exit 2; }
 [[ -f "$PUB_DIR/wwwroot/index.html" ]] || { echo 'ERROR: wwwroot missing in publish'; exit 2; }
 
 echo "Legacy publish ready: $PUB_DIR"
 
-# --- (Optional) Show GLIBC floor symbol detected in binary ---
+# ---- NEW: backfill expected artifacts path for downstream packagers ----
+OUT_DIR="$ROOT/artifacts/legacy-gtk40/publish-gtk40"
+rm -rf "$OUT_DIR"
+mkdir -p "$OUT_DIR"
+cp -a "$PUB_DIR/." "$OUT_DIR/"
+echo "[OK] Legacy payload synced to $OUT_DIR"
+
 if command -v strings >/dev/null 2>&1; then
   FLOOR=$(strings -a "$PUB_DIR/WPStallman.GUI" | grep -oE 'GLIBC_[0-9]+\.[0-9]+' | sort -V | tail -n1 || true)
   echo "Detected GLIBC floor: ${FLOOR:-unknown}"
