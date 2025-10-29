@@ -1,60 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <!-- Core settings -->
+  <!-- This is the Windows-specific GUI project -->
   <PropertyGroup>
-    <AssemblyName>WPStallman.GUI</AssemblyName>
-    <RootNamespace>WPStallman.GUI</RootNamespace> <!-- lets you avoid namespace churn -->
-  </PropertyGroup>
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);MODERN_FLOOR</DefineConstants>
-  </PropertyGroup>
-
-
-  <PropertyGroup>
-    <!-- Put net8.0 FIRST so it's the default when no -f is passed -->
-    <TargetFrameworks>net8.0;net8.0-windows</TargetFrameworks>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <OutputType>WinExe</OutputType>
     <Nullable>enable</Nullable>
 
-    <!-- Cross-platform self-contained single-file publishing -->
+    <!-- Windows packaging knobs -->
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <!-- Photino uses reflection; trimming can break things -->
-    <PublishTrimmed>false</PublishTrimmed>
 
-    <!-- Ship for Linux/Windows/macOS (Intel + Apple Silicon) -->
-    <RuntimeIdentifiers>linux-x64;win-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <!-- Embed the app icon -->
+    <ApplicationIcon>..\WPStallman.Assets\logo\app.ico</ApplicationIcon>
+
+    <!-- (Optional) add a RID here if you always publish win-x64 from CI -->
+    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
   </PropertyGroup>
 
-  <!-- Windows GUI: hide console + embed icon (from centralized Assets) -->
-  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0-windows'">
-    <OutputType>WinExe</OutputType>
-    <ApplicationIcon>../WPStallman.Assets/logo/WPS.ico</ApplicationIcon>
-  </PropertyGroup>
-
-  <!-- Non-Windows GUI: still an executable (not a class library) -->
-  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
-    <OutputType>Exe</OutputType>
-    <UseAppHost>true</UseAppHost>
-  </PropertyGroup>
-
-  <!-- Also ensure WinExe when building on Windows without specifying TFM -->
-  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
-    <OutputType>WinExe</OutputType>
-    <ApplicationIcon>../WPStallman.Assets/logo/WPS.ico</ApplicationIcon>
-  </PropertyGroup>
-
-  <!-- REMOVE stale per-project wwwroot copying: Directory.Build.props handles it.
-       (Intentionally no <Content Include="wwwroot\**\*"> here.) -->
-
-  <!-- macOS packaging inputs: use centralized .icns; Info.plist stays in repo -->
-  <!-- <ItemGroup>
-    <ApplicationIcon>src/WPStallman.Assets/logo/WPS.ico</ApplicationIcon>
-  </ItemGroup> -->
+  <!-- Make icons available at runtime via wwwroot/img (for tray/window code paths that load assets) -->
+  <ItemGroup>
+    <None Include="..\WPStallman.Assets\logo\app.ico" Link="wwwroot\img\app.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\WPStallman.Assets\logo\app-icon-256.png" Link="wwwroot\img\app.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="GtkSharp" Version="3.24.24.95" />
     <PackageReference Include="LiteDB" Version="5.0.21" />
+    <PackageReference Include="Photino.Native" Version="4.0.22" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
   </ItemGroup>
 
@@ -62,46 +38,44 @@
     <ProjectReference Include="..\WPStallman.Core\WPStallman.Core.csproj" />
   </ItemGroup>
 
-  <!-- macOS: create a simple .app bundle after publish -->
-  <Target Name="CreateMacAppBundle" AfterTargets="Publish" Condition="'$(RuntimeIdentifier)'=='osx-x64' OR '$(RuntimeIdentifier)'=='osx-arm64'">
-    <!-- PublishDir ends with 'publish/' -->
-    <PropertyGroup>
-      <MacAppName>WPStallman</MacAppName>
-      <MacAppDir>$(PublishDir)$(MacAppName).app</MacAppDir>
-    </PropertyGroup>
-
-    <!-- Create .app structure -->
-    <MakeDir Directories="$(MacAppDir)/Contents;$(MacAppDir)/Contents/MacOS;$(MacAppDir)/Contents/Resources" />
-
-    <!-- Copy published files into MacOS/ -->
-    <ItemGroup>
-      <_PublishedFiles Include="$(PublishDir)**/*" Exclude="$(MacAppDir)/**" />
-    </ItemGroup>
-    <Copy SourceFiles="@(_PublishedFiles)" DestinationFiles="@(_PublishedFiles->'$(MacAppDir)/Contents/MacOS/%(RecursiveDir)%(Filename)%(Extension)')" />
-
-    <!-- Copy centralized WPS.icns into Resources (if present) -->
-    <Copy SourceFiles="$(WwwRootDir)/img/WPS.icns" DestinationFiles="$(MacAppDir)/Contents/Resources/WPS.icns" Condition="Exists('$(WwwRootDir)/img/WPS.icns')" />
-
-    <!-- Copy Info.plist into Contents (if present) -->
-    <Copy SourceFiles="platforms/macos/Info.plist" DestinationFiles="$(MacAppDir)/Contents/Info.plist" Condition="Exists('platforms/macos/Info.plist')" />
-  </Target>
-
-  <!-- Optional: sync icon source artwork into centralized wwwroot/img
-       (keeps all GUIs in sync). If you prefer to manage icons manually in
-       src/WPStallman.Assets/wwwroot/img, you can remove this target. -->
+  <!-- Sync icon source artwork from Assets into centralized wwwroot/img -->
   <PropertyGroup>
     <IconSourceDir>$(RepoRoot)src\WPStallman.Assets\logo</IconSourceDir>
     <IconDestDir>$(WwwRootDir)\img</IconDestDir>
   </PropertyGroup>
 
-  <Target Name="SyncIcons" BeforeTargets="Build;Publish" Condition="Exists('$(IconSourceDir)') AND Exists('$(IconDestDir)')">
+  <Target Name="SyncIcons"
+          BeforeTargets="Build;Publish"
+          Condition="Exists('$(IconSourceDir)')">
+    <MakeDir Directories="$(IconDestDir)" />
     <ItemGroup>
-      <_IconFiles Include="$(IconSourceDir)\WPS-*.png" />
-      <_IconFiles Include="$(IconSourceDir)\WPS.ico" />
-      <_IconFiles Include="$(IconSourceDir)\WPS.icns" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-16.png"  Condition="Exists('$(IconSourceDir)\app-icon-16.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-24.png"  Condition="Exists('$(IconSourceDir)\app-icon-24.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-32.png"  Condition="Exists('$(IconSourceDir)\app-icon-32.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-48.png"  Condition="Exists('$(IconSourceDir)\app-icon-48.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-64.png"  Condition="Exists('$(IconSourceDir)\app-icon-64.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-128.png" Condition="Exists('$(IconSourceDir)\app-icon-128.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-256.png" Condition="Exists('$(IconSourceDir)\app-icon-256.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-512.png" Condition="Exists('$(IconSourceDir)\app-icon-512.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app.ico"  Condition="Exists('$(IconSourceDir)\app.ico')" />
     </ItemGroup>
 
-    <Message Text="Syncing icons: @(_IconFiles) -&gt; $(IconDestDir)" Importance="Low" />
-    <Copy SourceFiles="@(_IconFiles)" DestinationFiles="@(_IconFiles->'$(IconDestDir)\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Message Text="Syncing icons: @(_IconFiles) -> $(IconDestDir)" Importance="Low" />
+    <Copy SourceFiles="@(_IconFiles)"
+          DestinationFiles="@(_IconFiles->'$(IconDestDir)\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
   </Target>
+  <Target Name="EnsureAppPng" AfterTargets="Publish">
+  <PropertyGroup>
+    <OutImgDir>$(PublishDir)wwwroot/img</OutImgDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <_FallbackIcon Include="$(OutImgDir)/app-icon-256.png" Condition="Exists('$(OutImgDir)/app-icon-256.png')" />
+  </ItemGroup>
+  <Copy
+    SourceFiles="@(_FallbackIcon)"
+    DestinationFiles="@(_FallbackIcon->'$(OutImgDir)/app.png')"
+    Condition="Exists('$(OutImgDir)') AND !Exists('$(OutImgDir)/app.png') AND '%(_FallbackIcon.Identity)' != ''" />
+</Target>
+
 </Project>

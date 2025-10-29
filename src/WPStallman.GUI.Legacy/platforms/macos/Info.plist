@@ -18,7 +18,7 @@
 
     <!-- Icon file (in Contents/Resources) -->
     <key>CFBundleIconFile</key>
-    <string>WPS.icns</string>
+    <string>app.icns</string>
 
     <!-- Standard UI category -->
     <key>LSApplicationCategoryType</key>

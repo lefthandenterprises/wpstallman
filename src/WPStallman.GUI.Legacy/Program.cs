@@ -39,24 +39,10 @@ namespace WPStallman.GUI
         {
             string iconPathGuess;
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                // Prefer .ico on Windows
-                iconPathGuess = ResolveAssetPath("wwwroot", "img", "WPS.ico");
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                // Prefer .icns, fall back to PNG
-                var icns = ResolveAssetPath("wwwroot", "app.icns");
-                iconPathGuess = File.Exists(icns)
-                    ? icns
-                    : ResolveAssetPath("wwwroot", "img", "WPS-256.png");
-            }
-            else
-            {
-                // Linux: PNG
-                iconPathGuess = ResolveAssetPath("wwwroot", "img", "WPS-256.png");
-            }
+            var platformIcon = OperatingSystem.IsWindows() ? "app.ico"
+                         : OperatingSystem.IsMacOS() ? "app.icns"
+                         : "app.png";
+            iconPathGuess = ResolveAssetPath("wwwroot", "img", platformIcon);
 
             if (File.Exists(iconPathGuess))
             {

@@ -42,7 +42,7 @@ namespace WPStallman.GUI
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 // Prefer .ico on Windows
-                iconPathGuess = ResolveAssetPath("wwwroot", "img", "WPS.ico");
+                iconPathGuess = ResolveAssetPath("wwwroot", "img", "app.ico");
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
