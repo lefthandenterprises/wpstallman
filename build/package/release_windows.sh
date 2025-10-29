@@ -120,14 +120,16 @@ if [[ -f "$NSI" ]]; then
   OUT_EXE="$ROOT/artifacts/packages/nsis/${BASENAME_CLEAN}-${APP_VERSION}-Setup.exe"
   mkdir -p "$(dirname "$OUT_EXE")"
 
-  makensis -V4 -NOCD \
-    -DAPP_NAME="$APP_NAME" \
-    -DAPP_VERSION="$APP_VERSION" \
-    -DAPP_STAGE="Release" \
-    -DOUT_EXE="$OUT_EXE" \
-    -DSOURCE_DIR="$APPDIR_WIN" \
-    -DICON_FILE="$ROOT/src/WPStallman.Assets/logo/app.ico" \
-    "$NSI"
+makensis -V4 -NOCD \
+  -DAPP_NAME="$APP_NAME" \
+  -DAPP_VERSION="$APP_VERSION" \
+  -DAPP_STAGE="Release" \
+  -DOUT_EXE="$OUT_EXE" \
+  -DSOURCE_DIR="$APPDIR_WIN" \
+  -DICON_FILE="$ROOT/src/WPStallman.Assets/logo/app.ico" \
+  -DLICENSE_FILE="$ROOT/build/package/LICENSE.txt" \
+  "$NSI"
+
 
   echo "[OK ] NSIS → $OUT_EXE"
 else

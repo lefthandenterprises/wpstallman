@@ -1,127 +1,153 @@
-; ===== WPStallman NSIS Installer (Windows) =====
+; =========================================
+; W.P. Stallman — NSIS Installer (MUI2)
+; =========================================
+!include "MUI2.nsh"
+!include "x64.nsh"
+
+; ---- Expected -D defines from the build script ----
+;   -DSOURCE_DIR=".../artifacts/windows/win-x64/publish/gui"   (required)
+;   -DOUT_EXE=".../artifacts/packages/nsis/WPStallman-1.0.0-Setup.exe" (required)
+;   -DAPP_NAME="W.P. Stallman"                                 (default OK)
+;   -DAPP_VERSION="1.0.0"                                      (default OK)
+;   -DICON_FILE=".../src/WPStallman.Assets/logo/app.ico"       (default OK)
+;   -DLICENSE_FILE=".../build/package/LICENSE.txt"             (default OK)
+;   -DMAIN_EXE="WPStallman.GUI.exe"                            (default OK)
 
 !ifndef SOURCE_DIR
-  !error "SOURCE_DIR not defined. Call makensis with -DSOURCE_DIR=/abs/path/to/win-publish"
+  !error "SOURCE_DIR not defined. Call makensis with -DSOURCE_DIR=/abs/path/to/win-publish/gui"
 !endif
-
 !ifndef OUT_EXE
-  !define OUT_EXE "$%TEMP%\WPStallman-Setup-${APPVER}.exe"
+  !define OUT_EXE "$%TEMP%\WPStallman-Setup.exe"
 !endif
-
 !ifndef APP_NAME
-  !define APP_NAME "WPStallman"
+  !define APP_NAME "W.P. Stallman"
 !endif
-!ifndef APP_ID
-  !define APP_ID "com.wpstallman.app"
+!ifndef APP_VERSION
+  !define APP_VERSION "0.0.0"
 !endif
-!ifndef APP_DESC
-  !define APP_DESC "Document your entire MySQL database in MarkDown format"
+!ifndef ICON_FILE
+  !define ICON_FILE "$%TEMP%\app.ico"
 !endif
-!ifndef APPVER
-  !define APPVER "0.0.0"
+!ifndef LICENSE_FILE
+  !define LICENSE_FILE "${NSISDIR}\Contrib\License.txt"
 !endif
-!ifndef APPVER_NUM
-  !define APPVER_NUM "1.0.0.0"
-!endif
-!ifndef EXE_NAME
-  !define EXE_NAME "WPStallman.GUI.exe"
+!ifndef MAIN_EXE
+  !define MAIN_EXE "WPStallman.GUI.exe"
 !endif
 
-;!ifndef OUT_EXE
-;  !define OUT_EXE "WPStallman-Setup-${APPVER}.exe"
-;!endif
-
-!ifdef ICON_FILE
-  !define HAVE_ICON 1
-!endif
-!ifdef UNICON_FILE
-  !define HAVE_UNICON 1
-!endif
-
-!include "MUI2.nsh"
-!include "FileFunc.nsh"
-
-OutFile "${OUT_EXE}"
+; ---- Basic installer metadata ----
 Name "${APP_NAME}"
-BrandingText "${APP_NAME} ${APPVER}"
-Caption "${APP_NAME} Installer"
-
-VIProductVersion "${APPVER_NUM}"
-VIAddVersionKey "ProductName"     "${APP_NAME}"
-VIAddVersionKey "FileDescription" "${APP_DESC}"
-VIAddVersionKey "ProductVersion"  "${APPVER}"
-VIAddVersionKey "FileVersion"     "${APPVER}"
-
-!ifdef HAVE_ICON
-  Icon "${ICON_FILE}"
-!endif
-!ifdef HAVE_UNICON
-  UninstallIcon "${UNICON_FILE}"
-!endif
-
+OutFile "${OUT_EXE}"
+Unicode true
 RequestExecutionLevel admin
-InstallDir "$ProgramFiles64\${APP_NAME}"
-InstallDirRegKey HKLM "Software\${APP_NAME}" "Install_Dir"
+BrandingText "${APP_NAME} ${APP_VERSION}"
+InstallDir "$PROGRAMFILES64\${APP_NAME}"
 
-SetCompress auto
+; ---- Look & packaging ----
+Icon "${ICON_FILE}"
+UninstallIcon "${ICON_FILE}"
 SetCompressor /SOLID lzma
+ShowInstDetails show
+ShowUninstDetails show
+XPStyle on
 
-; --------- Build-time (Linux) sanity check ---------
-; If you're building on Linux, this verifies SOURCE_DIR exists before File /r
-!system 'test -d "${SOURCE_DIR}" || (echo "ERR: SOURCE_DIR not found: ${SOURCE_DIR}" >&2; exit 1)'
+; ---- Version info in the installer file ----
+VIProductVersion "${APP_VERSION}.0"
+VIAddVersionKey "ProductName"     "${APP_NAME}"
+VIAddVersionKey "FileDescription" "${APP_NAME} Installer"
+VIAddVersionKey "FileVersion"     "${APP_VERSION}"
+VIAddVersionKey "CompanyName"     "Left Hand Enterprises, LLC"
+VIAddVersionKey "LegalCopyright"  "MIT License"
 
+; ---- MUI pages & options ----
 !define MUI_ABORTWARNING
-!ifdef ICON_FILE
-  !define MUI_ICON "${ICON_FILE}"
-!endif
-!ifdef UNICON_FILE
-  !define MUI_UNICON "${UNICON_FILE}"
-!endif
+!define MUI_ICON "${ICON_FILE}"
+!define MUI_UNICON "${ICON_FILE}"
+
+; License page with REQUIRED checkbox (users must check "I Agree" to proceed)
+!define MUI_LICENSEPAGE_CHECKBOX
+
+; Add a Finish-page “Open the license” checkbox
+!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\LICENSE.txt"
+!define MUI_FINISHPAGE_SHOWREADME_TEXT "Open the license (MIT) now"
+
 !insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE "${LICENSE_FILE}"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE_NAME}"
-!define MUI_FINISHPAGE_RUN_NOTCHECKED
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "English"
 
-Section "-Install core"
-  SetRegView 64
+; ---- Variables ----
+Var StartMenuFolder
+
+; =========================================
+; Sections
+; =========================================
+
+Section "Core Files" SEC_CORE
   SetOutPath "$INSTDIR"
 
-  DetailPrint "Packaging payload from: ${SOURCE_DIR}"
+  ; Copy published payload (GUI, runtimes, wwwroot, etc.)
+  File /r "${SOURCE_DIR}\*"
 
-  ; IMPORTANT: This copies files at **build time** from your Linux path
-  SetOverwrite ifnewer
-  File /r "${SOURCE_DIR}/*"
+  ; Always install/copy a stable LICENSE.txt into $INSTDIR
+  SetOutPath "$INSTDIR"
+  File "/oname=$INSTDIR\LICENSE.txt" "${LICENSE_FILE}"
 
-  ; Save install path
-  WriteRegStr HKLM "Software\${APP_NAME}" "Install_Dir" "$INSTDIR"
-
-  ; Uninstall entry
+  ; Write uninstall information (Add/Remove Programs)
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayName"     "${APP_NAME}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayVersion"  "${APPVER}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayVersion"  "${APP_VERSION}"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "Publisher"       "Left Hand Enterprises, LLC"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayIcon"     "$INSTDIR\${MAIN_EXE}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString" "$INSTDIR\Uninstall.exe"
 
-  ; Uninstaller & shortcuts
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  CreateDirectory "$SMPROGRAMS\${APP_NAME}"
-  CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}" "" "$INSTDIR\${EXE_NAME}" 0
-  CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall ${APP_NAME}.lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
 
+Section "Shortcuts" SEC_SHORTCUTS
+  ; Start Menu group = App name
+  StrCpy $StartMenuFolder "${APP_NAME}"
+
+  ; Create Start Menu folder and shortcuts
+  CreateDirectory "$SMPROGRAMS\$StartMenuFolder"
+  CreateShortCut "$SMPROGRAMS\$StartMenuFolder\${APP_NAME}.lnk" "$INSTDIR\${MAIN_EXE}" "" "$INSTDIR\${MAIN_EXE}" 0
+  CreateShortCut "$SMPROGRAMS\$StartMenuFolder\View License.lnk" "$INSTDIR\LICENSE.txt"
+  CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Uninstall ${APP_NAME}.lnk" "$INSTDIR\Uninstall.exe"
+
+  ; Optional desktop shortcut
+  CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${MAIN_EXE}" "" "$INSTDIR\${MAIN_EXE}" 0
+SectionEnd
+
+Section -PostInstall SEC_POST
+  ; (Optional) auto-run after install
+  ; Exec "$INSTDIR\${MAIN_EXE}"
+SectionEnd
+
+; =========================================
+; Uninstall
+; =========================================
 Section "Uninstall"
-  SetRegView 64
-  Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
-  Delete "$SMPROGRAMS\${APP_NAME}\Uninstall ${APP_NAME}.lnk"
-  RMDir  "$SMPROGRAMS\${APP_NAME}"
-  Delete "$INSTDIR\Uninstall.exe"
+  ; Best-effort kill running app (commented by default)
+  ; nsExec::ExecToLog 'taskkill /IM "${MAIN_EXE}" /F'
+
+  ; Remove files and folders
   RMDir /r "$INSTDIR"
-  DeleteRegKey HKLM "Software\${APP_NAME}"
+
+  ; Remove shortcuts
+  StrCpy $StartMenuFolder "${APP_NAME}"
+  Delete "$SMPROGRAMS\$StartMenuFolder\${APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\$StartMenuFolder\View License.lnk"
+  Delete "$SMPROGRAMS\$StartMenuFolder\Uninstall ${APP_NAME}.lnk"
+  RMDir  "$SMPROGRAMS\$StartMenuFolder"
+
+  ; Remove desktop shortcut
+  Delete "$DESKTOP\${APP_NAME}.lnk"
+
+  ; Clean uninstall registry entry
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 SectionEnd
