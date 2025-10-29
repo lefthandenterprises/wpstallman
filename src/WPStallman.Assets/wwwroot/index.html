@@ -683,9 +683,9 @@
                   </td>
 
                   <td class="donate-name" data-bind="text: name"></td>
-                  <td class="donate_address">
-                    <div data-bind="text: url"></div>
-                  </td>
+      <td class="donate-address">
+                      <span class="addr" data-bind="text: url, attr:{ title: url }"></span>
+                    </td>
                   <td class="donate-actions">
                     <button type="button" class="btn btn-sm btn-outline-primary"
                       data-bind="click: $parent.openInHost">Open</button>
