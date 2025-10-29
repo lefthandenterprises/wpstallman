@@ -4,6 +4,10 @@
   !error "SOURCE_DIR not defined. Call makensis with -DSOURCE_DIR=/abs/path/to/win-publish"
 !endif
 
+!ifndef OUT_EXE
+  !define OUT_EXE "$%TEMP%\WPStallman-Setup-${APPVER}.exe"
+!endif
+
 !ifndef APP_NAME
   !define APP_NAME "WPStallman"
 !endif
@@ -22,9 +26,10 @@
 !ifndef EXE_NAME
   !define EXE_NAME "WPStallman.GUI.exe"
 !endif
-!ifndef OUT_EXE
-  !define OUT_EXE "WPStallman-Setup-${APPVER}.exe"
-!endif
+
+;!ifndef OUT_EXE
+;  !define OUT_EXE "WPStallman-Setup-${APPVER}.exe"
+;!endif
 
 !ifdef ICON_FILE
   !define HAVE_ICON 1
