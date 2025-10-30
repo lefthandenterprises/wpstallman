@@ -150,7 +150,7 @@ Uncomment the uninstall call in the stub to remove objects after testing.
 
 ## ✅ License
 
-MIT © 2025 Left Hand Enterprises, LLC — see [LICENSE](./LICENSE) for details.
+MIT © 2025 Left Hand Enterprises, LLC — see [LICENSE](./license.md) for details.
 
 
 ---
