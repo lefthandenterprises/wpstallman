@@ -36,8 +36,8 @@ The name is a combination of W\.C. Fields, WordPress, and Richard Stallman , com
 Clone the repo and build:
 
 ```bash
-git clone https://github.com/lefthandenterprises/wpstallmannetcore.git
-cd wpstallmannetcore
+git clone https://github.com/lefthandenterprises/wpstallman.git
+cd wpstallman
 dotnet restore
 dotnet build
 ```
