@@ -5,10 +5,13 @@ using System.Runtime.InteropServices;
 using Photino.NET;
 using WPStallman.Core.Classes;
 using WPStallman.Core.Interfaces;
+using WPStallman.Core.Platform.Windows; // <-- WindowsFileDialogs lives here
+
+using System.Linq;
 
 namespace WPStallman.GUI.Classes;
 
-public class PhotinoWindowHandler : IPhotinoWindowHandler
+public partial class PhotinoWindowHandler : IPhotinoWindowHandler
 {
     private readonly PhotinoWindow _window;
 
@@ -38,7 +41,7 @@ public class PhotinoWindowHandler : IPhotinoWindowHandler
     {
         var response = new CommandResponse();
         string? url = envelope.Details.TryGetProperty("url", out var urlEl) ? urlEl.GetString() : null;
-       
+
         if (string.IsNullOrWhiteSpace(url))
         {
             response.Success = false;
@@ -100,7 +103,9 @@ public class PhotinoWindowHandler : IPhotinoWindowHandler
              ? (filterProp.GetString() ?? "*.*")
             : "*.*";
 
-        var fileToOpen = OpenFileDialogHelper.ShowOpenFileDialog("Open Manifest", filter);
+        var fileToOpen = WindowsFileDialogs
+            .OpenFiles("Open Manifest", filter, multi: false, initialDirectory: null)
+            .FirstOrDefault();
 
         var response = new CommandResponse
         {
@@ -125,7 +130,8 @@ public class PhotinoWindowHandler : IPhotinoWindowHandler
             ? (filterSaveProp.GetString() ?? "*.*")
             : "*.*";
 
-        var fileToSave = SaveFileDialogHelper.ShowSaveFileDialog(suggested, filterSave);
+var fileToSave = WindowsFileDialogs
+    .SaveFile("Save As", filterSave, defaultFileName: suggested, initialDirectory: null);
 
         var response = new CommandResponse
         {
@@ -139,4 +145,35 @@ public class PhotinoWindowHandler : IPhotinoWindowHandler
 
         return response;
     }
+
+    public bool IsWindowsForms => true;
+
+    public string[] OpenFiles(string title = "Select file(s)",
+                              string filter = "All files (*.*)|*.*",
+                              bool multi = true,
+                              string? initialDirectory = null)
+#if WINDOWS
+        => WindowsFileDialogs.OpenFiles(title, filter, multi, initialDirectory);
+#else
+        => Array.Empty<string>();
+#endif
+
+    public string? PickFolder(string description = "Select a folder",
+                              string? initialDirectory = null,
+                              bool showNewFolderButton = true)
+#if WINDOWS
+        => WindowsFileDialogs.PickFolder(description, initialDirectory, showNewFolderButton);
+#else
+        => null;
+#endif
+
+    public string? SaveFile(string title = "Save As",
+                            string filter = "All files (*.*)|*.*",
+                            string? defaultFileName = null,
+                            string? initialDirectory = null)
+#if WINDOWS
+        => WindowsFileDialogs.SaveFile(title, filter, defaultFileName, initialDirectory);
+#else
+        => null;
+#endif
 }

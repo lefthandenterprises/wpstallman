@@ -34,6 +34,12 @@
     <PackageReference Include="Photino.NET" Version="4.0.16" />
   </ItemGroup>
 
+    <!-- ⛔ exclude GTK helpers (they reference Gtk# and will fail on Windows) -->
+  <ItemGroup>
+    <Compile Remove="Classes/OpenFileDialogHelper.cs" />
+    <Compile Remove="Classes/SaveFileDialogHelper.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\WPStallman.Core\WPStallman.Core.csproj" />
   </ItemGroup>

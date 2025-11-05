@@ -10,6 +10,8 @@ using WPStallman.Core.Interfaces;
 using WPStallman.Core.Services;
 
 using WPStallman.GUI.Classes;
+using WPStallman.GUI.Windows; // <-- add this for DialogEnabledCommandProcessor
+
 
 namespace WPStallman.GUI
 {
@@ -104,6 +106,8 @@ namespace WPStallman.GUI
                     var response = new CommandResponse();
                     string? requestId = null;
 
+                    if (win is null) return; // or: throw new InvalidOperationException("No window");
+
                     IPhotinoWindowHandler handler = new PhotinoWindowHandler(win);
 
                     try
@@ -127,9 +131,13 @@ namespace WPStallman.GUI
                         var manifestGenerator = new ManifestGenerator();
                         var installerClassGenerator = new InstallerClassGenerator();
 
-                        var commandProcessor = new GUICommandProcessor(handler, message, requestId);
+                        var inner = new WPStallman.GUI.Windows.GUICommandProcessor(handler, message, requestId);
+                        var dialogProc = new DialogEnabledCommandProcessor(handler, message, requestId, inner);
+                        response = dialogProc.ProcessCommand();
 
-                        response = commandProcessor.ProcessCommand();
+                        // var commandProcessor = new GUICommandProcessor(handler, message, requestId);
+
+                        //    response = commandProcessor.ProcessCommand();
 
                     }
                     catch (Exception ex)
