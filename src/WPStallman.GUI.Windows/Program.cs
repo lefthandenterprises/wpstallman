@@ -135,10 +135,6 @@ namespace WPStallman.GUI
                         var dialogProc = new DialogEnabledCommandProcessor(handler, message, requestId, inner);
                         response = dialogProc.ProcessCommand();
 
-                        // var commandProcessor = new GUICommandProcessor(handler, message, requestId);
-
-                        //    response = commandProcessor.ProcessCommand();
-
                     }
                     catch (Exception ex)
                     {

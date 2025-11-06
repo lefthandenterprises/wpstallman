@@ -97,6 +97,10 @@ public sealed class DialogEnabledCommandProcessor
                     Console.WriteLine("env.Details:");
                     Console.WriteLine(env.Details);
                     var name = GetString(env.Details, "SuggestedFileName");
+                    if(name == null)
+                    {
+                        name = GetString(env.Details, "SuggestedFilename");
+                    }
                     var init = GetString(env.Details, "initialDirectory");
                     var file = _handler.SaveFile(title, filter, name, init);
                     resp.Payload = new { Path = file, FileToSave = file, isWindowsForms = _handler.IsWindowsForms };

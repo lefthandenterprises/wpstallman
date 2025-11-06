@@ -41,6 +41,11 @@ public static class WindowsFileDialogs
     public static string? SaveFile(string title, string filter, string? defaultFileName, string? initialDirectory)
         => InvokeSta(() =>
         {
+            Console.WriteLine("SaveFile title:" + title);
+            Console.WriteLine("SaveFile filter:" + filter);
+            Console.WriteLine("SaveFile defaultFileName:" + defaultFileName);
+            Console.WriteLine("SaveFile initialDirectory:" + initialDirectory);
+
             using var dlg = new SaveFileDialog
             {
                 Title = title,
@@ -48,7 +53,8 @@ public static class WindowsFileDialogs
                 RestoreDirectory = true,
                 AddExtension = true,
                 FileName = defaultFileName ?? string.Empty,
-                InitialDirectory = InitDir(initialDirectory)
+                InitialDirectory = InitDir(initialDirectory),
+                OverwritePrompt = false
             };
             return dlg.ShowDialog() == DialogResult.OK ? dlg.FileName : null;
         });
