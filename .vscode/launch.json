@@ -51,6 +51,38 @@
         "${workspaceFolder}/src/WPStallman.GUI.Legacy/WPStallman.GUI.csproj"
       ],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": ".NET Run (GUI.Windows, net8.0-windows)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "run",
+        "-f",
+        "net8.0-windows",
+        "--project",
+        "${workspaceFolder}/src/WPStallman.GUI.Windows/WPStallman.GUI.csproj"
+      ],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "build:gui.windows",
+      "console": "internalConsole",
+      "justMyCode": true
+    },
+    {
+      "name": "Launch Built App (auto-path)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        // If RID is present, DLL will be under win-x64; otherwise EXE/DLL in net8.0-windows root.
+        "${command:expandWildcards}",
+        "${workspaceFolder}/src/WPStallman.GUI.Windows/bin/Debug/net8.0-windows/**/WPStallman.GUI.*"
+      ],
+      "cwd": "${workspaceFolder}/src/WPStallman.GUI.Windows",
+      "preLaunchTask": "build:gui.windows",
+      "console": "internalConsole",
+      "justMyCode": true
     }
   ]
 }

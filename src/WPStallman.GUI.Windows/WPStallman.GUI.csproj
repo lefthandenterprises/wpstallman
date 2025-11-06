@@ -1,22 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <!-- This is the Windows-specific GUI project -->
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <OutputType>WinExe</OutputType>
-    <Nullable>enable</Nullable>
+<PropertyGroup>
+  <TargetFramework>net8.0-windows</TargetFramework>
+  <OutputType>WinExe</OutputType>
+  <UseWindowsForms>true</UseWindowsForms>
+  <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  <Nullable>enable</Nullable>
+  <!-- Leave RID unset here unless you really need it for Debug -->
+  <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
+</PropertyGroup>
 
-    <!-- Windows packaging knobs -->
-    <SelfContained>true</SelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+<!-- Debug: faster local runs -->
+<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+  <SelfContained>false</SelfContained>
+  <PublishSingleFile>false</PublishSingleFile>
+  <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+</PropertyGroup>
 
-    <!-- Embed the app icon -->
-    <ApplicationIcon>..\WPStallman.Assets\logo\app.ico</ApplicationIcon>
+<!-- Release: your current packaging knobs -->
+<PropertyGroup Condition="'$(Configuration)'=='Release'">
+  <SelfContained>true</SelfContained>
+  <PublishSingleFile>true</PublishSingleFile>
+  <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+</PropertyGroup>
 
-    <!-- (Optional) add a RID here if you always publish win-x64 from CI -->
-    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
-  </PropertyGroup>
 
   <!-- Make icons available at runtime via wwwroot/img (for tray/window code paths that load assets) -->
   <ItemGroup>

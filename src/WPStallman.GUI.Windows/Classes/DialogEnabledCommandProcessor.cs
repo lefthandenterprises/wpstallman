@@ -37,41 +37,46 @@ public sealed class DialogEnabledCommandProcessor
         var env = JsonSerializer.Deserialize<CommandEnvelope>(_message, jsonOpts)
                   ?? throw new Exception("Command envelope was missing.");
 
-        var resp = new CommandResponse { RequestId = _requestId, Success = true };
+        Console.WriteLine("Command:" + env.Command);
+
+                var resp = new CommandResponse { RequestId = _requestId, Success = true };
+
 
         switch (env.Command)
         {
+            case "ShowOpenFileDialog":
             case "OpenFiles":
-            {
-                var filter = GetString(env.Details, "filter") ?? "All files (*.*)|*.*";
-                var title  = GetString(env.Details, "title")  ?? "Select file(s)";
-                var multi  = GetBool(env.Details, "multi")    ?? true;
-                var init   = GetString(env.Details, "initialDirectory");
-                var files  = _handler.OpenFiles(title, filter, multi, init);
-                resp.Payload = new { paths = files, isWindowsForms = _handler.IsWindowsForms };
-                return resp;
-            }
+                {
+
+                    var filter = GetString(env.Details, "filter") ?? "All files (*.*)|*.*";
+                    var title = GetString(env.Details, "title") ?? "Select file(s)";
+                    var multi = GetBool(env.Details, "multi") ?? true;
+                    var init = GetString(env.Details, "initialDirectory");
+                    var files = _handler.OpenFiles(title, filter, multi, init);
+                    resp.Payload = new { paths = files, isWindowsForms = _handler.IsWindowsForms };
+                    return resp;
+                }
 
             case "PickFolder":
-            {
-                var desc = GetString(env.Details, "description") ?? "Select a folder";
-                var init = GetString(env.Details, "initialDirectory");
-                var show = GetBool(env.Details, "showNewFolderButton") ?? true;
-                var folder = _handler.PickFolder(desc, init, show);
-                resp.Payload = new { path = folder, isWindowsForms = _handler.IsWindowsForms };
-                return resp;
-            }
+                {
+                    var desc = GetString(env.Details, "description") ?? "Select a folder";
+                    var init = GetString(env.Details, "initialDirectory");
+                    var show = GetBool(env.Details, "showNewFolderButton") ?? true;
+                    var folder = _handler.PickFolder(desc, init, show);
+                    resp.Payload = new { path = folder, isWindowsForms = _handler.IsWindowsForms };
+                    return resp;
+                }
 
             case "SaveFile":
-            {
-                var title = GetString(env.Details, "title") ?? "Save As";
-                var filter = GetString(env.Details, "filter") ?? "All files (*.*)|*.*";
-                var name = GetString(env.Details, "defaultFileName");
-                var init = GetString(env.Details, "initialDirectory");
-                var file = _handler.SaveFile(title, filter, name, init);
-                resp.Payload = new { path = file, isWindowsForms = _handler.IsWindowsForms };
-                return resp;
-            }
+                {
+                    var title = GetString(env.Details, "title") ?? "Save As";
+                    var filter = GetString(env.Details, "filter") ?? "All files (*.*)|*.*";
+                    var name = GetString(env.Details, "defaultFileName");
+                    var init = GetString(env.Details, "initialDirectory");
+                    var file = _handler.SaveFile(title, filter, name, init);
+                    resp.Payload = new { path = file, isWindowsForms = _handler.IsWindowsForms };
+                    return resp;
+                }
 
             // 👇 default/else → pass to your regular processor unchanged
             default:

@@ -8,7 +8,8 @@
       "args": [
         "build",
         "${workspaceFolder}/src/WPStallman.Launcher/WPStallman.Launcher.csproj",
-        "-c", "Debug"
+        "-c",
+        "Debug"
       ],
       "problemMatcher": "$msCompile",
       "group": "build"
@@ -20,7 +21,8 @@
       "args": [
         "build",
         "${workspaceFolder}/src/WPStallman.GUI/WPStallman.GUI.csproj",
-        "-c", "Debug"
+        "-c",
+        "Debug"
       ],
       "problemMatcher": "$msCompile"
     },
@@ -29,7 +31,19 @@
       "type": "shell",
       "command": "dotnet run --project ${workspaceFolder}/src/WPStallman.Launcher/WPStallman.Launcher.csproj",
       "problemMatcher": []
+    },
+    {
+      "label": "build:gui.windows",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/src/WPStallman.GUI.Windows/WPStallman.GUI.csproj",
+        "-c", "Debug",
+        "-f", "net8.0-windows"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": "build"
     }
   ]
 }
-
