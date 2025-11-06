@@ -14,14 +14,10 @@
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "stopAtEntry": false,
-      "linux": {
-        "console": "internalConsole"
-      },
-      "windows": {
-        "console": "internalConsole"
-      },
-      "osx": {
-        "console": "internalConsole"
+      "justMyCode": true,
+      "env": {
+        "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+        "DOTNET_NOLOGO": "1"
       }
     },
     {
@@ -31,12 +27,16 @@
       "program": "dotnet",
       "args": [
         "run",
-        "-f",
-        "net8.0",
+        "-f", "net8.0",
         "--project",
         "${workspaceFolder}/src/WPStallman.GUI.Modern/WPStallman.GUI.csproj"
       ],
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true,
+      "env": {
+        "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+        "DOTNET_NOLOGO": "1"
+      }
     },
     {
       "name": ".NET Launch (GUI Legacy)",
@@ -45,12 +45,53 @@
       "program": "dotnet",
       "args": [
         "run",
-        "-f",
-        "net8.0",
+        "-f", "net8.0",
         "--project",
         "${workspaceFolder}/src/WPStallman.GUI.Legacy/WPStallman.GUI.csproj"
       ],
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true,
+      "env": {
+        "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+        "DOTNET_NOLOGO": "1"
+      }
+    },
+    {
+      "name": ".NET Run (GUI.Windows, net8.0-windows)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "run",
+        "-f", "net8.0-windows",
+        "--project",
+        "${workspaceFolder}/src/WPStallman.GUI.Windows/WPStallman.GUI.csproj"
+      ],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "build:gui.windows",
+      "console": "internalConsole",
+      "justMyCode": true,
+      "env": {
+        "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+        "DOTNET_NOLOGO": "1"
+      }
+    },
+
+    // ⛔ Remove the wildcard-based launcher: VS Code won't expand globs here.
+    // If you really want a post-build direct launch, point to the actual EXE:
+    {
+      "name": "Launch Built App (direct exe)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/WPStallman.GUI.Windows/bin/Debug/net8.0-windows/WPStallman.GUI.exe",
+      "cwd": "${workspaceFolder}/src/WPStallman.GUI.Windows/bin/Debug/net8.0-windows",
+      "preLaunchTask": "build:gui.windows",
+      "console": "internalConsole",
+      "justMyCode": true,
+      "env": {
+        "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+        "DOTNET_NOLOGO": "1"
+      }
     }
   ]
 }

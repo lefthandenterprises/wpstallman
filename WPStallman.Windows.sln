@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPStallman.GUI", "src\WPStallman.GUI.Windows\WPStallman.GUI.csproj", "{40FDF40B-158C-4290-9871-AF96CF2C334A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPStallman.Core", "src\WPStallman.Core\WPStallman.Core.csproj", "{2CB00DBA-CCE3-4F11-96BF-CC2FED0113EB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{40FDF40B-158C-4290-9871-AF96CF2C334A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40FDF40B-158C-4290-9871-AF96CF2C334A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40FDF40B-158C-4290-9871-AF96CF2C334A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40FDF40B-158C-4290-9871-AF96CF2C334A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CB00DBA-CCE3-4F11-96BF-CC2FED0113EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CB00DBA-CCE3-4F11-96BF-CC2FED0113EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CB00DBA-CCE3-4F11-96BF-CC2FED0113EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CB00DBA-CCE3-4F11-96BF-CC2FED0113EB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -139,4 +139,23 @@ public class PhotinoWindowHandler : IPhotinoWindowHandler
 
         return response;
     }
+
+        public bool IsWindowsForms => false;
+
+    public string[] OpenFiles(string title = "Select file(s)",
+                              string filter = "All files (*.*)|*.*",
+                              bool multi = true,
+                              string? initialDirectory = null)
+        => Array.Empty<string>();
+
+    public string? PickFolder(string description = "Select a folder",
+                              string? initialDirectory = null,
+                              bool showNewFolderButton = true)
+        => null;
+
+    public string? SaveFile(string title = "Save As",
+                            string filter = "All files (*.*)|*.*",
+                            string? defaultFileName = null,
+                            string? initialDirectory = null)
+        => null;
 }
