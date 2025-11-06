@@ -46,6 +46,9 @@
     <Compile Remove="Classes/OpenFileDialogHelper.cs" />
     <Compile Remove="Classes/SaveFileDialogHelper.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="app.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\WPStallman.Core\WPStallman.Core.csproj" />
@@ -55,28 +58,25 @@
   <PropertyGroup>
     <IconSourceDir>$(RepoRoot)src\WPStallman.Assets\logo</IconSourceDir>
     <IconDestDir>$(WwwRootDir)\img</IconDestDir>
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <Target Name="SyncIcons"
-          BeforeTargets="Build;Publish"
-          Condition="Exists('$(IconSourceDir)')">
+  <Target Name="SyncIcons" BeforeTargets="Build;Publish" Condition="Exists('$(IconSourceDir)')">
     <MakeDir Directories="$(IconDestDir)" />
     <ItemGroup>
-      <_IconFiles Include="$(IconSourceDir)\app-icon-16.png"  Condition="Exists('$(IconSourceDir)\app-icon-16.png')" />
-      <_IconFiles Include="$(IconSourceDir)\app-icon-24.png"  Condition="Exists('$(IconSourceDir)\app-icon-24.png')" />
-      <_IconFiles Include="$(IconSourceDir)\app-icon-32.png"  Condition="Exists('$(IconSourceDir)\app-icon-32.png')" />
-      <_IconFiles Include="$(IconSourceDir)\app-icon-48.png"  Condition="Exists('$(IconSourceDir)\app-icon-48.png')" />
-      <_IconFiles Include="$(IconSourceDir)\app-icon-64.png"  Condition="Exists('$(IconSourceDir)\app-icon-64.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-16.png" Condition="Exists('$(IconSourceDir)\app-icon-16.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-24.png" Condition="Exists('$(IconSourceDir)\app-icon-24.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-32.png" Condition="Exists('$(IconSourceDir)\app-icon-32.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-48.png" Condition="Exists('$(IconSourceDir)\app-icon-48.png')" />
+      <_IconFiles Include="$(IconSourceDir)\app-icon-64.png" Condition="Exists('$(IconSourceDir)\app-icon-64.png')" />
       <_IconFiles Include="$(IconSourceDir)\app-icon-128.png" Condition="Exists('$(IconSourceDir)\app-icon-128.png')" />
       <_IconFiles Include="$(IconSourceDir)\app-icon-256.png" Condition="Exists('$(IconSourceDir)\app-icon-256.png')" />
       <_IconFiles Include="$(IconSourceDir)\app-icon-512.png" Condition="Exists('$(IconSourceDir)\app-icon-512.png')" />
-      <_IconFiles Include="$(IconSourceDir)\app.ico"  Condition="Exists('$(IconSourceDir)\app.ico')" />
+      <_IconFiles Include="$(IconSourceDir)\app.ico" Condition="Exists('$(IconSourceDir)\app.ico')" />
     </ItemGroup>
 
-    <Message Text="Syncing icons: @(_IconFiles) -> $(IconDestDir)" Importance="Low" />
-    <Copy SourceFiles="@(_IconFiles)"
-          DestinationFiles="@(_IconFiles->'$(IconDestDir)\%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+    <Message Text="Syncing icons: @(_IconFiles) -&gt; $(IconDestDir)" Importance="Low" />
+    <Copy SourceFiles="@(_IconFiles)" DestinationFiles="@(_IconFiles->'$(IconDestDir)\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="EnsureAppPng" AfterTargets="Publish">
   <PropertyGroup>
@@ -85,10 +85,7 @@
   <ItemGroup>
     <_FallbackIcon Include="$(OutImgDir)/app-icon-256.png" Condition="Exists('$(OutImgDir)/app-icon-256.png')" />
   </ItemGroup>
-  <Copy
-    SourceFiles="@(_FallbackIcon)"
-    DestinationFiles="@(_FallbackIcon->'$(OutImgDir)/app.png')"
-    Condition="Exists('$(OutImgDir)') AND !Exists('$(OutImgDir)/app.png') AND '%(_FallbackIcon.Identity)' != ''" />
+  <Copy SourceFiles="@(_FallbackIcon)" DestinationFiles="@(_FallbackIcon->'$(OutImgDir)/app.png')" Condition="Exists('$(OutImgDir)') AND !Exists('$(OutImgDir)/app.png') AND '%(_FallbackIcon.Identity)' != ''" />
 </Target>
 
 </Project>
