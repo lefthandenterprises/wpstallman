@@ -86,13 +86,20 @@ public sealed class DialogEnabledCommandProcessor
                 }
 
             case "SaveFile":
+            case "ShowSaveDialog":
                 {
                     var title = GetString(env.Details, "title") ?? "Save As";
-                    var filter = GetString(env.Details, "filter") ?? "All files (*.*)|*.*";
-                    var name = GetString(env.Details, "defaultFileName");
+                    var filter = GetString(env.Details, "Filter") ?? "All files (*.*)|*.*";
+                    if(filter == "*.*")
+                    {
+                        filter = "All files (*.*)|*.*";
+                    }
+                    Console.WriteLine("env.Details:");
+                    Console.WriteLine(env.Details);
+                    var name = GetString(env.Details, "SuggestedFileName");
                     var init = GetString(env.Details, "initialDirectory");
                     var file = _handler.SaveFile(title, filter, name, init);
-                    resp.Payload = new { path = file, isWindowsForms = _handler.IsWindowsForms };
+                    resp.Payload = new { Path = file, FileToSave = file, isWindowsForms = _handler.IsWindowsForms };
                     return resp;
                 }
 
