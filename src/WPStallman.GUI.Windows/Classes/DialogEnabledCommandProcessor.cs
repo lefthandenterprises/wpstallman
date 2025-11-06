@@ -2,6 +2,7 @@ using System.Text.Json;
 using WPStallman.Core.Interfaces;
 using WPStallman.Core.Classes;
 using System; // <-- needed for Exception
+using System.Linq;
 
 
 namespace WPStallman.GUI.Windows;
@@ -39,12 +40,29 @@ public sealed class DialogEnabledCommandProcessor
 
         Console.WriteLine("Command:" + env.Command);
 
-                var resp = new CommandResponse { RequestId = _requestId, Success = true };
+        var resp = new CommandResponse { RequestId = _requestId, Success = true };
 
 
         switch (env.Command)
         {
             case "ShowOpenFileDialog":
+                {
+                    var filter = GetString(env.Details, "filter") ?? "All files (*.*)|*.*";
+                    var title = GetString(env.Details, "title") ?? "Select file(s)";
+                    var multi = GetBool(env.Details, "multi") ?? true;
+                    var init = GetString(env.Details, "initialDirectory");
+                    var filesToOpen = _handler.OpenFiles(title, filter, multi, init);
+                    Console.Write("fileResponse:");
+                    Console.Write(filesToOpen);
+
+                    resp.Payload = new { FileToOpen = filesToOpen.FirstOrDefault(), path = filesToOpen.FirstOrDefault(), paths = filesToOpen, isWindowsForms = _handler.IsWindowsForms };
+                    return resp;
+                    // Payload = new
+                    // {
+                    //     FileToOpen = fileToOpen,
+                    //     FileName = !string.IsNullOrEmpty(fileToOpen) ? Path.GetFileName(fileToOpen) : null
+                    // };
+                }
             case "OpenFiles":
                 {
 
