@@ -1,13 +1,19 @@
 <Project>
-  <PropertyGroup>
-    <!-- app/package version shown in About dialogs, filenames, etc. -->
-    <Version>1.0.0</Version>
+ <PropertyGroup>
+  <!-- Semantic version for packages, filenames, About dialogs -->
+  <Version>1.0.1</Version>
 
-    <!-- Optional (usually align with Version): -->
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
-    <PackageVersion>1.0.0</PackageVersion>
-  </PropertyGroup>
+  <!-- Keep assembly binding-stable until a breaking change -->
+  <AssemblyVersion>1.0.0.0</AssemblyVersion>
+
+  <!-- File/Win properties (shows in file properties) -->
+  <FileVersion>1.0.1.0</FileVersion>
+
+  <!-- NuGet / packaging version -->
+  <PackageVersion>1.0.1</PackageVersion>
+
+</PropertyGroup>
+
 
   <!-- Only choose a TFM when the project multi-targets and a TFM wasn't specified -->
   <PropertyGroup Condition="'$(TargetFramework)'=='' AND '$(TargetFrameworks)'!=''">

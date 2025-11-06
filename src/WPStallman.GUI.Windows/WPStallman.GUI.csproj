@@ -8,6 +8,8 @@
   <Nullable>enable</Nullable>
   <!-- Leave RID unset here unless you really need it for Debug -->
   <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
+     <!-- Ensure we have an apphost (needed to carry the icon) -->
+  <UseAppHost>true</UseAppHost>
 </PropertyGroup>
 
 <!-- Debug: faster local runs -->
