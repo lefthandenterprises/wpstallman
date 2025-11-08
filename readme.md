@@ -1,8 +1,10 @@
-# W.P. Stallman
+# W. P. Stallman
 
 A WordPress packaging utility designed to help developers generate **database installers** for their WordPress plugins.
 
 The name is a combination of W. C. Fields, WordPress, and Richard Stallman , combining a philosophy of open tools with a curmudgeonly approach to software development.
+
+![image](src/WPStallman.Assets/logo/app-icon-128.png "Hat Logo")
 
 ---
 
@@ -43,6 +45,8 @@ dotnet build
 ```
 
 ---
+
+## ✅ Usage - GUI Version
 
 ![image](src/WPStallman.Assets/references/wpstallman-quick-demo-600.gif "GUI Tutorial")
 
