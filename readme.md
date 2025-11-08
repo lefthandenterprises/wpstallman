@@ -136,21 +136,14 @@ SQL;
 
 ### 3) Test the Installer
 
-Drop `class-my-plugin-installer.php` and `test-installer.php` into your plugin directory, then run:
+Drop `my-plugin-installer-installer.php`, `my-plugin-installer.php`, `class-my-plugin-installer.php`, and `index.php` into your plugin directory, or upload them as part of a .zip file, then perform the install via the WordPress admin UI.
 
-```bash
-php test-installer.php
+OPTIONAL: Uncomment the uninstall call in the stub test an install followed by an uninstall.
+
+```php
+// echo "Uninstalling...\n";
+// $installer->uninstall();
 ```
-
-Expected output:
-
-```
-Running install...
-Populating seed data...
-Done!
-```
-
-Uncomment the uninstall call in the stub to remove objects after testing.
 
 ---
 
