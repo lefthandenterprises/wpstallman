@@ -81,7 +81,7 @@ namespace WPStallman.GUI
 
                 // IMPORTANT: pass the absolute path string, not file://
                 var window = new PhotinoWindow()
-                    .SetTitle("W. P. Stallman")
+                    .SetTitle("W P Stallman") // NO DOTS ALLOWED IN WINDOW TITLE - Windows is a big stoopy
                     .SetSize(1200, 900)
                     .SetMinSize(800, 600)
                     .Load(indexPath);
